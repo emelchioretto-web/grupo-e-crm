@@ -2962,7 +2962,7 @@ document.addEventListener('click',async e=>{
   if(d.sort){const [col,i]=d.sort.split('|');S.ui.sort=S.ui.sort||{};const cur=S.ui.sort[col];S.ui.sort[col]=cur&&cur.i===+i?(cur.d==='desc'?{i:+i,d:'asc'}:null):{i:+i,d:'desc'};if(!S.ui.sort[col])delete S.ui.sort[col];render();return}
   if(d.pdsec){S.ui.pd.tab='geral';S.ui.pd.sec=d.pdsec;S.ui.pd.cuEd=null;render();return}
   if(d.pced!==undefined){S.ui.pd.cuEd=+d.pced;render();return}
-  if(d.pcok!==undefined){S.ui.pd.cuEd=null;render();return}
+  if(d.pcok!==undefined){const i=S.ui.pd.cuEd;const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);S.ui.pd.cuEd=null;if(p&&p.custos&&p.custos[i]){const c=p.custos[i];setTimeout(()=>{const lid=custoSyncLanc(p,c,c);if(lid&&c.lancId!==lid){const L=p.custos.map(x=>({...x}));L[i].lancId=lid;patch('pedidos',p.id,{custos:L})}},300)}render();return}
   if(d.pdnovo){const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);if(!p)return;if(d.pdnovo==='agenda')openForm('agenda',{titulo:p.titulo||'',contatoId:p.contatoId||'',data:p.dataEvento||'',hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',local:p.local||'',pedidoId:p.id,pedidoNum:p.num||''});else openForm('projetos',{titulo:p.titulo||'',contatoId:p.contatoId||'',pedidoId:p.id,dataEvento:p.dataEvento||'',status:PROJ_ST[0][0]});return}
   if(d.recprint){reciboImprimir(d.recprint);return}
   if(d.ctmerge){const c=S.data.contatos.find(x=>x.id===d.ctmerge);$('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:620px"><header><h3>Mesclar contato duplicado</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header><div class="mbody"><span>Qual contato é o mesmo que <b>${esc(SCHEMAS.contatos.labelOf(c))}</b> (#${esc(String(c.num??''))})?</span><div class="field"><label for="mg-outro">Outro contato</label><input id="mg-outro" list="dl-mg" placeholder="Digite o nome, e-mail ou número" autocomplete="off"><datalist id="dl-mg">${S.data.contatos.filter(x=>x.id!==c.id).map(x=>`<option value="${esc(SCHEMAS.contatos.labelOf(x)+' #'+(x.num??'')+(x.email?' '+x.email:'')+' ['+x.id+']')}">`).join('')}</datalist></div><span class="muted" style="font-size:12.5px">Fica o contato que tem mais pedidos (se empatar, o mais antigo). Os dados que faltam nele são completados com os do outro, os pedidos, oportunidades, provas e lançamentos passam para ele, e o outro é excluído.</span><div class="err" id="mg-err" style="color:var(--danger);font-size:13px" hidden></div></div><footer><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn pri" data-ctmergeok="${c.id}">${ic('check',15)} Mesclar</button></footer></div></div>`;return}
@@ -3219,7 +3219,7 @@ document.addEventListener('change',e=>{
   if(t.id==='rel-de'||t.id==='rel-ate'){S.ui.rel[t.id==='rel-de'?'de':'ate']=t.value;render();return}
   if(t.id==='f-categoria'&&M&&M.col==='pedidos')pedFormSync();
   if(t.dataset&&t.dataset.dupkeep!==undefined){S.ui.dup.keep={...(S.ui.dup.keep||{}),[t.dataset.dupkeep]:t.value};render();return}
-  if(t.dataset&&t.dataset.pcf){const [i,k]=t.dataset.pcf.split(':');const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);if(p){const L=(p.custos||[]).map(c=>({...c}));if(L[+i]){L[+i][k]=k==='valor'?moneyParse(t.value):k==='pago'?t.checked:t.value;if(k==='fornecedor')L[+i].fornecedorNum=null;patch('pedidos',p.id,{custos:L}).catch(failWrite)}}return}
+  if(t.dataset&&t.dataset.pcf){const [i,k]=t.dataset.pcf.split(':');const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);if(p){const L=(p.custos||[]).map(c=>({...c}));if(L[+i]){const old={...L[+i]};L[+i][k]=k==='valor'?moneyParse(t.value):k==='pago'?t.checked:t.value;if(k==='fornecedor')L[+i].fornecedorNum=null;const lid=custoSyncLanc(p,old,L[+i]);if(lid)L[+i].lancId=lid;patch('pedidos',p.id,{custos:L}).catch(failWrite)}}return}
   if(t.matches('[data-ip]')){const p=S.data.produtos.find(x=>x.id===t.value);const v=t.closest('[data-item]').querySelector('[data-iv]');if(p&&p.preco&&!v.value)v.value=p.preco;updItemsTotal()}
 });
 document.addEventListener('keydown',e=>{
@@ -4101,6 +4101,17 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   t.disabled=true;t.textContent='Enviando…';const texto=emCorpo(txt);
   try{await gmEnviar({para,assunto:ass,texto});try{await save('emails',{chave:'manual:'+Date.now(),tipo:'manual',para,nome:'',assunto:ass,texto,status:'enviado',enviadoEm:new Date().toISOString(),por:usuarioAtual()})}catch(_){}closeModal();toast('E-mail enviado')}
   catch(err){t.disabled=false;t.textContent='Enviar';toast(gmErr(err),true)}});
+/* custo do pedido alterado → acerta a conta a pagar ligada a ele no financeiro */
+function custoLanc(p,c){const L=S.data.lancamentos.filter(l=>l.tipo==='pagar'&&l.pedidoId===p.id);
+  if(c.lancId&&c.lancId!=='alboom'){const x=L.find(l=>l.id===c.lancId);if(x)return x}
+  const v=+c.valor||0,nm=nrm(c.nome||'');const mv=L.filter(l=>Math.abs((+l.valor||0)-v)<0.01);
+  return mv.find(l=>c.venc&&l.vencimento===c.venc)||mv.find(l=>nm&&nrm(l.descricao||'').includes(nm))||(mv.length===1?mv[0]:null)||L.find(l=>c.venc&&l.vencimento===c.venc&&nm&&nrm(l.descricao||'').includes(nm))||null}
+function custoSyncLanc(p,old,nov){const l=custoLanc(p,old);if(!l)return null;
+  if(l.pago){toast('Esta conta já está paga no financeiro: mudei só no pedido.',true);return l.id}
+  const ch={};if(Math.abs((+nov.valor||0)-(+l.valor||0))>0.005)ch.valor=+nov.valor||0;if(nov.venc&&nov.venc!==l.vencimento)ch.vencimento=nov.venc;
+  if((nov.nome||'')!==(old.nome||'')&&nov.nome){const d=String(l.descricao||'');ch.descricao=old.nome&&d.includes(old.nome)?d.replace(old.nome,nov.nome):nov.nome+(d?' - '+d:'')}
+  if((nov.fornecedor||'')!==(old.fornecedor||'')&&nov.fornecedor){const f=S.data.contatos.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(nov.fornecedor));if(f)ch.contatoId=f.id}
+  if(Object.keys(ch).length){save('lancamentos',{...l,...ch}).then(()=>toast('Conta a pagar atualizada no financeiro')).catch(failWrite)}return l.id}
 /* campo de dinheiro: 15285 → 15.285 · 15285,5 → 15.285,50 */
 function moneyFmt(v){if(v===''||v==null||isNaN(+v))return '';return (+v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function moneyParse(t){t=String(t||'').replace(/[^\d,]/g,'');const [a,b='']=t.split(',');return +(a||'0')+(b?+('0.'+b.slice(0,2)):0)}
