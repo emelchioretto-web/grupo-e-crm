@@ -44,7 +44,7 @@ const st=document.createElement('style');st.textContent=css;document.head.append
 const G='<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 function tela(html){let el=document.getElementById('gx');if(!el){el=document.createElement('div');el.id='gx';document.body.appendChild(el)}el.innerHTML=`<div class="c"><h1>ELTON</h1><div class="s">MELCHIORETTO · GRUPO E</div>${html}</div>`;return el}
 function fechar(){const el=document.getElementById('gx');if(el)el.remove()}
-const entrar=async()=>{const pv=new firebase.auth.GoogleAuthProvider();pv.setCustomParameters({prompt:'select_account'});['https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar','https://www.googleapis.com/auth/drive'].forEach(x=>pv.addScope(x));
+const entrar=async()=>{const pv=new firebase.auth.GoogleAuthProvider();pv.setCustomParameters({prompt:'select_account'});
   try{const r=await auth.signInWithPopup(pv);const t=r&&r.credential&&r.credential.accessToken;if(t&&window.__crmSetToken)window.__crmSetToken(t,3300)}catch(e){if(/popup|cancel/i.test(e.code||'')&&!/cancelled-popup|closed-by-user/.test(e.code||''))await auth.signInWithRedirect(pv);else if(!/closed-by-user|cancelled-popup/.test(e.code||''))tela(`<p class="er">Não consegui entrar: ${String(e.message||e).replace(/</g,'&lt;')}</p><p><button id="gxb">${G} Tentar de novo</button></p>`),document.getElementById('gxb').onclick=entrar}};
 const LKEY='crm-email-link';
 function telaLogin(msg){tela(`<p style="margin-top:0">Entre para abrir o CRM.</p><p><button id="gxb">${G} Entrar com Google</button></p>
@@ -118,107 +118,37 @@ window.claude={use:async n=>{if(n==='db')return ready;if(n==='user'){await ready
    DocuSeal (chave da API guardada no banco) e anexos (Firebase Storage). */
 (function(){
 const H=window.__CRM_HOST;if(!H)return;const {fs,auth,DONO}=H;
-const GCID=window.GOOGLE_CLIENT_ID||'';
-const SCOPES='https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive';
-let TOK=null,EXP=0,pend=null;
-const eu=()=>H.eu&&H.eu();
-const temGoogle=()=>{const u=auth.currentUser;return !!(u&&u.providerData.some(p=>p.providerId==='google.com'))};
 const erro=(msg,code)=>{const e=new Error(msg);e.code=code||'tool_error';return e};
-window.__crmSetToken=(t,s)=>{if(t){TOK=t;EXP=Date.now()+(s||3300)*1000;chip()}};
+window.__crmSetToken=()=>{};
 
-/* ---------- token Google ---------- */
-function gsi(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();let n=0;const t=setInterval(()=>{if(window.google&&google.accounts&&google.accounts.oauth2){clearInterval(t);res()}else if(++n>100){clearInterval(t);rej(erro('Não consegui carregar o login do Google.'))}},100)})}
-async function token(interativo){
-  if(TOK&&Date.now()<EXP-60000)return TOK;
-  if(!temGoogle())throw erro('Quem entrou por link de e-mail não tem conta Google ligada. Este envio fica para quando o Elton abrir o CRM.','sem_google');
-  if(!GCID)throw erro('Falta configurar o ID do cliente Google no app.','sem_config');
-  if(!interativo)throw erro('O Google precisa ser reconectado: clique em "Conectar Google", no canto de baixo da tela.','needs_reauth');
-  if(pend)return pend;await gsi();
-  pend=new Promise((res,rej)=>{const tc=google.accounts.oauth2.initTokenClient({client_id:GCID,scope:SCOPES,login_hint:(auth.currentUser||{}).email||'',prompt:'',
-      callback:r=>{pend=null;if(r.error)return rej(erro('O Google não autorizou: '+r.error,'needs_reauth'));TOK=r.access_token;EXP=Date.now()+(+r.expires_in||3600)*1000;chip();res(TOK)},
-      error_callback:e=>{pend=null;chip();rej(erro(e&&e.type==='popup_failed_to_open'?'O navegador bloqueou a janela do Google. Clique em "Conectar Google", no canto de baixo da tela.':'O login do Google foi fechado.','needs_reauth'))}});
-    tc.requestAccessToken({prompt:''})});
-  return pend}
-async function gf(url,opt={},raw){let t=await token(false);
-  const go=tk=>fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+tk}});
-  let r=await go(t);if(r.status===401){TOK=null;chip();throw erro('O acesso ao Google expirou. Clique em "Conectar Google", no canto de baixo da tela.','needs_reauth')}
-  if(!r.ok){let m='';try{const j=await r.json();m=(j.error&&(j.error.message||j.error))||''}catch(_){}throw erro((r.status===404?'not found (404) ':'')+'Google respondeu '+r.status+(m?': '+m:''))}
-  if(raw)return r;const tx=await r.text();try{return tx?JSON.parse(tx):{}}catch(_){return tx}}
+/* ---------- ponte Apps Script (conta Google da empresa) ---------- */
+async function segredos(){const d=await fs.doc('config/segredos').get();return d.exists?d.data():{}}
+function pedir(titulo,texto,campos){return new Promise(res=>{const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px;font:14px/1.5 system-ui';
+  o.innerHTML=`<div style="background:#fff;color:#1c1f1d;border-radius:14px;max-width:460px;width:100%;padding:22px"><h3 style="margin:0 0 8px">${titulo}</h3><p style="margin:0 0 10px;color:#555">${texto}</p>${campos.map((c,k)=>c.check?`<label style="display:flex;gap:6px;align-items:center;margin:8px 0;color:#555"><input type="checkbox" data-k="${k}"> ${c.label}</label>`:`<label style="display:block;margin:8px 0 4px;font-weight:600;font-size:13px">${c.label}</label><input data-k="${k}" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;font:13px monospace" placeholder="${c.ph||''}">`).join('')}
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button data-c style="padding:8px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer">Cancelar</button><button data-o style="padding:8px 14px;border-radius:8px;border:0;background:#1f6f54;color:#fff;cursor:pointer;font-weight:600">Salvar</button></div></div>`;
+  document.body.appendChild(o);o.querySelector('[data-c]').onclick=()=>{o.remove();res(null)};
+  o.querySelector('[data-o]').onclick=()=>{const v=campos.map((c,k)=>{const el=o.querySelector(`[data-k="${k}"]`);return c.check?el.checked:el.value.trim()});if(campos.some((c,k)=>!c.check&&!c.opc&&!v[k]))return;o.remove();res(v)}})}
+async function ponteCfg(){let x=await segredos();if(x.gasUrl&&x.gasSegredo)return x;
+  const v=await pedir('Ligar o Google do CRM','Cole o endereço do <b>Apps Script</b> (termina em <code>/exec</code>) e o código secreto que o Claude te passou. É feito uma vez só.',[{label:'Endereço do app da Web',ph:'https://script.google.com/macros/s/.../exec'},{label:'Código secreto'}]);
+  if(!v)throw erro('O Google do CRM ainda não foi ligado.','sem_config');await fs.doc('config/segredos').set({gasUrl:v[0],gasSegredo:v[1]},{merge:true});return {...x,gasUrl:v[0],gasSegredo:v[1]}}
+async function ponte(server,tool,input,extra){const c=await ponteCfg();let r;
+  try{r=await fetch(c.gasUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({segredo:c.gasSegredo,server,tool,input,...(extra||{})})})}
+  catch(e){throw erro('Não consegui falar com o Google agora ('+(e.message||e)+'). Tente de novo em instantes.')}
+  let j;try{j=await r.json()}catch(e){throw erro('O Apps Script não respondeu direito (confira se a implantação está como "Qualquer pessoa").')}
+  if(j.erro){if(/secreto/i.test(j.erro))await fs.doc('config/segredos').set({gasSegredo:''},{merge:true});throw erro(j.erro)}return j.payload}
 
-/* botão "Conectar Google" */
-let CH;function chip(){if(!document.body)return;const precisa=temGoogle()&&GCID&&!(TOK&&Date.now()<EXP-60000);
-  if(!CH){CH=document.createElement('button');CH.type='button';CH.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9000;display:none;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid #d6d9d6;background:#fff;color:#1c1f1d;font:600 13px system-ui;box-shadow:0 6px 20px rgba(0,0,0,.18);cursor:pointer';
-    CH.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#d97706"></span> Conectar Google (e-mails, agenda, Drive)';CH.onclick=()=>token(true).then(()=>{if(window.toast)toast('Google conectado');saidaRodar()}).catch(e=>window.toast&&toast(e.message,true));document.body.appendChild(CH)}
-  CH.style.display=precisa?'flex':'none'}
-setInterval(chip,60000);
-/* no primeiro clique da sessão, renova o acesso ao Google sozinho (precisa de um clique por causa do bloqueador de janelas) */
-document.addEventListener('pointerdown',()=>{if(temGoogle()&&GCID&&!(TOK&&Date.now()<EXP-300000)&&!pend&&!(window.__gtTent&&Date.now()-window.__gtTent<600000)){window.__gtTent=Date.now();token(true).then(()=>saidaRodar()).catch(()=>{})}},true);
-
-/* ---------- Gmail ---------- */
-const b64u=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-const hdr=s=>/^[\x20-\x7e]*$/.test(s)?s:'=?UTF-8?B?'+btoa(unescape(encodeURIComponent(s)))+'?=';
-const b64l=s=>btoa(unescape(encodeURIComponent(s))).replace(/.{76}/g,'$&\r\n');
-async function gmail(i){const para=[].concat(i.to||[]).filter(Boolean);const bd='crm'+Math.random().toString(36).slice(2);
-  const nome=((window.cfg&&cfg().estudio&&cfg().estudio.nome)||'');
-  const m=[`To: ${para.join(', ')}`,...(nome?[`From: ${hdr(nome)} <${(auth.currentUser||{}).email}>`]:[]),`Subject: ${hdr(i.subject||'')}`,'MIME-Version: 1.0',`Content-Type: multipart/alternative; boundary="${bd}"`,'',
-    `--${bd}`,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',b64l(i.body||''),
-    `--${bd}`,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',b64l(i.htmlBody||String(i.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')),`--${bd}--`].join('\r\n');
-  return gf('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raw:b64u(m)})})}
-/* quem entrou sem Google: o e-mail vai para uma fila e sai pelo Gmail do Elton quando ele abrir o CRM */
-async function gmailOuFila(i){if(temGoogle())return gmail(i);
-  await fs.collection('saida').add({tipo:'gmail',input:JSON.parse(JSON.stringify(i)),status:'fila',por:(auth.currentUser||{}).email||'',em:new Date().toISOString()});
-  return {queued:true,mensagem:'Na fila: sai pelo Gmail do Elton quando ele abrir o CRM.'}}
-let SR=false;async function saidaRodar(){if(SR||!temGoogle()||!(eu()&&eu().isOwner))return;if(!(TOK&&Date.now()<EXP-60000))return;SR=true;
-  try{const s=await fs.collection('saida').where('status','==','fila').get();for(const d of s.docs){const x=d.data();try{if(x.tipo==='gmail')await gmail(x.input);await d.ref.update({status:'enviado',enviadoEm:new Date().toISOString()})}catch(e){await d.ref.update({status:'fila',ultimoErro:String(e.message||e).slice(0,300)});if(e.code==='needs_reauth')break}}}catch(e){}SR=false}
-setInterval(saidaRodar,5*60*1000);
-
-/* ---------- Agenda ---------- */
-const cal=id=>'https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(id||'primary');
-const su=n=>'sendUpdates='+(String(n||'').toUpperCase()==='ALL'?'all':'none');
-function evBody(i){const b={};if(i.summary!=null)b.summary=i.summary;if(i.location!=null)b.location=i.location;if(i.description!=null)b.description=i.description;
-  if(i.startTime)b.start={dateTime:i.startTime,timeZone:i.timeZone||'America/Sao_Paulo'};if(i.endTime)b.end={dateTime:i.endTime,timeZone:i.timeZone||'America/Sao_Paulo'};return b}
-const AG={
-  list_calendars:async()=>{const r=await gf('https://www.googleapis.com/calendar/v3/users/me/calendarList');return {calendars:r.items||[]}},
-  create_event:async i=>{const b=evBody(i);if(i.attendees&&i.attendees.length)b.attendees=i.attendees.map(a=>({email:a.email,displayName:a.displayName}));return gf(cal(i.calendarId)+'/events?'+su(i.notificationLevel),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})},
-  update_event:async i=>{const b=evBody(i);if((i.addedAttendees||[]).length||(i.removedAttendeeEmails||[]).length){const cur=await gf(cal(i.calendarId)+'/events/'+encodeURIComponent(i.eventId));let at=(cur.attendees||[]).filter(a=>!(i.removedAttendeeEmails||[]).includes(a.email));(i.addedAttendees||[]).forEach(a=>{if(!at.some(x=>x.email===a.email))at.push({email:a.email,displayName:a.displayName})});b.attendees=at}
-    return gf(cal(i.calendarId)+'/events/'+encodeURIComponent(i.eventId)+'?'+su(i.notificationLevel),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})},
-  delete_event:async i=>{await gf(cal(i.calendarId)+'/events/'+encodeURIComponent(i.eventId)+'?'+su(i.notificationLevel),{method:'DELETE'},true);return {ok:true}}};
-
-/* ---------- Drive ---------- */
-async function driveCriar(i){const meta={name:i.title||'arquivo'};if(i.parentId)meta.parents=[i.parentId];
-  if(!i.base64Content&&!i.content){meta.mimeType=i.contentMimeType||'application/vnd.google-apps.folder';const r=await gf('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(meta)});return {id:r.id,viewUrl:r.webViewLink}}
-  const bin=i.base64Content?Uint8Array.from(atob(i.base64Content),c=>c.charCodeAt(0)):new TextEncoder().encode(i.content);
-  const fd=new FormData();fd.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));fd.append('file',new Blob([bin],{type:i.contentMimeType||'application/octet-stream'}));
-  const r=await gf('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',body:fd});return {id:r.id,viewUrl:r.webViewLink}}
-async function driveBaixar(i){const id=encodeURIComponent(i.fileId);const m=await gf('https://www.googleapis.com/drive/v3/files/'+id+'?fields=mimeType');
-  const url=/google-apps/.test(m.mimeType||'')?'https://www.googleapis.com/drive/v3/files/'+id+'/export?mimeType='+encodeURIComponent(i.exportMimeType||'text/csv'):'https://www.googleapis.com/drive/v3/files/'+id+'?alt=media';
-  const r=await gf(url,{},true);const u=new Uint8Array(await r.arrayBuffer());let s='';for(let k=0;k<u.length;k+=32768)s+=String.fromCharCode.apply(null,u.subarray(k,k+32768));return {content:btoa(s),mimeType:m.mimeType}}
-
-/* ---------- DocuSeal ---------- */
-async function dsCfg(){const d=await fs.doc('config/segredos').get();const x=d.exists?d.data():{};return {key:x.docusealKey||'',base:x.docusealBase||'https://api.docuseal.com'}}
-function dsPedirChave(){return new Promise(res=>{const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px;font:14px/1.5 system-ui';
-  o.innerHTML=`<div style="background:#fff;color:#1c1f1d;border-radius:14px;max-width:440px;width:100%;padding:22px"><h3 style="margin:0 0 8px">Chave da API do DocuSeal</h3><p style="margin:0 0 10px;color:#555">Fora do claude.ai, o CRM fala com o DocuSeal pela chave da sua conta. No DocuSeal: <b>Configurações › API</b>, copie a chave e cole aqui. Ela fica guardada no banco, só para administradores.</p>
-  <input id="dsk" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;font:14px monospace" placeholder="cole a chave aqui"><label style="display:flex;gap:6px;align-items:center;margin:10px 0;color:#555"><input type="checkbox" id="dseu"> minha conta é do DocuSeal Europa (docuseal.eu)</label>
-  <div style="display:flex;gap:8px;justify-content:flex-end"><button id="dsc" style="padding:8px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer">Cancelar</button><button id="dso" style="padding:8px 14px;border-radius:8px;border:0;background:#1f6f54;color:#fff;cursor:pointer;font-weight:600">Salvar</button></div></div>`;
-  document.body.appendChild(o);o.querySelector('#dsc').onclick=()=>{o.remove();res(null)};
-  o.querySelector('#dso').onclick=async()=>{const k=o.querySelector('#dsk').value.trim();if(!k)return;const base=o.querySelector('#dseu').checked?'https://api.docuseal.eu':'https://api.docuseal.com';await fs.doc('config/segredos').set({docusealKey:k,docusealBase:base},{merge:true});o.remove();res({key:k,base})}})}
-async function ds(path,opt){let c=await dsCfg();if(!c.key){c=await dsPedirChave();if(!c)throw erro('Sem a chave da API do DocuSeal.')}
-  let r;try{r=await fetch(c.base+path,{...opt,headers:{...(opt&&opt.headers||{}),'X-Auth-Token':c.key,'Content-Type':'application/json'}})}catch(e){throw erro('Não consegui falar com o DocuSeal pelo navegador ('+(e.message||e)+').')}
-  if(r.status===401){await fs.doc('config/segredos').set({docusealKey:''},{merge:true});throw erro('A chave do DocuSeal não foi aceita. Tente de novo e cole a chave certa.')}
-  const tx=await r.text();let j;try{j=JSON.parse(tx)}catch(_){j=tx}if(!r.ok)throw erro('DocuSeal respondeu '+r.status+': '+(j&&j.error||tx).toString().slice(0,200));return j}
-const DSX={
-  send_documents:i=>ds('/submissions',{method:'POST',body:JSON.stringify({template_id:i.template_id,send_email:i.send_email!==false,submitters:(i.submitters||[]).map(s=>({role:s.role,email:s.email,name:s.name,values:Object.fromEntries((s.fields||[]).map(f=>[f.name,f.value]))}))})}),
-  search_documents:i=>ds('/submissions?'+new URLSearchParams({q:i.q||'',limit:String(i.limit||20)}),{method:'GET'})};
+/* ---------- DocuSeal (pela mesma ponte) ---------- */
+async function dsChave(){let x=await segredos();if(x.docusealKey)return {key:x.docusealKey,base:x.docusealBase||'https://api.docuseal.com'};
+  const v=await pedir('Chave da API do DocuSeal','No DocuSeal: <b>Configurações › API</b>, copie a chave e cole aqui. É pedida uma vez só e fica guardada no banco, que só os administradores leem.',[{label:'Chave da API'},{label:'minha conta é do DocuSeal Europa (docuseal.eu)',check:true}]);
+  if(!v)throw erro('Sem a chave da API do DocuSeal.');const base=v[1]?'https://api.docuseal.eu':'https://api.docuseal.com';await fs.doc('config/segredos').set({docusealKey:v[0],docusealBase:base},{merge:true});return {key:v[0],base}}
+async function ds(tool,input){const k=await dsChave();try{return await ponte('DocuSeal',tool,input,{docuseal:k})}catch(e){if(/não foi aceita/.test(e.message))await fs.doc('config/segredos').set({docusealKey:''},{merge:true});throw e}}
 
 /* ---------- o que o CRM chama ---------- */
 const SCH={Gmail:{send_message:{type:'object',properties:{to:{type:'array'},subject:{type:'string'},body:{type:'string'},htmlBody:{type:'string'}}}}};
 const MCP={
   async callTool(server,tool,input){let p;
-    if(server==='Gmail'&&tool==='send_message')p=await gmailOuFila(input||{});
-    else if(server==='Google Calendar'&&AG[tool])p=await AG[tool](input||{});
-    else if(server==='Google Drive'&&tool==='create_file')p=await driveCriar(input||{});
-    else if(server==='Google Drive'&&tool==='download_file_content')p=await driveBaixar(input||{});
-    else if(server==='DocuSeal'&&DSX[tool])p=await DSX[tool](input||{});
+    if(server==='DocuSeal')p=await ds(tool,input||{});
+    else if(['Gmail','Google Calendar','Google Drive'].includes(server))p=await ponte(server,tool,input||{});
     else throw erro('Função não disponível: '+server+' / '+tool,'not_in_manifest');
     return {payload:p,content:[{type:'text',text:JSON.stringify(p)}]}},
   async describeTool(server,tool){const s=SCH[server]&&SCH[server][tool];return {name:tool,inputSchema:s||null}},
@@ -233,9 +163,12 @@ const ASSETS=ST&&{
   async list(){return {assets:[],usage:{}}},
   async delete(id){try{if(/^https?:/.test(id))await ST.refFromURL(id).delete()}catch(e){}return {ok:true}}};
 
+/* só uma tela aberta faz os envios automáticos de cada vez (evita e-mail em dobro) */
+const SID=Math.random().toString(36).slice(2);window.__autoLider=false;
+async function liderar(){try{const ref=fs.doc('config/automacao');const ok=await fs.runTransaction(async tx=>{const d=await tx.get(ref);const x=d.exists?d.data():{};const vivo=x.ts&&Date.now()-x.ts<12*60*1000;
+    if(vivo&&x.sid!==SID)return false;tx.set(ref,{sid:SID,ts:Date.now(),quem:(auth.currentUser||{}).email||''});return true});window.__autoLider=ok}catch(e){window.__autoLider=false}}
 H.extra={mcp:MCP,assets:ASSETS};
-const quando=f=>document.body?f():document.addEventListener('DOMContentLoaded',f);quando(chip);
-H.onLogin=()=>{chip();setTimeout(saidaRodar,8000)};
+H.onLogin=()=>{liderar();setInterval(liderar,5*60*1000);window.addEventListener('beforeunload',()=>{if(window.__autoLider)fs.doc('config/automacao').set({sid:'',ts:0}).catch(()=>{})})};
 })();
 </script></head><body>
 <title>Grupo E CRM</title>
@@ -1067,7 +1000,7 @@ async function initStore(){
   try{db=window.claude&&window.claude.use?await window.claude.use('db'):null}catch(e){db=null}
   if(db){
     S.db=db;S.mode='db';
-    try{const u=window.claude.use?await window.claude.use('user'):null;S.eu=u?await u.me():null}catch(e){S.eu=null}S.dono=S.eu?!!S.eu.isOwner:true;S.semAcesso=!!(S.eu&&!S.eu.isOwner&&!S.eu.canEdit);
+    try{const u=window.claude.use?await window.claude.use('user'):null;S.eu=u?await u.me():null}catch(e){S.eu=null}if(window.__HOSTED)Object.defineProperty(S,'dono',{get:()=>!!window.__autoLider,configurable:true});else S.dono=S.eu?!!S.eu.isOwner:true;S.semAcesso=!!(S.eu&&!S.eu.isOwner&&!S.eu.canEdit);
     XCOLS.forEach(c=>{S.data[c]=[];db.collection(c).onSnapshot(snap=>{S.data[c]=snap.docs.map(d=>({...d.data(),id:d.id}));S.loaded.add(c);schedule()},()=>{})});
     setTimeout(checkImport,500);setTimeout(checkSync,700);
     const oppAuto=()=>{if(S.loaded.has('oportunidades')&&S.loaded.has('propostas'))oppArquivarPassadas().then(()=>propRecusarPassadas()).catch(()=>{});else setTimeout(oppAuto,2000)};setTimeout(oppAuto,5000);
@@ -2442,7 +2375,7 @@ VIEWS.config=()=>{
   if(T.tab==='equipe'){const eq=C.equipe;const pay=n=>{const c=S.data.contatos.filter(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(n)).map(x=>x.id);if(!c.length)return 0;const pm=+(S.ui.eqPer??12);const de=pm?addDays(today(),-Math.round(pm*30.44)):'0000';return S.data.lancamentos.filter(l=>l.tipo==='pagar'&&l.pago&&c.includes(l.contatoId)&&(l.dataPagamento||l.vencimento)>=de).reduce((s,l)=>s+(+l.valor||0),0)};
     const ev=n=>eventosDaPessoa(n,3650).length;
     const eqF=S.ui.eqAtivo||'ativos';const nA=eq.filter(m=>m.ativo!==false).length,nI=eq.length-nA;const vis=m=>eqF==='todos'||(eqF==='ativos'?m.ativo!==false:m.ativo===false);
-    body=`<p class="muted" style="margin:0 0 8px;font-size:12.5px">${window.__HOSTED?'Quem é <b>Administrador</b> e tem e-mail aqui consegue entrar no CRM (pelo Google ou pelo link que chega no e-mail). Os outros não entram.':'Para um <b>Administrador</b> entrar no CRM: abra o menu Compartilhar desta página, convide o e-mail da conta Claude dele e escolha <b>Pode editar</b>. Quem não é administrador não vê os dados.'} O histórico registra o nome de quem fez cada alteração. Lembretes, backup, agenda Google e importação de fichas rodam só quando o Elton está com o CRM aberto, porque usam as contas dele.${S.eu?` Você está como: <b>${esc(usuarioAtual())}</b>.`:''}</p><div class="seg" style="justify-self:start;margin-bottom:8px"><button data-eqfil="ativos" class="${eqF==='ativos'?'on':''}">Ativos (${nA})</button><button data-eqfil="inativos" class="${eqF==='inativos'?'on':''}">Inativos (${nI})</button><button data-eqfil="todos" class="${eqF==='todos'?'on':''}">Todos (${eq.length})</button></div><div class="eqh"><span>Nome</span><span>Tipo</span><span>Trabalha para</span><span>Celular</span><span>E-mail</span><span class="r">Eventos</span><span class="r">Pago <select class="search" style="padding:1px 4px;font-size:11.5px;width:auto;display:inline-block" data-eqper>${[[1,'1 mês'],[6,'6m'],[12,'12m'],[0,'tudo']].map(([v,l])=>`<option value="${v}" ${+(S.ui.eqPer??12)===v?'selected':''}>${l}</option>`).join('')}</select></span><span>Ativo</span><span></span></div><div class="eqlist">${eq.map((m,i)=>!vis(m)?'':`<div class="eqc"><input class="search eq-n" data-eq="${i}.nome" value="${esc(m.nome)}" placeholder="Nome"><select class="search eq-t" data-eq="${i}.tipo">${[['Administrador','Adm'],['Usuário','Usuário'],['Freelance','Freela']].map(([o,l])=>`<option value="${o}" ${m.tipo===o?'selected':''}>${l}</option>`).join('')}</select><div class="eq-a">${EQ_AREAS.map(a=>{const on=eqAreas(m).includes(a);return `<button type="button" class="chip-tg ${on?'on':''}" data-eqarea="${i}|${esc(a)}" aria-pressed="${on}" title="${esc(a)}">${on?ic('check',11):''}${esc({'Elton Melchioretto':'Elton','Prime 360':'Prime'}[a]||a)}</button>`}).join('')}</div><input class="search eq-c" data-eq="${i}.celular" value="${esc(m.celular||'')}" placeholder="Celular"><input class="search eq-e" type="email" data-eq="${i}.email" value="${esc(m.email||'')}" placeholder="e-mail"><span class="eq-v r num"><button class="clink" data-agpessoa="${esc(m.nome)}" title="Ver e enviar a agenda desta pessoa">${ev(m.nome)||'0'} ${ic('cal',13)}</button></span><span class="eq-p r">${(v=>v?`<button class="clink num" data-eqpag="${esc(m.nome)}" title="Ver os trabalhos pagos">${brl(v).replace(/,\d\d$/,'')}</button>`:'<span class="muted">—</span>')(pay(m.nome))}</span><label class="eq-o"><input type="checkbox" data-eq="${i}.ativo" ${m.ativo!==false?'checked':''}><span class="lbl-m"> ativo</span></label><span class="eq-x"><button class="icon-btn" title="Dados de pagamento, PIX e outras informações" data-eqobs="${i}">${ic('doc',15)}${m.obs?'<span style="position:relative;top:-6px;left:-4px;width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block"></span>':''}</button><button class="icon-btn del" title="Remover" data-eqdel="${i}">${ic('trash',15)}</button></span></div>`).join('')}</div><button class="btn sm" data-eqadd>${ic('plus',14)} Adicionar pessoa</button><p class="muted" style="font-size:12px">Os nomes aparecem como opção de responsável nos pedidos, projetos e tarefas, e no filtro da agenda. "Pago em 12 meses" soma os pagamentos do financeiro feitos ao contato com o mesmo nome.</p>`}
+    body=`<p class="muted" style="margin:0 0 8px;font-size:12.5px">${window.__HOSTED?'Quem é <b>Administrador</b> e tem e-mail aqui consegue entrar no CRM (pelo Google ou pelo link que chega no e-mail). Os outros não entram.':'Para um <b>Administrador</b> entrar no CRM: abra o menu Compartilhar desta página, convide o e-mail da conta Claude dele e escolha <b>Pode editar</b>. Quem não é administrador não vê os dados.'} O histórico registra o nome de quem fez cada alteração. ${window.__HOSTED?'Lembretes, backup, agenda Google e importação de fichas saem pela conta Google da empresa sempre que alguém está com o CRM aberto.':'Lembretes, backup, agenda Google e importação de fichas rodam só quando o Elton está com o CRM aberto, porque usam as contas dele.'}${S.eu?` Você está como: <b>${esc(usuarioAtual())}</b>.`:''}</p><div class="seg" style="justify-self:start;margin-bottom:8px"><button data-eqfil="ativos" class="${eqF==='ativos'?'on':''}">Ativos (${nA})</button><button data-eqfil="inativos" class="${eqF==='inativos'?'on':''}">Inativos (${nI})</button><button data-eqfil="todos" class="${eqF==='todos'?'on':''}">Todos (${eq.length})</button></div><div class="eqh"><span>Nome</span><span>Tipo</span><span>Trabalha para</span><span>Celular</span><span>E-mail</span><span class="r">Eventos</span><span class="r">Pago <select class="search" style="padding:1px 4px;font-size:11.5px;width:auto;display:inline-block" data-eqper>${[[1,'1 mês'],[6,'6m'],[12,'12m'],[0,'tudo']].map(([v,l])=>`<option value="${v}" ${+(S.ui.eqPer??12)===v?'selected':''}>${l}</option>`).join('')}</select></span><span>Ativo</span><span></span></div><div class="eqlist">${eq.map((m,i)=>!vis(m)?'':`<div class="eqc"><input class="search eq-n" data-eq="${i}.nome" value="${esc(m.nome)}" placeholder="Nome"><select class="search eq-t" data-eq="${i}.tipo">${[['Administrador','Adm'],['Usuário','Usuário'],['Freelance','Freela']].map(([o,l])=>`<option value="${o}" ${m.tipo===o?'selected':''}>${l}</option>`).join('')}</select><div class="eq-a">${EQ_AREAS.map(a=>{const on=eqAreas(m).includes(a);return `<button type="button" class="chip-tg ${on?'on':''}" data-eqarea="${i}|${esc(a)}" aria-pressed="${on}" title="${esc(a)}">${on?ic('check',11):''}${esc({'Elton Melchioretto':'Elton','Prime 360':'Prime'}[a]||a)}</button>`}).join('')}</div><input class="search eq-c" data-eq="${i}.celular" value="${esc(m.celular||'')}" placeholder="Celular"><input class="search eq-e" type="email" data-eq="${i}.email" value="${esc(m.email||'')}" placeholder="e-mail"><span class="eq-v r num"><button class="clink" data-agpessoa="${esc(m.nome)}" title="Ver e enviar a agenda desta pessoa">${ev(m.nome)||'0'} ${ic('cal',13)}</button></span><span class="eq-p r">${(v=>v?`<button class="clink num" data-eqpag="${esc(m.nome)}" title="Ver os trabalhos pagos">${brl(v).replace(/,\d\d$/,'')}</button>`:'<span class="muted">—</span>')(pay(m.nome))}</span><label class="eq-o"><input type="checkbox" data-eq="${i}.ativo" ${m.ativo!==false?'checked':''}><span class="lbl-m"> ativo</span></label><span class="eq-x"><button class="icon-btn" title="Dados de pagamento, PIX e outras informações" data-eqobs="${i}">${ic('doc',15)}${m.obs?'<span style="position:relative;top:-6px;left:-4px;width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block"></span>':''}</button><button class="icon-btn del" title="Remover" data-eqdel="${i}">${ic('trash',15)}</button></span></div>`).join('')}</div><button class="btn sm" data-eqadd>${ic('plus',14)} Adicionar pessoa</button><p class="muted" style="font-size:12px">Os nomes aparecem como opção de responsável nos pedidos, projetos e tarefas, e no filtro da agenda. "Pago em 12 meses" soma os pagamentos do financeiro feitos ao contato com o mesmo nome.</p>`}
   if(T.tab==='assinatura')body=`<div class="field full"><label>Assinatura adicionada às mensagens</label><textarea data-cfgt="assinatura" style="min-height:260px;font-family:inherit">${esc(C.assinatura)}</textarea></div><div><button class="btn sm" data-copy="${esc(C.assinatura)}">${ic('copy',14)} Copiar assinatura</button></div><p class="muted" style="font-size:12px">A assinatura entra no final de todos os e-mails que o CRM envia pelo seu Gmail (lembretes de vencimento, recibos, provas e agenda dos freelancers) e nas mensagens montadas para o WhatsApp. Os modelos e regras ficam no menu E-mails.</p>`;
   if(T.tab==='provas'){const P=C.provas,L=P.legenda;const pos=[0,1,2,3,4,5,6,7,8].map(i=>`<button class="wm ${+P.marca.pos===i?'on':''}" data-wmpos="${i}" aria-label="Posição ${i+1}"></button>`).join('');
     body=`<h4>Configurações da prova</h4><div class="form-grid">${crow('Redimensionar imagens antes de enviar',yn('provas.redim',P.redim))}<div></div>${crow('Largura máxima (px)',`<input type="number" data-cfgn="provas.maxW" value="${P.maxW}">`)}${crow('Altura máxima (px)',`<input type="number" data-cfgn="provas.maxH" value="${P.maxH}">`)}</div>
