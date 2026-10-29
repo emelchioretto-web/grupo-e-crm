@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029145355';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029145707';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1236,6 +1236,7 @@ const NAV=[
   {v:'financeiro',l:'Financeiro',i:'money'},
   {v:'contasbanc',l:'Contas bancárias',sub:1},
   {v:'fintrans',l:'Transações',sub:1},
+  {v:'cashback',l:'Cashback',sub:1},
   {sg:'Contas a receber',key:'g-ar',i:'down',sub:1},
   {v:'finar',l:'A receber',sub:2,cnt:()=>S.data.lancamentos.filter(l=>l.tipo==='receber'&&!l.pago&&l.vencimento&&l.vencimento<today()).length,alt:1},
   {v:'finarp',l:'Recebidas',sub:2},
@@ -1244,7 +1245,6 @@ const NAV=[
   {v:'finap',l:'A pagar',sub:2,cnt:()=>S.data.lancamentos.filter(l=>l.tipo==='pagar'&&!l.pago&&l.vencimento&&l.vencimento<today()).length,alt:1},
   {v:'finapp',l:'Pagas',sub:2},
   {v:'finporforn',l:'A pagar por fornecedor',sub:2},
-  {v:'cashback',l:'Cashback',sub:2},
   {v:'relatorios',l:'Relatórios',i:'chart'},
   {v:'reldisp',l:'Disponibilidade para vender',sub:1},
   {v:'relresv',l:'Resultados de vendas',sub:1},
