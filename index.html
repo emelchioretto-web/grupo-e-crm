@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029140418';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029141606';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -583,7 +583,7 @@ a.btn{color:inherit;text-decoration:none}
 .pd-nota{font-size:12px;color:var(--muted);margin:2px 0 0}.pd-ok{color:var(--ok);font-weight:600;display:inline-flex;align-items:center;gap:3px;font-size:12.5px}
 .btn.info{background:#2a7fc0;border-color:#2a7fc0;color:#fff}.btn.ok{background:#43a96b;border-color:#43a96b;color:#fff}
 .pd-dt{display:inline-grid;grid-template-columns:auto auto;gap:4px;align-items:center}.pd-dt b{background:#2a7fc0;color:#fff;border-radius:4px;padding:4px 6px;font-size:12px}.pd-dt span{background:#43b9d3;color:#fff;border-radius:4px;padding:2px 6px;font-size:11.5px;line-height:1.35;text-align:center}
-.pd-cus td{vertical-align:middle}.pd-cus td:last-child{width:72px}.pd-cuform{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end}.pd-cuform label{display:grid;gap:3px;font-size:11.5px;color:var(--muted);font-weight:600}.pd-cuform .search{width:100%;min-width:0;padding:6px 8px}.pd-cupago{display:flex!important;align-items:center;gap:6px;color:var(--fg)!important;font-size:13px!important}
+.pd-cus td{vertical-align:middle}.pd-cus td:last-child{white-space:nowrap;text-align:right}.pd-cuform{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end}.pd-cuform label{display:grid;gap:3px;font-size:11.5px;color:var(--muted);font-weight:600}.pd-cuform .search{width:100%;min-width:0;padding:6px 8px}.pd-cupago{display:flex!important;align-items:center;gap:6px;color:var(--fg)!important;font-size:13px!important}
 @media(max-width:820px){.pd-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:460px){.pd-tile{min-height:64px}.pd-tn{font-size:22px}}
 .th-sort{all:unset;cursor:pointer;font:inherit;color:inherit;white-space:nowrap}.th-sort:hover{text-decoration:underline}.th-ar{opacity:.4;font-size:11px}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.form-grid .full{grid-column:1/-1}
@@ -2950,8 +2950,8 @@ CONTRATADA                                CONTRATANTE`;
 function go(v){if(v==='pedidos'&&!go.ds&&pendSign().length){go.ds=1;setTimeout(()=>verifySign(pendSign().map(x=>x.id),true),800)}S.ui.view=v;$('#app').classList.remove('open');try{history.replaceState(null,'','#'+v)}catch(e){}window.scrollTo(0,0);render()}
 function armDelete(btn,fn){
   if(btn.classList.contains('armed')){btn.classList.remove('armed');fn();return}
-  btn.classList.add('armed');const old=btn.innerHTML;if(btn.classList.contains('btn'))btn.innerHTML=ic('trash',15)+' Confirmar exclusão';btn.title='Clique de novo para confirmar';
-  setTimeout(()=>{btn.classList.remove('armed');if(btn.isConnected)btn.innerHTML=old},3000);
+  btn.classList.add('armed');const old=btn.innerHTML,ow=btn.style.width;if(btn.classList.contains('btn'))btn.innerHTML=ic('trash',15)+' Confirmar exclusão';else toast('Clique de novo na lixeira vermelha para confirmar a exclusão.');btn.title='Clique de novo para confirmar';
+  setTimeout(()=>{btn.classList.remove('armed');if(btn.isConnected){btn.innerHTML=old;btn.style.width=ow;btn.style.padding='';}},4000);
 }
 document.addEventListener('click',async e=>{
   const t=e.target.closest('button,a,[data-newday],[data-close-bg]');if(!t)return;
@@ -2967,7 +2967,7 @@ document.addEventListener('click',async e=>{
   if(d.pdtab){S.ui.pd.tab=d.pdtab;render();return}
   if(d.sort){const [col,i]=d.sort.split('|');S.ui.sort=S.ui.sort||{};const cur=S.ui.sort[col];S.ui.sort[col]=cur&&cur.i===+i?(cur.d==='desc'?{i:+i,d:'asc'}:null):{i:+i,d:'desc'};if(!S.ui.sort[col])delete S.ui.sort[col];render();return}
   if(d.pdsec){S.ui.pd.tab='geral';S.ui.pd.sec=d.pdsec;S.ui.pd.cuEd=null;render();return}
-  if(d.pced!==undefined){S.ui.pd.cuEd=+d.pced;render();return}
+  if(d.pced!==undefined){custoModal(S.ui.pd.id,+d.pced);return}
   if(d.pcsync!==undefined){const i=+d.pcsync;const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);if(p&&p.custos&&p.custos[i]){const c=p.custos[i];const lid=custoSyncLanc(p,c,c);if(!lid)toast('Não achei a conta a pagar deste custo no financeiro.',true)}return}
   if(d.pcok!==undefined){const i=S.ui.pd.cuEd;const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);S.ui.pd.cuEd=null;if(p&&p.custos&&p.custos[i]){const c=p.custos[i];setTimeout(()=>{const lid=custoSyncLanc(p,c,c);if(lid&&c.lancId!==lid){const L=p.custos.map(x=>({...x}));L[i].lancId=lid;patch('pedidos',p.id,{custos:L})}},300)}render();return}
   if(d.pdnovo){const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);if(!p)return;if(d.pdnovo==='agenda')openForm('agenda',{titulo:p.titulo||'',contatoId:p.contatoId||'',data:p.dataEvento||'',hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',local:p.local||'',pedidoId:p.id,pedidoNum:p.num||''});else openForm('projetos',{titulo:p.titulo||'',contatoId:p.contatoId||'',pedidoId:p.id,dataEvento:p.dataEvento||'',status:PROJ_ST[0][0]});return}
@@ -2981,8 +2981,9 @@ document.addEventListener('click',async e=>{
   if(d.dupall!==undefined){const G=dupGroups();const L=S.ui.dup.so==='fortes'?G.filter(g=>g.forte):G;t.disabled=true;let n=0;for(const g of L){const i=G.indexOf(g);const keep=(S.ui.dup.keep||{})[i]||g.membros[0].c.id;try{await mesclarContatos(keep,g.membros.map(m=>m.c.id).filter(x=>x!==keep));n++;if(n%5===0)toast('Mesclados '+n+' de '+L.length+'…')}catch(err){failWrite(err);break}}S.ui.dup.keep={};toast(n+' grupos mesclados');render();return}
 
   if(d.pcgerar){const p=S.data.pedidos.find(x=>x.id===d.pcgerar);const g=pedCustosGerar(p);if(!g.length){toast('Os produtos deste pedido não têm custos cadastrados.',true);return}const keep=(p.custos||[]).filter(c=>c.lancId);await patch('pedidos',p.id,{custos:[...keep,...g]});toast(g.length+' custo'+(g.length>1?'s':'')+' criado'+(g.length>1?'s':''));return}
-  if(d.pcadd){const p=S.data.pedidos.find(x=>x.id===d.pcadd);S.ui.pd.cuEd=(p.custos||[]).length;S.ui.pd.sec='custos';await patch('pedidos',p.id,{custos:[...(p.custos||[]),{id:'cu'+Math.random().toString(36).slice(2,9),nome:'',fornecedor:'',valor:0,venc:p.dataEvento||today()}]});return}
-  if(d.pcdel!==undefined){armDelete(t,async()=>{const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);const L=[...(p.custos||[])];L.splice(+d.pcdel,1);await patch('pedidos',p.id,{custos:L})});return}
+  if(d.pcadd){custoModal(d.pcadd,-1);return}
+  if(d.pcmsave!==undefined){custoModalSalvar(t);return}
+  if(d.pcdel!==undefined){armDelete(t,async()=>{const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);const L=[...(p.custos||[])];const c=L[+d.pcdel];L.splice(+d.pcdel,1);await patch('pedidos',p.id,{custos:L});const l=c&&custoLanc(p,c);if(l&&!l.pago){try{await removeRec('lancamentos',l.id);toast('Custo excluído (e a conta a pagar dele)')}catch(e){failWrite(e)}}else toast(l&&l.pago?'Custo excluído. A conta a pagar já estava paga e ficou no financeiro.':'Custo excluído')});return}
   if(d.pclanc!==undefined||d.pclancall){const p=S.data.pedidos.find(x=>x.id===(d.pclancall||S.ui.pd.id));const L=(p.custos||[]).map(c=>({...c}));const idx=d.pclancall?L.map((c,i)=>c.lancId?-1:i).filter(i=>i>=0):[+d.pclanc];let n=0;
     for(const i of idx){const c=L[i];if(!c||c.lancId||!(+c.valor))continue;const forn=(c.fornecedorNum&&S.data.contatos.find(x=>x.num===c.fornecedorNum))||S.data.contatos.find(x=>SCHEMAS.contatos.labelOf(x)===c.fornecedor);try{const lid=await save('lancamentos',{tipo:'pagar',categoria:'Custo de evento · '+(p.categoria||''),descricao:`${c.nome||'Custo'}${c.fornecedor?' ('+c.fornecedor+')':''} · Pedido #${p.num||''} ${p.titulo||''}`,contatoId:forn?forn.id:'',valor:+c.valor,vencimento:c.venc||p.dataEvento||today(),conta:'',pago:false,pedidoId:p.id});c.lancId=lid||true;n++}catch(err){failWrite(err);break}}
     await patch('pedidos',p.id,{custos:L});if(n)toast(n+' conta'+(n>1?'s':'')+' a pagar lançada'+(n>1?'s':''));return}
@@ -4119,6 +4120,28 @@ function custoSyncLanc(p,old,nov){const l=custoLanc(p,old);if(!l)return null;
   if((nov.nome||'')!==(old.nome||'')&&nov.nome){const d=String(l.descricao||'');ch.descricao=old.nome&&d.includes(old.nome)?d.replace(old.nome,nov.nome):nov.nome+(d?' - '+d:'')}
   if((nov.fornecedor||'')!==(old.fornecedor||'')&&nov.fornecedor){const f=S.data.contatos.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(nov.fornecedor));if(f)ch.contatoId=f.id}
   if(Object.keys(ch).length){save('lancamentos',{...l,...ch}).then(()=>toast('Conta a pagar atualizada no financeiro')).catch(failWrite)}return l.id}
+/* ---- janela "Detalhes de Custo" (adicionar / editar) ---- */
+function custoModal(pid,i){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;const c=i>=0?(p.custos||[])[i]||{}:{venc:today()};const PO=planoOpts('pagar');
+  const contaSel=c.conta?(PO.find(o=>o===c.conta||o.endsWith(' - '+c.conta)||o.startsWith(c.conta+' - '))||c.conta):'';
+  const forn=c.fornecedor||(c.fornecedorNum!=null?(S.data.contatos.find(x=>+x.num===+c.fornecedorNum)||{}).nome||'':'');
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>Detalhes de Custo</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+   <div class="mbody" style="display:grid;gap:12px"><p class="muted" style="margin:0;text-align:center">Por favor insira os detalhes do custo:</p>
+    <div class="field" style="margin:0"><label for="cm-forn">Fornecedor</label><input id="cm-forn" class="search" list="dl-cmforn" value="${esc(forn)}" placeholder="Digite para buscar…" autocomplete="off"><datalist id="dl-cmforn">${[...new Set([...fornecedoresLista(),...(cfg().equipe||[]).map(m=>m.nome)])].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>`<option value="${esc(x)}">`).join('')}</datalist></div>
+    <div class="field" style="margin:0"><label for="cm-conta">Conta</label><select id="cm-conta">${['',...PO.filter(Boolean)].map(o=>`<option value="${esc(o)}" ${o===contaSel?'selected':''}>${esc(o||'— escolha —')}</option>`).join('')}${contaSel&&!PO.includes(contaSel)?`<option selected>${esc(contaSel)}</option>`:''}</select></div>
+    <div class="field" style="margin:0"><label for="cm-desc">Descrição</label><input id="cm-desc" class="search" value="${esc(c.nome||'')}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="field" style="margin:0"><label for="cm-venc">Vencimento</label><input id="cm-venc" type="date" class="search" value="${esc(c.venc||'')}"></div><div class="field" style="margin:0"><label for="cm-valor">Valor</label><input id="cm-valor" class="search num" inputmode="decimal" data-money value="${c.valor?esc(moneyFmt(c.valor)):''}" placeholder="0,00" style="text-align:right"></div></div>
+    <p class="muted" style="margin:0;font-size:12px">Com data de vencimento, o custo entra em Contas a Pagar.</p></div>
+   <footer><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn info" data-pcmsave data-pid="${p.id}" data-i="${i}">Salvar</button></footer></div></div>`;setTimeout(()=>{const x=$('#cm-forn');if(x)x.focus()},50)}
+async function custoModalSalvar(btn){const p=S.data.pedidos.find(x=>x.id===btn.dataset.pid);if(!p)return;const i=+btn.dataset.i;
+  const forn=$('#cm-forn').value.trim(),conta=$('#cm-conta').value,nome=$('#cm-desc').value.trim(),venc=$('#cm-venc').value,valor=moneyParse($('#cm-valor').value);
+  if(!nome){toast('Escreva a descrição do custo.',true);return}if(!valor){toast('Informe o valor.',true);return}
+  btn.disabled=true;const L=(p.custos||[]).map(c=>({...c}));const novo=i<0;const old=novo?null:{...L[i]};
+  const c=novo?{id:'cu'+Math.random().toString(36).slice(2,9)}:L[i];Object.assign(c,{nome,fornecedor:forn,conta,venc,valor});if(old&&old.fornecedor!==forn)c.fornecedorNum=null;
+  const fc=S.data.contatos.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(forn));
+  try{if(novo){if(venc){c.lancId=await save('lancamentos',{tipo:'pagar',categoria:conta?conta.replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${nome} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor,vencimento:venc,conta:'',pago:false,pedidoId:p.id})||true}L.push(c)}
+    else{const lid=custoSyncLanc(p,old,c);if(lid)c.lancId=lid;else if(venc&&!c.lancId){c.lancId=await save('lancamentos',{tipo:'pagar',categoria:conta?conta.replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${nome} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor,vencimento:venc,conta:'',pago:false,pedidoId:p.id})||true}}
+    await patch('pedidos',p.id,{custos:L});closeModal();S.ui.pd.sec='custos';toast(novo?'Custo adicionado'+(venc?' e lançado em Contas a pagar':''):'Custo salvo');render()}
+  catch(e){btn.disabled=false;failWrite(e)}}
 /* campo de dinheiro: 15285 → 15.285 · 15285,5 → 15.285,50 */
 function moneyFmt(v){if(v===''||v==null||isNaN(+v))return '';return (+v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function moneyParse(t){t=String(t||'').replace(/[^\d,]/g,'');const [a,b='']=t.split(',');return +(a||'0')+(b?+('0.'+b.slice(0,2)):0)}
@@ -4128,6 +4151,7 @@ function moneyMask(el,ev){let v=el.value;const pos=el.selectionStart||v.length;
   a=a.replace(/^0+(?=\d)/,'');if(k>=0&&!a)a='0';const fa=a.replace(/\B(?=(\d{3})+(?!\d))/g,'.');const out=fa+(k>=0?','+b:'');
   const fim=el.value.length-pos;el.value=out;let c=Math.max(0,out.length-fim);if(ev&&ev.inputType==='insertText'&&(ev.data==='.'||ev.data===','))c=out.indexOf(',')+1;try{el.setSelectionRange(c,c)}catch(_){}}
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-money]'))moneyMask(t,e)},true);
+document.addEventListener('focus',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-money]'))setTimeout(()=>{try{t.select()}catch(_){}},0)},true);
 document.addEventListener('blur',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-money]')&&t.value)t.value=moneyFmt(moneyParse(t.value))},true);
 function payDone(id,ov){const l=ov||S.data.lancamentos.find(x=>x.id===id);if(!l)return;const pg=l.tipo==='pagar';const c=S.data.contatos.find(x=>x.id===l.contatoId)||{};
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:480px"><header><h3>${pg?'Conta paga':'Pagamento recebido'}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
