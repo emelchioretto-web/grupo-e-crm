@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029183828';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029184314';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -3847,8 +3847,9 @@ function diaDisp(data,pedPorData,evPorData){const eq=cfg().equipamentos||[];cons
 function rdPeriodo(){const R=S.ui.rd;if(R.modo==='mes'){const [y,m]=R.mes.split('-').map(Number);const de=`${y}-${String(m).padStart(2,'0')}-01`;const ate=iso(new Date(y,m,0));return [de,ate]}return [R.de,R.ate<R.de?R.de:R.ate]}
 function rdCalc(){const [de,ate]=rdPeriodo();const pedPorData={};S.data.pedidos.forEach(p=>{if(!p.dataEvento||p.contratoStatus==='Cancelado'||p.dataEvento<de||p.dataEvento>ate)return;(pedPorData[p.dataEvento]=pedPorData[p.dataEvento]||[]).push(p)});
   const evPorData={};agendaAll().forEach(e=>{if(e.data>=de&&e.data<=ate)(evPorData[e.data]=evPorData[e.data]||[]).push(e)});
-  const out=[];let d=de,n=0;while(d<=ate&&n<400){const w=parseD(d).getDay();if(S.ui.rd.dias==='todos'||(S.ui.rd.dias==='fds'&&[0,5,6].includes(w))||(S.ui.rd.dias==='sab'&&w===6))out.push(diaDisp(d,pedPorData,evPorData));d=addDays(d,1);n++}return out}
-S.ui.rd={modo:'mes',mes:today().slice(0,7),de:today(),ate:addDays(today(),30),dias:'todos',aberto:null};
+  const out=[];let d=de,n=0;while(d<=ate&&n<400){const w=parseD(d).getDay();if(rdDiaOk(w))out.push(diaDisp(d,pedPorData,evPorData));d=addDays(d,1);n++}return out}
+S.ui.rd={modo:'mes',mes:today().slice(0,7),de:today(),ate:addDays(today(),30),dias:'todos',ws:[],aberto:null};
+function rdDiaOk(w){const W=S.ui.rd.ws||[];if(W.length)return W.includes(w);const d=S.ui.rd.dias;return d==='todos'||(d==='fds'&&[0,5,6].includes(w))||(d==='sab'&&w===6)}
 const rdCor=(l,q)=>l<=0?'var(--danger)':l===1&&q>1?'var(--warn)':'var(--ok)';
 VIEWS.reldisp=()=>{const R=S.ui.rd;const L=rdCalc();const eq=cfg().equipamentos||[];const O=operadores();
   const tot={vender:L.reduce((s,x)=>s+x.podeVender,0),vend:L.reduce((s,x)=>s+x.reserv,0),semOp:L.filter(x=>x.opLivres===0&&x.livresEq>0).length,cheios:L.filter(x=>x.livresEq===0).length};
@@ -3860,7 +3861,7 @@ VIEWS.reldisp=()=>{const R=S.ui.rd;const L=rdCalc();const eq=cfg().equipamentos|
    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
     <div class="seg"><button data-rdmodo="mes" class="${R.modo==='mes'?'on':''}">Mês</button><button data-rdmodo="per" class="${R.modo==='per'?'on':''}">Período</button></div>
     ${R.modo==='mes'?`<div class="field" style="margin:0"><label for="rd-mes">Mês</label><input id="rd-mes" type="month" value="${R.mes}" data-rdset="mes"></div>`:`<div class="field" style="margin:0"><label for="rd-de">De</label><input id="rd-de" type="date" value="${R.de}" data-rdset="de"></div><div class="field" style="margin:0"><label for="rd-ate">Até</label><input id="rd-ate" type="date" value="${R.ate}" data-rdset="ate"></div>`}
-    <div class="seg"><button data-rddias="todos" class="${R.dias==='todos'?'on':''}">Todos os dias</button><button data-rddias="fds" class="${R.dias==='fds'?'on':''}">Sex, sáb e dom</button><button data-rddias="sab" class="${R.dias==='sab'?'on':''}">Só sábados</button></div>
+    <div class="seg" style="flex-wrap:wrap"><button data-rddias="todos" class="${!(R.ws||[]).length?'on':''}">Todos os dias</button>${[[1,'Seg'],[2,'Ter'],[3,'Qua'],[4,'Qui'],[5,'Sex'],[6,'Sáb'],[0,'Dom']].map(([w,l])=>`<button data-rdws="${w}" class="${(R.ws||[]).includes(w)?'on':''}" aria-pressed="${(R.ws||[]).includes(w)}">${l}</button>`).join('')}</div>
    </div>
    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
     ${[['Ainda dá para vender',tot.vender,'unidades de equipamento com operador livre','var(--ok)'],['Já vendido',tot.vend,'equipamentos reservados no período','var(--info)'],['Dias sem operador',tot.semOp,'tem equipamento livre, mas falta gente','var(--warn)'],['Dias lotados',tot.cheios,'todos os equipamentos reservados','var(--danger)']].map(([t,v,s,c])=>`<div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;border-left:4px solid ${c}"><div class="muted" style="font-size:12px;font-weight:600">${t}</div><div class="num" style="font-size:26px;font-weight:700">${v}</div><div class="muted" style="font-size:12px">${s}</div></div>`).join('')}
@@ -3908,8 +3909,8 @@ async function rdExcel(){try{const X=await loadXlsx();const wb=X.utils.book_new(
   addSheet(X,wb,'Equipamentos',[['Data','Equipamento','Temos','Vendidos','Livres','Pedidos'],...L.flatMap(x=>x.itens.map(i=>[fdate(x.data),i.nome,i.qtd,i.usados,i.livres,i.pedidos.map(p=>'#'+(p.num||'')+' '+p.titulo).join(' | ')]))]);
   addSheet(X,wb,'Freelancers',[['Data','Livres','Escalados','Não podem (motivo)'],...L.map(x=>[fdate(x.data),x.livresNomes.map(m=>m.nome).join(', '),x.escalados.map(m=>m.nome).join(', '),x.fora.map(m=>m.nome+(indispDe(m.nome,x.data)[0]&&indispDe(m.nome,x.data)[0].motivo?' ('+indispDe(m.nome,x.data)[0].motivo+')':'')).join(', ')])]);
   await salvarArquivo(`Disponibilidade ${fdate(de).replace(/\//g,'-')} a ${fdate(ate).replace(/\//g,'-')}.xlsx`,new Blob([X.write(wb,{bookType:'xlsx',type:'array',compression:true})]))}catch(e){toast((e&&e.message)||String(e),true)}}
-document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-rdmodo],[data-rddias],[data-rdopen],[data-rdxls],[data-inddel],[data-indbusca],[data-indmsg]');if(!t)return;const d=t.dataset;
-  if('rdmodo' in d){S.ui.rd.modo=d.rdmodo;render();return}if('rddias' in d){S.ui.rd.dias=d.rddias;render();return}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-rdmodo],[data-rddias],[data-rdws],[data-rdopen],[data-rdxls],[data-inddel],[data-indbusca],[data-indmsg]');if(!t)return;const d=t.dataset;
+  if('rdmodo' in d){S.ui.rd.modo=d.rdmodo;render();return}if('rddias' in d){S.ui.rd.dias=d.rddias;S.ui.rd.ws=[];render();return}if('rdws' in d){const w=+d.rdws,W=S.ui.rd.ws||[];S.ui.rd.ws=W.includes(w)?W.filter(x=>x!==w):[...W,w];render();return}
   if('rdopen' in d){if(e.target.closest('button,a'))return;S.ui.rd.aberto=S.ui.rd.aberto===d.rdopen?null:d.rdopen;render();return}
   if('rdxls' in d){rdExcel();return}
   if('inddel' in d){const x=(S.data.indisp||[]).find(y=>y.id===d.inddel);if(!x)return;armDelete(t,async()=>{await S.db.collection('indisp').doc(x.id).delete();toast('Excluído')});return}
