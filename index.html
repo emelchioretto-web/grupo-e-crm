@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029135048';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -172,8 +172,14 @@ async function liderar(){try{const ref=fs.doc('config/automacao');const ok=await
     if(vivo&&x.sid!==SID)return false;tx.set(ref,{sid:SID,ts:Date.now(),quem:(auth.currentUser||{}).email||''});return true});window.__autoLider=ok}catch(e){window.__autoLider=false}}
 H.extra={mcp:MCP,assets:ASSETS};
 H.onLogin=()=>{liderar();setInterval(liderar,5*60*1000);window.addEventListener('beforeunload',()=>{if(window.__autoLider)fs.doc('config/automacao').set({sid:'',ts:0}).catch(()=>{})})};
-})();
-</script></head><body>
+
+/* aviso de versão nova publicada no GitHub */
+async function novaVersao(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/window\.CRM_BUILD='(\d+)'/);
+  if(m&&window.CRM_BUILD&&m[1]>window.CRM_BUILD&&!document.getElementById('nvv')){const b=document.createElement('button');b.id='nvv';b.type='button';b.textContent='Nova versão do CRM disponível — clique para atualizar';
+    b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:9500;padding:10px 18px;border-radius:999px;border:0;background:#1f6f54;color:#fff;font:600 14px system-ui;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer';
+    b.onclick=()=>location.reload();document.body.appendChild(b)}}catch(e){}}
+setTimeout(novaVersao,60000);setInterval(novaVersao,10*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)novaVersao()});
+})();</script></head><body>
 <title>Grupo E CRM</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4115,8 +4121,12 @@ function custoSyncLanc(p,old,nov){const l=custoLanc(p,old);if(!l)return null;
 /* campo de dinheiro: 15285 → 15.285 · 15285,5 → 15.285,50 */
 function moneyFmt(v){if(v===''||v==null||isNaN(+v))return '';return (+v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function moneyParse(t){t=String(t||'').replace(/[^\d,]/g,'');const [a,b='']=t.split(',');return +(a||'0')+(b?+('0.'+b.slice(0,2)):0)}
-function moneyMask(el){const v=el.value;let [a,...r]=v.replace(/[^\d,]/g,'').split(',');a=(a||'').replace(/^0+(?=\d)/,'');const b=r.join('').slice(0,2);const fa=a.replace(/\B(?=(\d{3})+(?!\d))/g,'.');el.value=fa+(v.includes(',')?','+b:'')}
-document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-money]'))moneyMask(t)},true);
+function moneyMask(el,ev){let v=el.value;const pos=el.selectionStart||v.length;
+  if(ev&&ev.inputType==='insertText'&&(ev.data==='.'||ev.data===','))v=v.slice(0,pos-1)+'#'+v.slice(pos);
+  v=v.replace(/,/g,'#');const k=v.indexOf('#');let a=(k<0?v:v.slice(0,k)).replace(/\D/g,''),b=k<0?'':v.slice(k+1).replace(/\D/g,'').slice(0,2);
+  a=a.replace(/^0+(?=\d)/,'');if(k>=0&&!a)a='0';const fa=a.replace(/\B(?=(\d{3})+(?!\d))/g,'.');const out=fa+(k>=0?','+b:'');
+  const fim=el.value.length-pos;el.value=out;let c=Math.max(0,out.length-fim);if(ev&&ev.inputType==='insertText'&&(ev.data==='.'||ev.data===','))c=out.indexOf(',')+1;try{el.setSelectionRange(c,c)}catch(_){}}
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-money]'))moneyMask(t,e)},true);
 document.addEventListener('blur',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-money]')&&t.value)t.value=moneyFmt(moneyParse(t.value))},true);
 function reciboImprimir(id){const l=S.data.lancamentos.find(x=>x.id===id);if(!l)return;const T=emCfg().tipos.recibo;const V=emValsLanc(l);
   const corpo=emHtml(emFill(T.corpo,V));const E=cfg().estudio||{};
