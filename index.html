@@ -62,19 +62,26 @@ window.crmSair=()=>auth.signOut().then(()=>location.reload());
 
 /* ---------- migração ---------- */
 async function lerArquivo(f){let buf=new Uint8Array(await f.arrayBuffer());if(buf[0]===0x50&&buf[1]===0x4b){const dv=new DataView(buf.buffer);const m=buf[8]|(buf[9]<<8),cs=dv.getUint32(18,true),nl=dv.getUint16(26,true),xl=dv.getUint16(28,true);const ini=30+nl+xl;const data=buf.subarray(ini,ini+cs);buf=m===8?new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer()):data;return JSON.parse(new TextDecoder().decode(buf))}if(buf[0]===0x1f&&buf[1]===0x8b){const st=new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));buf=new Uint8Array(await new Response(st).arrayBuffer())}return JSON.parse(new TextDecoder().decode(buf))}
-async function importar(M,prog){const cols=M.colecoes||{};const todos=[];for(const c in cols)for(const d of cols[c]){const {id,...data}=d;if(id)todos.push([c,id,data])}
-  let i=0;const N=todos.length;while(i<N){const b=fs.batch();let bytes=0,k=0;
-    while(i+k<N&&k<400){const [c,id,data]=todos[i+k];const e=enc(data);const sz=JSON.stringify(e).length;if(k>0&&bytes+sz>7e6)break;bytes+=sz;b.set(fs.collection(c).doc(id),e);k++}
-    let t=0;for(;;){try{await b.commit();break}catch(err){if(++t>5)throw err;await new Promise(r=>setTimeout(r,1500*t))}}
-    i+=k;prog(i,N)}
+async function importar(M,prog){const cols=M.colecoes||{};const nomes=Object.keys(cols).filter(c=>c!=='config').concat(cols.config?['config']:[]);
+  const N=nomes.reduce((a,c)=>a+cols[c].length,0);let feitos=0;
+  for(const c of nomes){const L=cols[c].filter(d=>d&&d.id);if(!L.length)continue;
+    const tem=async k=>{try{return (await fs.collection(c).doc(L[k].id).get()).exists}catch(e){return false}};
+    let ini=0;if(await tem(L.length-1)){feitos+=L.length;prog(feitos,N);continue}
+    if(await tem(0)){let lo=0,hi=L.length-1;while(hi-lo>1){const md=(lo+hi)>>1;if(await tem(md))lo=md;else hi=md}ini=hi}
+    feitos+=ini;prog(feitos,N);let i=ini;
+    while(i<L.length){const b=fs.batch();let bytes=0,k=0;
+      while(i+k<L.length&&k<200){const {id,...data}=L[i+k];const e=enc(data);const sz=JSON.stringify(e).length;if(k>0&&bytes+sz>1.5e6)break;bytes+=sz;b.set(fs.collection(c).doc(id),e);k++}
+      let t=0;for(;;){try{await b.commit();break}catch(err){if(err&&err.code==='resource-exhausted')throw new Error('Chegou no limite grátis de gravações do Firebase por hoje ('+feitos+' de '+N+' copiados). Nada se perdeu: amanhã escolha o mesmo arquivo de novo e ele continua de onde parou.');if(++t>5)throw err;await new Promise(r=>setTimeout(r,1500*t))}}
+      i+=k;feitos+=k;prog(feitos,N);await new Promise(r=>setTimeout(r,50))}}
   return N}
-function telaMigrar(user){const el=tela(`<p style="margin-top:0">Olá, ${user.displayName||''}! O banco ainda está vazio.</p><p>Abra o CRM no claude.ai, vá em <b>Configurações › Backup</b>, clique em <b>Exportar para o app novo</b> e escolha aqui o arquivo baixado.</p><p><label><button id="gxf">Escolher arquivo de migração</button><input type="file" id="gxi" accept=".zip,.gz,.json" hidden></label></p><div id="gxm"></div><p><a href="#" id="gxs" style="color:#6b716d">Sair</a></p>`);
+function telaMigrar(user){const el=tela(`<p style="margin-top:0">Olá, ${user.displayName||''}! ${window.__migCont?'Vamos continuar a cópia dos dados.':'O banco ainda está vazio.'}</p><p>Abra o CRM no claude.ai, vá em <b>Configurações › Backup</b>, clique em <b>Exportar para o app novo</b> e escolha aqui o arquivo baixado.</p><p><label><button id="gxf">Escolher arquivo de migração</button><input type="file" id="gxi" accept=".zip,.gz,.json" hidden></label></p><div id="gxm"></div><p><a href="#" id="gxs" style="color:#6b716d">Sair</a></p>`);
   el.querySelector('#gxs').onclick=e=>{e.preventDefault();window.crmSair()};el.querySelector('#gxf').onclick=()=>el.querySelector('#gxi').click();
   return new Promise(res=>{el.querySelector('#gxi').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;const m=el.querySelector('#gxm');
     try{m.innerHTML='<p>Lendo arquivo…</p>';const M=await lerArquivo(f);if(M.formato!=='migracao')throw new Error('Este não é o arquivo de migração.');
+      try{localStorage.setItem('crm-mig-pend','1')}catch(_){}
       m.innerHTML='<p>Copiando dados… não feche esta janela.</p><progress id="gxp" max="1" value="0"></progress><p id="gxn"></p>';
       const n=await importar(M,(a,b)=>{const p=document.getElementById('gxp');p.max=b;p.value=a;document.getElementById('gxn').textContent=a+' de '+b})
-      ;m.innerHTML=`<p>Pronto! ${n} registros copiados.</p>`;setTimeout(res,800)}catch(e){m.innerHTML=`<p class="er">${String(e.message||e).replace(/</g,'&lt;')}</p>`}}})}
+      ;try{localStorage.removeItem('crm-mig-pend')}catch(_){}m.innerHTML=`<p>Pronto! ${n} registros copiados.</p>`;setTimeout(res,800)}catch(e){m.innerHTML=`<p class="er">${String(e.message||e).replace(/</g,'&lt;')}</p>`}}})}
 
 /* lista de quem pode entrar: e-mails dos Administradores em Configurações › Usuários */
 function syncAcesso(user){fs.doc('config/geral').onSnapshot(s=>{if(!s.exists)return;const eq=(s.data().equipe||[]);
@@ -93,7 +100,9 @@ auth.onAuthStateChanged(async user=>{
   tela('<p>Verificando acesso…</p>');
   let g;try{g=await fs.doc('config/geral').get()}catch(e){
     tela(`<p style="margin-top:0"><b>${user.email}</b> não tem acesso a este CRM.</p><p>Peça ao Elton para cadastrar este e-mail como <b>Administrador</b> em Configurações › Usuários.</p><p><button id="gxo">Entrar com outra conta</button></p>`);document.getElementById('gxo').onclick=()=>auth.signOut();return}
-  if(!g.exists){if(!EU.isOwner){tela('<p>O CRM ainda está sendo preparado. Tente mais tarde.</p>');return}await telaMigrar(user)}
+  let pend=false;try{pend=localStorage.getItem('crm-mig-pend')==='1'}catch(_){}
+  if(!g.exists||(pend&&EU.isOwner)){if(!EU.isOwner){tela('<p>O CRM ainda está sendo preparado. Tente mais tarde.</p>');return}window.__migCont=g.exists;await telaMigrar(user)}
+  window.crmMigrar=()=>{window.__migCont=true;telaMigrar(user).then(()=>location.reload())};
   syncAcesso(user);fechar();pronto(DB)});});
 
 /* ---------- o que o CRM pede ---------- */
@@ -3237,7 +3246,7 @@ VIEWS.backup=()=>{const B=bkCfg();const prox=B.auto?(B.ultimo?new Date(Date.pars
     <button class="btn pri" data-bkdrive ${BK_RUN?'disabled':''}>${ic('upload',15)} ${S.bkMsg?esc(S.bkMsg):'Fazer backup agora no Drive'}</button>
     <button class="btn" data-bkxlsx>${ic('down',15)} Baixar backup completo (Excel)</button>
     <button class="btn" data-bkjson>${ic('down',15)} Baixar backup completo (JSON)</button>
-    <button class="btn" data-bkmigra>${ic('down',15)} ${S.migMsg?esc(S.migMsg):'Exportar para o app novo'}</button>
+    ${window.__HOSTED?(S.dono?`<button class="btn" onclick="window.crmMigrar&&window.crmMigrar()">${ic('upload',15)} Continuar / conferir importação</button>`:''):`<button class="btn" data-bkmigra>${ic('down',15)} ${S.migMsg?esc(S.migMsg):'Exportar para o app novo'}</button>`}
    </div>
    <p class="muted" style="margin:0;font-size:12.5px">Os arquivos enviados (PDFs das propostas, fotos das provas) não vão dentro do backup: os originais continuam nas suas pastas. Guarde também os backups baixados junto com os seus outros backups.</p>
   </div></section>
