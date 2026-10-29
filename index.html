@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029150206';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029151656';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -242,7 +242,7 @@ button{cursor:pointer}
 .nav a{display:flex;align-items:center;gap:11px;padding:9px 20px;color:var(--side-fg);text-decoration:none;font-weight:500;border-left:3px solid transparent}
 .nav a.sub{padding-left:48px;font-weight:400;font-size:13px}
 .nav .navrow{display:flex;align-items:stretch}.nav .navrow>a{flex:1;min-width:0;padding-right:4px}.nav .navrow>a>span:not(.count){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nav .navtog{flex:none;width:38px;display:grid;place-items:center;background:none;border:0;color:var(--side-fg);opacity:.6;cursor:pointer}
+.nav .navtog{flex:none;width:38px;display:grid;place-items:center;background:none;border:0;color:var(--side-fg);opacity:.85;cursor:pointer}
 .nav .navtog:hover{opacity:1;background:var(--side-2)}.nav .navtog svg{transition:transform .15s}.nav .navg.open>.navrow .navtog svg,.nav .navsg.open>.navrow .navtog svg{transform:rotate(90deg)}
 .nav .navkids2 a.sub{padding-left:70px;font-size:12.5px}.nav a.navsgh{gap:8px}.nav a.navsgh svg{width:15px;height:15px}
 .nav a:hover{background:var(--side-2);color:var(--side-fg-strong)}
@@ -2973,7 +2973,7 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('button,a,[data-newday],[data-close-bg]');if(!t)return;
   const d=t.dataset;
   if(d.navtog){e.preventDefault();const g=t.closest('.navsg')||t.closest('.navg');NAV_OPEN[d.navtog]=!(g&&g.classList.contains('open'));navSave();renderNav();return}
-  if(d.nav){e.preventDefault();const pai=NAV.find(n=>n.v===d.nav&&!n.sub);if(pai&&NAV_OPEN[d.nav]===false)delete NAV_OPEN[d.nav],navSave();go(d.nav);return}
+  if(d.nav){e.preventDefault();const pai=NAV.find(n=>n.v===d.nav&&!n.sub);const g=t.closest('.navg');if(pai&&g&&t.parentElement&&t.parentElement.classList.contains('navrow')&&g.classList.contains('open')&&S.ui.view===d.nav){NAV_OPEN[d.nav]=false;navSave();renderNav();return}if(pai&&NAV_OPEN[d.nav]===false)delete NAV_OPEN[d.nav],navSave();go(d.nav);return}
   if(d.closeBg!==undefined&&e.target===t){closeModal();return}
   if(d.close!==undefined){closeModal();return}
   if(d.new){openForm(d.new,{});return}
