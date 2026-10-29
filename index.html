@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029184827';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029185417';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4045,6 +4045,13 @@ function opDados(r){const ped=r.pedidoId?S.data.pedidos.find(p=>p.id===r.pedidoI
   const d=r.data||(ped&&ped.dataEvento)||'';
   return {pedido:(ped&&ped.num)||'',evento,data:d?fdate(d).replace(/\/(\d{2})(\d{2})$/,'/$2'):'',equipamento:equip,local:loc,maps,montagem:r.montagem?'até às '+r.montagem:'',liberacao:ini&&fim?`das ${ini} às ${fim}${dur}`:'',inicio:ini,fim,duracao:dur,responsavel:cn?(cn+(ct?' - '+ct:'')):'',cliente:cn,operador:ops}}
 function opGerar(r){const D=opDados(r);return opModelo().replace(/\{(\w+)\}/g,(m,k)=>k in D?String(D[k]||''):m)}
+
+/* marcar participantes preenche "Contato do OPERADOR" nos dados de operação */
+function opOperadoresTxt(nomes){const eq=cfg().equipe||[];const adm=new Set(eq.filter(m=>m.tipo==='Administrador').map(m=>m.nome));let L=nomes.filter(n=>!adm.has(n));if(!L.length)L=nomes;
+  return L.map(n=>{const m=eq.find(x=>x.nome===n);const t=m?telFmt(m.celular):'';return n+(t?' - '+t:'')}).join(' / ')}
+document.addEventListener('change',e=>{const t=e.target;const box=t&&t.closest&&t.closest('#f-participantes');if(!box)return;const ta=$('#f-notas');if(!ta)return;
+  const re=/^(\*?Contato do OPERADOR a seguir:\*?)[^\n]*$/mi;if(!re.test(ta.value))return;
+  const nomes=[...box.querySelectorAll('input:checked')].map(i=>i.value);ta.value=ta.value.replace(re,(m,a)=>a+' '+opOperadoresTxt(nomes));ta.dispatchEvent(new Event('input',{bubbles:true}))});
 
 /* dados de operação também nas observações do pedido */
 function opBranco(r){const D={...opDados(r),montagem:'',liberacao:'',responsavel:'',operador:''};return opModelo().replace(/\{(\w+)\}/g,(m,k)=>k in D?String(D[k]||''):m)}
