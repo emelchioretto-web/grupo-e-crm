@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029185417';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029190601';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -957,7 +957,7 @@ const SCHEMAS={
       {k:'tipo',l:'Tipo',t:'select',o:['Seleção de fotos','Visualização','Álbum'],req:1,tab:0},
       {k:'status',l:'Status',t:'select',o:Object.keys(PROVA_COR),tab:0},
       {k:'contatoId',l:'Cliente principal',t:'ref',ref:'contatos',tab:0},
-      {k:'projetoId',l:'Projeto',t:'ref',ref:'projetos',tab:0},
+      {k:'pedidoId',l:'Pedido',t:'ref',ref:'pedidos',tab:0},{k:'projetoId',l:'Projeto',t:'ref',ref:'projetos',tab:0},
       {k:'ativada',l:'Ativada em',t:'date',tab:0},{k:'termino',l:'Prazo do cliente',t:'date',tab:0},
       {k:'responsavel',l:'Responsável',t:'pessoa',ph:'Elton Melchioretto',tab:0},
       {k:'link',l:'Link direto da galeria',t:'url',ph:'https://',tab:0},
@@ -1727,7 +1727,10 @@ VIEWS.pedido=()=>{
   const extras=[['Horário da recepção',p.horarioRecepcao],['Data da recepção',fdate(p.dataRecepcao)],['Forma de pagamento',p.pagamento],['Parcelas',p.parcelas],['Depositar em',p.contaDeposito]].filter(x=>x[1]);
   const nCtr=new Set(R.ctr.map(g=>String(g.num))).size;
   const TL=[['itens','Itens',(p.itens||[]).length,'#43a96b','box'],['pag','Pagamentos',R.rec.length,'#f0a457','down'],['custos','Custos',CU.length,'#e2513b','list'],['ctr','Contratos',nCtr,'#2a7fc0','doc'],['proj','Projetos',R.proj.length,'#43b9d3','img'],['ag','Agendamentos',R.ag.length,'#f0a457','cal']];
-  const SEC={itens:tItens,pag:tPag,custos:tCus,ctr:tCtr,proj:tProj,ag:tAg};
+  const PVL=S.data.provas.filter(v=>v.pedidoId===p.id||(v.projetoId&&R.proj.some(x=>x.id===v.projetoId)));
+  const tPv=sec('Provas',`<button class="btn sm info" data-pvnovaped="${p.id}">${ic('plus',13)} Nova Prova</button>`,PVL.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Nome</th><th>Tipo</th><th>Status</th><th>Prazo</th><th class="r">Clientes</th><th class="r">Imagens</th></tr></thead><tbody>${PVL.map(v=>`<tr class="row"><td class="num muted">${esc(String(v.num||''))}</td><td><button class="link" data-prova="${v.id}">${esc(v.nome||'')}</button></td><td>${esc(v.tipo||'')}</td><td>${badge(v.status||'',PROVA_COR[v.status])}</td><td class="num">${fdateShort(v.termino)}</td><td class="r num">${pvClientes(v).length}</td><td class="r num">${pvImgs(v).length||v.imagens||0}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><span>Nenhuma prova ligada a este pedido.</span></div>`);
+  TL.splice(5,0,['pv','Provas',PVL.length,'#8e6bd1','grid']);
+  const SEC={itens:tItens,pag:tPag,custos:tCus,ctr:tCtr,proj:tProj,pv:tPv,ag:tAg};
   if(SEC[T.tab]){T.sec=T.tab;T.tab='geral'}const sk=SEC[T.sec]?T.sec:'itens';
   const tGeral=`<div class="pd-tiles">${TL.map(([k,l,n,cor,icn])=>`<button type="button" class="pd-tile ${sk===k?'on':''}" style="--t:${cor}" data-pdsec="${k}"><span class="pd-ti">${ic(icn,44)}</span><span class="pd-tl">${l}</span><b class="pd-tn">${n}</b></button>`).join('')}</div>${SEC[sk]}`;
   const msgs=(S.data.emails||[]).filter(x=>x.pedidoId===p.id||(c.email&&x.para===c.email)).sort((a,b)=>String(b.enviadoEm||'').localeCompare(String(a.enviadoEm||'')));
@@ -1855,8 +1858,8 @@ VIEWS.prova=()=>{
   const dr=T.draft||cli.map(c=>({...c}));
   const msgConvite=c=>{const nm=(contatoNome(c.c)||'').split(' ')[0];return `Olá ${nm}, tudo bem? ${album?'Seu álbum está pronto para aprovação':'Está liberada a seleção para a escolha das fotos'} de "${p.nome}".${p.link?'\n\nAcesse: '+p.link:''}${p.senha?'\nSenha: '+p.senha:''}${c.prazo?'\nPrazo: '+fdate(c.prazo):''}${p.instrucoes?'\n\n'+p.instrucoes:''}`};
   const clientesTab=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0;font-size:15px">Clientes</h3><span style="margin-left:auto"></span>
-     ${dr[0]?`<a class="btn sm" style="background:var(--ev-pre);border-color:var(--ev-pre);color:#fff" href="mailto:${esc((S.data.contatos.find(x=>x.id===dr[0].c)||{}).email||'')}?subject=${encodeURIComponent(p.nome)}&body=${encodeURIComponent(msgConvite(dr[0]))}">${ic('mail',13)} Enviar convite</a>`:''}
-     ${dr[0]?(()=>{const c=S.data.contatos.find(x=>x.id===dr[0].c)||{};const w=waNum(c);return w?`<a class="btn sm" style="background:#25a85a;border-color:#25a85a;color:#fff" target="_blank" rel="noopener" href="https://wa.me/${w}?text=${encodeURIComponent(msgConvite(dr[0]))}">${ic('wa',13)} Enviar convite por WhatsApp</a>`:''})():''}</div>
+     ${dr.length?`<button class="btn sm" style="background:var(--ev-pre);border-color:var(--ev-pre);color:#fff" data-pvconv="mail">${ic('mail',13)} Enviar convite</button>`:''}
+     ${dr.length?`<button class="btn sm" style="background:#25a85a;border-color:#25a85a;color:#fff" data-pvconv="wa">${ic('wa',13)} Enviar convite por WhatsApp</button>`:''}</div>
    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nome</th><th>Prazo</th><th>Lembrete</th><th class="r">Visualiz.</th><th>Última</th><th class="r">${album?'Aprov.':'Sel.'}</th><th class="r">${album?'Anot.':'Fav.'}</th><th></th></tr></thead><tbody>
    ${dr.map((c,k)=>{const st=c.ok?`<span title="Concluiu em ${fdate(c.ok)}" style="color:var(--ok)">${ic('ok',15)}</span> `:c.alt?`<span title="Pediu alterações" style="color:var(--danger)">${ic('alertT',15)}</span> `:(c.prazo&&c.prazo<today())?`<span title="Prazo expirado" style="color:var(--warn)">${ic('pause',15)}</span> `:'';
      return `<tr class="row"><td>${cLink(c.c)||'<span class="muted">—</span>'}</td><td>${st}<input type="date" value="${esc(c.prazo||'')}" data-cl="${k}" data-f="prazo" class="search" style="width:150px;padding:4px 6px"></td>
@@ -1865,9 +1868,7 @@ VIEWS.prova=()=>{
      <td><span class="num" style="font-size:12px">${c.ult?fdate(c.ult):''}</span></td>
      <td class="r"><input type="number" min="0" value="${esc(c.sel||'')}" data-cl="${k}" data-f="sel" class="search" style="width:70px;padding:4px 6px;text-align:right"></td>
      <td class="r"><input type="number" min="0" value="${esc(c.fav||'')}" data-cl="${k}" data-f="fav" class="search" style="width:70px;padding:4px 6px;text-align:right"></td>
-     <td><div class="acts">${(()=>{const ct=S.data.contatos.find(x=>x.id===c.c)||{};const w=waNum(ct);return w?`<a class="icon-btn" title="Link de acesso por WhatsApp" target="_blank" rel="noopener" href="https://wa.me/${w}?text=${encodeURIComponent(msgConvite(c))}">${ic('wa',15)}</a>`:''})()}
-       <button class="icon-btn" title="${c.ok?'Reiniciar':'Forçar conclusão'}" data-clact="${c.ok?'reset':'ok'}" data-k="${k}">${ic(c.ok?'refresh':'ok',15)}</button>
-       <button class="icon-btn del" title="Remover cliente" data-clact="del" data-k="${k}">${ic('trash',15)}</button></div></td></tr>`}).join('')||'<tr><td colspan="8" class="muted">Nenhum cliente nesta prova.</td></tr>'}
+     <td><div class="acts" style="position:relative"><button class="btn sm" style="background:var(--ok);border-color:var(--ok);color:#fff;padding:4px 8px" title="Ações" data-clmenu="${k}">${ic('gear',14)} ▾</button></div></td></tr>`}).join('')||'<tr><td colspan="8" class="muted">Nenhum cliente nesta prova.</td></tr>'}
    </tbody></table></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="search" id="pv-addcl" list="dl-pvcl" placeholder="Adicionar cliente: digite o nome…" style="flex:1 1 260px"><datalist id="dl-pvcl">${S.data.contatos.map(r=>`<option value="${esc(refLabel('contatos',r))}">`).join('')}</datalist><button class="btn sm" data-claddbtn>${ic('plus',13)} Adicionar</button><span style="margin-left:auto"></span>${T.draft?`<button class="btn" data-clundo>Desfazer</button><button class="btn pri" data-clsave>Salvar</button>`:''}</div>
    <div class="banner" style="border-style:solid;border-color:var(--line);background:var(--surface-2)"><span><b>Sobre a coluna Prazo:</b></span></div>
@@ -2463,7 +2464,10 @@ VIEWS.config=()=>{
      ${LBL.map(([k,nm,c])=>crow(`<span class="lab" style="--c:${c}"></span> Texto para etiqueta ${nm.toLowerCase()}`,`<input data-cfgt="provas.legenda.${k}" value="${esc(L[k]||'')}">`)).join('')}</div>
      <h4>Marca d'água</h4><div class="form-grid">${crow('Imagem (PNG com fundo transparente)',`<div style="display:flex;gap:10px;align-items:center">${P.marca.a?`<img src="${blobUrl(P.marca.a)}" alt="" style="max-height:48px;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px">`:''}<label class="btn sm">${ic('up',14)} ${P.marca.a?'Trocar':'Enviar'} imagem<input type="file" accept="image/png,image/*" data-wmup hidden></label></div>`)}
        ${crow('Posição',`<div class="wmgrid">${pos}</div>`)}${crow('Margem em pixels',`<input type="number" data-cfgn="provas.marca.margem" value="${P.marca.margem}">`)}</div><p class="muted" style="font-size:12px">A marca d'água é aplicada nas imagens enviadas para provas com "Marca d'água" ligada.</p>
-     <h4>Lembretes</h4><div class="field full"><label>Dias antes do prazo para lembrar o cliente (um por linha)</label><textarea data-cfglemb style="min-height:180px">${esc(P.lembretes.join('\n'))}</textarea></div><p class="muted" style="font-size:12px">O CRM não envia e-mails automáticos: nesses dias a prova aparece em Tarefas do dia para você avisar o cliente.</p>`}
+     <h4>Lembretes</h4><div class="field full"><label>Dias antes do prazo para lembrar o cliente (um por linha)</label><textarea data-cfglemb style="min-height:180px">${esc(P.lembretes.join('\n'))}</textarea></div><p class="muted" style="font-size:12px">O CRM não envia e-mails automáticos: nesses dias a prova aparece em Tarefas do dia para você avisar o cliente.</p>
+     <h4>Textos do convite</h4><p class="muted" style="font-size:12px;margin:0">Usados em "Enviar link de acesso" e "Enviar convite". Campos: {nome} {prova} {liberada} {acao} {prazo} {link} {senha}. Use *texto* para negrito.</p>
+     <div class="field full"><label>E-mail</label><textarea data-cfgt="provas.textoConvite" style="min-height:260px">${esc(P.textoConvite||PV_TXT_DEF)}</textarea></div>
+     <div class="field full"><label>WhatsApp</label><textarea data-cfgt="provas.textoWa" style="min-height:140px">${esc(P.textoWa||PV_WA_DEF)}</textarea></div>`}
   if(T.tab==='fluxos'){const fs=fluxos(),i=Math.min(T.fx,fs.length-1),f=fs[i];let acc=0;
     body=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fluxo</th><th class="r">Etapas</th><th class="r">Dias</th><th class="r">Projetos</th><th></th></tr></thead><tbody>${fs.map((x,k)=>`<tr class="row" style="${k===i?'background:var(--accent-soft)':''}"><td><button class="link" data-fxsel="${k}">${esc(x.nome)}</button></td><td class="r num">${x.etapas.length}</td><td class="r num">${x.etapas.reduce((a,e)=>a+(+e.dias||0),0)}</td><td class="r num">${S.data.projetos.filter(p=>fluxoOf(p)===x).length}</td><td><div class="acts"><button class="icon-btn" title="Duplicar" data-fxdup="${k}">${ic('copy',15)}</button><button class="icon-btn del" title="Excluir" data-fxdel="${k}">${ic('trash',15)}</button></div></td></tr>`).join('')}</tbody></table></div><button class="btn sm" data-fxadd>${ic('plus',14)} Novo fluxo</button>
      ${f?`<h4 style="margin-top:18px">Editando etapas de <input class="search" style="max-width:320px;display:inline-block" data-fxnome value="${esc(f.nome)}"></h4>
@@ -2611,6 +2615,7 @@ async function submitForm(){
   if(missing.length){const e=$('#formErr');e.hidden=false;e.textContent='Preencha: '+missing.join(', ')+'.';return}
   if(col==='pedidos'){delete out._c1;if(out.status==='Pedido Concluído'&&!out.concluidoEm)out.concluidoEm=today()}
   if(col==='produtos'&&$('#custosEd')){out.custos=readCustos();if(out.custos.length)out.custo=Math.round(sumV(out.custos)*100)/100}
+  if(col==='provas'&&out.pedidoId&&!out.contatoId){const pd=S.data.pedidos.find(x=>x.id===out.pedidoId);if(pd&&pd.contatoId)out.contatoId=pd.contatoId}
   if(col==='pedidos'&&!(rec.custos&&rec.custos.length)){const g=pedCustosGerar(out);if(g.length)out.custos=g}
   const gen=out.gerarParcelas,mkAg=false,tmod=out.tarefasModelo;delete out.gerarParcelas;delete out.criarAgenda;delete out.tarefasModelo;
   if(col==='lancamentos'&&out.pago&&!out.dataPagamento)out.dataPagamento=today();
@@ -4191,6 +4196,78 @@ document.addEventListener('change',e=>{const t=e.target;if(!(t.matches&&t.matche
     if(e.key.length===1&&e.key!==' '){e.preventDefault();abrir(t,e.key)}else if(e.key==='Enter'||e.key===' '||(e.key==='ArrowDown'&&e.altKey)){e.preventDefault();abrir(t,'')}},true);
   window.addEventListener('resize',()=>{if(pop)fechar()});document.addEventListener('scroll',e=>{if(pop&&!pop.contains(e.target))fechar()},true);
 })();
+
+/* ===== Provas: convites, link de acesso, dados do contato ===== */
+const PV_TXT_DEF=`Olá {nome},
+
+Tudo bem?
+
+{liberada} Siga todas as *INSTRUÇÕES* no canto superior direito se tiver dúvidas.
+
+O prazo para {acao} é até o dia {prazo}.
+
+*1º Acesse o link a seguir:*
+{link}
+
+*2º Crie uma senha para você.*
+
+*3º Utilize a seguinte senha para acessar sua galeria:* {senha}
+
+*4º Dica Importante:* Faça um cadastro no sistema e anote em um lugar seguro o *login e senha* para os próximos acessos.
+
+Qualquer dúvida me chame.
+
+Aguardamos sua visita!`;
+const PV_WA_DEF=`Olá {nome}, tudo bem? {liberada}
+
+Acesse: {link}
+Senha: {senha}
+Prazo: {prazo}`;
+function pvVars(p,c){const ct=S.data.contatos.find(x=>x.id===c.c)||{};const album=p.tipo==='Álbum';
+  return {nome:(SCHEMAS.contatos.labelOf(ct)||'').split(' ')[0],prova:p.nome||'',liberada:album?'Seu álbum está pronto para aprovação.':p.tipo==='Visualização'?'Suas fotos estão disponíveis para visualização.':'Está liberada a seleção para a escolha das fotos.',
+    acao:album?'Aprovação de álbum':'seleção das fotos',prazo:c.prazo?fdate(c.prazo):'—',link:p.link||'(link da galeria)',senha:p.senha||'—'}}
+const pvFill=(t,V)=>String(t||'').replace(/\{(\w+)\}/g,(m,k)=>k in V?V[k]:m).replace(/\n*\*3º[^\n]*—\n?/,'\n');
+function pvAssunto(p){return (p.tipo==='Álbum'?'Aprovação de álbum':p.tipo==='Visualização'?'Suas fotos':'Seleção de fotos')+' - '+(p.nome||'')}
+function pvCli(){const P=S.ui.pv;const p=S.data.provas.find(x=>x.id===P.id);return {P,p,dr:P.draft||pvClientes(p).map(c=>({...c}))}}
+async function pvCliSalvar(dr,msg){const {P,p}=pvCli();P.draft=null;await pvSave(p.id,{clientes:dr,atividade:logAct(p,msg),status:dr.length&&dr.every(c=>c.ok)?'Concluída':(p.status==='Concluída'?'Ativa':p.status)});render()}
+function pvMenu(btn,k){document.querySelectorAll('.pvmenu').forEach(x=>x.remove());const {p,dr}=pvCli();const c=dr[k];if(!c)return;
+  const m=document.createElement('div');m.className='pvmenu';const r=btn.getBoundingClientRect();
+  m.style.cssText=`position:fixed;z-index:9700;top:${Math.min(r.bottom+4,innerHeight-260)}px;left:${Math.max(8,r.right-230)}px;width:230px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:6px 0;font-size:14px`;
+  const it=(a,i,l,cor)=>`<button type="button" data-pvm="${a}" data-k="${k}" style="display:flex;gap:10px;align-items:center;width:100%;padding:8px 14px;border:0;background:none;color:${cor||'var(--fg)'};cursor:pointer;text-align:left">${ic(i,15)} ${l}</button>`;
+  m.innerHTML=it('edit','edit','Editar')+it('mail','mail','Enviar link de acesso')+it('wa','wa','Link de acesso por WhatsApp')+(c.ok?'':it('ok','ok','Forçar conclusão'))+'<div style="border-top:1px solid var(--line);margin:6px 0"></div>'+it('reset','refresh','Reiniciar','var(--danger)')+it('del','trash','Deletar','var(--danger)');
+  document.body.appendChild(m);setTimeout(()=>document.addEventListener('click',function f(e){if(!m.contains(e.target)){m.remove();document.removeEventListener('click',f,true)}},true),0)}
+function pvEditCli(k){const {p,dr}=pvCli();const c=dr[k]||{};const ct=S.data.contatos.find(x=>x.id===c.c)||{};
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>Dados do contato</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody" style="display:grid;gap:12px"><div class="field" style="margin:0"><label>Cliente</label><input class="search" id="pvc-c" list="dl-pvc2" value="${esc(SCHEMAS.contatos.labelOf(ct)+(ct.email?' <'+ct.email+'>':''))}"><datalist id="dl-pvc2">${S.data.contatos.slice(0,4000).map(r=>`<option value="${esc(SCHEMAS.contatos.labelOf(r)+(r.email?' <'+r.email+'>':''))}">`).join('')}</datalist></div>
+  <div class="fgrid"><div class="field"><label>Prazo</label><input type="date" id="pvc-p" value="${esc(c.prazo||'')}"></div><div class="field"><label>Enviar lembrete</label><div class="seg"><button type="button" data-pvclem="1" class="${c.lembrete!==false?'on':''}">Sim</button><button type="button" data-pvclem="0" class="${c.lembrete===false?'on':''}">Não</button></div></div>
+  <div class="field"><label>Concluído em</label><input type="date" id="pvc-ok" value="${esc(c.ok||'')}"></div></div></div>
+  <footer><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn pri" data-pvcsave="${k}">Salvar</button></footer></div></div>`}
+function pvConvite(modo,ks){const {p,dr}=pvCli();const L=(ks||dr.map((_,k)=>k)).map(k=>({k,c:dr[k]})).filter(x=>x.c);const PC=cfg().provas||{};
+  if(modo==='mail'){if(L.length===1){const {c}=L[0];const ct=S.data.contatos.find(x=>x.id===c.c)||{};if(!ct.email){toast('Este cliente não tem e-mail no cadastro.',true);return}
+      mailModal(ct.email,SCHEMAS.contatos.labelOf(ct),pvAssunto(p),pvFill(PC.textoConvite||PV_TXT_DEF,pvVars(p,c)));S.ui.pvMail={pid:p.id,k:L[0].k};return}
+    const para=L.map(x=>(S.data.contatos.find(y=>y.id===x.c.c)||{}).email).filter(Boolean);if(!para.length){toast('Nenhum cliente com e-mail.',true);return}
+    mailModal(para.join(', '),'',pvAssunto(p),pvFill(PC.textoConvite||PV_TXT_DEF,{...pvVars(p,L[0].c),nome:'{nome}'}).replace('Olá {nome},','Olá,'));S.ui.pvMail={pid:p.id,k:-1};return}
+  const rows=L.map(({k,c})=>{const ct=S.data.contatos.find(x=>x.id===c.c)||{};return `<div style="display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(SCHEMAS.contatos.labelOf(ct)||'—')}</b>
+    <div class="field" style="margin:0"><label>Para</label><input class="search" data-pvwatel="${k}" value="${esc(ct.celular||ct.fone||'')}" placeholder="+55 (47) 99999-9999"><span class="muted" style="font-size:11px">Com DDD. O +55 entra sozinho se faltar.</span></div>
+    <textarea class="search" data-pvwatxt="${k}" style="min-height:150px;font:14px/1.5 Arial,sans-serif">${esc(pvFill(PC.textoWa||PV_WA_DEF,pvVars(p,c)))}</textarea>
+    <div><button class="btn sm" style="background:#25a85a;border-color:#25a85a;color:#fff" data-pvwago="${k}">${ic('wa',13)} Abrir no WhatsApp</button></div></div>`}).join('');
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>${ic('wa',18)} Enviar WhatsApp</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header><div class="mbody">${rows}<p class="muted" style="font-size:12px">Negrito: *texto* · Itálico: _texto_</p></div><footer><span class="sp"></span><button class="btn" data-close>Fechar</button></footer></div></div>`}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-clmenu],[data-pvm],[data-pvconv],[data-pvclem],[data-pvcsave],[data-pvwago],[data-pvnovaped]');if(!t)return;const d=t.dataset;
+  if(d.clmenu!==undefined){e.preventDefault();e.stopPropagation();pvMenu(t,+d.clmenu);return}
+  if(d.pvnovaped){const pd=S.data.pedidos.find(x=>x.id===d.pvnovaped)||{};const pj=S.data.projetos.find(x=>x.pedidoId===pd.id);openForm('provas',{pedidoId:pd.id,contatoId:pd.contatoId||'',projetoId:pj?pj.id:'',nome:String(pd.titulo||'').replace(/^.*?\s-\s/,''),tipo:'Seleção de fotos',status:'Ativa',ativada:today()});return}
+  if(d.pvconv){pvConvite(d.pvconv);return}
+  if(d.pvm){document.querySelectorAll('.pvmenu').forEach(x=>x.remove());const k=+d.k;const {dr}=pvCli();
+    if(d.pvm==='edit'){pvEditCli(k);return}if(d.pvm==='mail'){pvConvite('mail',[k]);return}if(d.pvm==='wa'){pvConvite('wa',[k]);return}
+    if(d.pvm==='ok'){dr[k].ok=today();dr[k].alt=false;await pvCliSalvar(dr,'Conclusão forçada para '+contatoNome(dr[k].c));toast('Marcado como concluído');return}
+    if(d.pvm==='reset'){if(!confirm('Reiniciar este cliente? A seleção/aprovação dele volta a ficar em aberto.'))return;delete dr[k].ok;dr[k].sel='';dr[k].fav='';dr[k].alt=false;await pvCliSalvar(dr,'Cliente reiniciado: '+contatoNome(dr[k].c));toast('Cliente reiniciado');return}
+    if(d.pvm==='del'){if(!confirm('Tirar '+(contatoNome(dr[k].c)||'este cliente')+' desta prova?'))return;const nm=contatoNome(dr[k].c);dr.splice(k,1);await pvCliSalvar(dr,'Cliente removido: '+nm);toast('Cliente removido');return}}
+  if(d.pvclem!==undefined){t.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===t));return}
+  if(d.pvcsave!==undefined){const k=+d.pvcsave;const {dr}=pvCli();const v=$('#pvc-c').value.trim();const cid=refFromInput(v.replace(/\s*<[^>]*>\s*$/,''),'contatos')||(S.data.contatos.find(x=>v.includes('<'+x.email+'>')&&x.email)||{}).id;
+    if(!cid){toast('Escolha um contato da lista.',true);return}const lem=$('[data-pvclem].on');dr[k]={...dr[k],c:cid,prazo:$('#pvc-p').value,lembrete:!lem||lem.dataset.pvclem==='1',ok:$('#pvc-ok').value||undefined};if(!dr[k].ok)delete dr[k].ok;
+    closeModal();await pvCliSalvar(dr,'Dados do contato '+contatoNome(cid)+' alterados');toast('Salvo');return}
+  if(d.pvwago!==undefined){const k=d.pvwago;let tel=String($(`[data-pvwatel="${k}"]`).value||'').replace(/\D/g,'');if(tel.length<10){toast('Informe o celular com DDD.',true);return}if(!tel.startsWith('55'))tel='55'+tel;
+    window.open('https://wa.me/'+tel+'?text='+encodeURIComponent($(`[data-pvwatxt="${k}"]`).value),'_blank','noopener');const {p,dr}=pvCli();const c=dr[+k];if(c){c.convite=today();await pvSave(p.id,{clientes:dr,atividade:logAct(p,'Link de acesso enviado por WhatsApp para '+contatoNome(c.c))})}return}
+},true);
 /* ===== Anexar contratos em lote (PDFs → pedidos) ===== */
 const LOTE_STOP=new Set('contrato contratos assinado assinada pdf de da do das dos e a o com para alterado aditivo cas casamento aniversario aniver niver anos festa evento i ii iii iv copia'.split(' '));
 function loteToks(s){return normTxt(s).replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w.length>1&&!LOTE_STOP.has(w)&&!/^(19|20)\d\d$/.test(w))}
@@ -4290,10 +4367,10 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   if('ctalbprint' in t.dataset){const fr=$('#ctAlbFr');try{fr.contentWindow.focus();fr.contentWindow.print()}catch(_){toast('Use Baixar e imprima o arquivo.',true)}return}
   if(t.dataset.ctalbbaixar){const c=_ctAlbCache[t.dataset.ctalbbaixar];if(c)salvarArquivo(nomeArq('Contrato '+c.num+' '+(c.cliente||''))+'.html',new Blob([ctAlbHtml(c)],{type:'text/html'}))}});
 /* ===== escrever e-mail para um contato (sai pelo Gmail da empresa) ===== */
-function mailModal(para,nome){$('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:640px"><header><h3>${ic('mail',18)} Enviar e-mail</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+function mailModal(para,nome,assunto,texto){$('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:640px"><header><h3>${ic('mail',18)} Enviar e-mail</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
   <div class="mbody" style="display:grid;gap:10px"><div class="field" style="margin:0"><label>Para</label><input class="search" id="ml-para" value="${esc(para)}"></div>
-  <div class="field" style="margin:0"><label>Assunto</label><input class="search" id="ml-ass" value=""></div>
-  <div class="field" style="margin:0"><label>Mensagem (a assinatura entra no final). Use *texto* para negrito</label><textarea id="ml-txt" spellcheck="true" lang="pt-BR" style="min-height:220px;font:14px/1.5 Arial,sans-serif">Olá ${esc(String(nome||'').split(' ')[0])},\n\n</textarea></div>
+  <div class="field" style="margin:0"><label>Assunto</label><input class="search" id="ml-ass" value="${esc(assunto||'')}"></div>
+  <div class="field" style="margin:0"><label>Mensagem (a assinatura entra no final). Use *texto* para negrito</label><textarea id="ml-txt" spellcheck="true" lang="pt-BR" style="min-height:220px;font:14px/1.5 Arial,sans-serif">${texto!=null?esc(texto):`Olá ${esc(String(nome||'').split(' ')[0])},\n\n`}</textarea></div>
   <span class="muted" style="font-size:12px">Sai pelo Gmail da empresa e fica registrado em E-mails.</span></div>
   <footer><span class="sp"></span><a class="btn" href="mailto:${esc(para)}">Abrir no meu programa de e-mail</a><button class="btn" data-close>Cancelar</button><button class="btn pri" data-mlsend>${ic('mail',15)} Enviar</button></footer></div></div>`;setTimeout(()=>{const x=$('#ml-ass');if(x)x.focus()},50)}
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-mailto],[data-mlsend]');if(!t)return;
