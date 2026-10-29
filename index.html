@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029145707';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029150206';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1684,7 +1684,7 @@ VIEWS.pedido=()=>{
   const pgSt=l=>l.pago?`<span class="pd-ok" style="${(l.dataPagamento||'')>(l.vencimento||'')?'color:var(--danger)':''}">${ic('check',13)} ${fdateShort(l.dataPagamento||l.vencimento)}</span>`:(l.vencimento<today()?badge('Vencida','--danger'):badge('Em aberto','--warn'));
   const tPag=sec('Pagamentos',`<button class="btn sm" style="background:var(--ev-pre);border-color:var(--ev-pre);color:#fff" data-nav="financeiro">${ic('down',13)} Abrir Contas a Receber</button><button class="btn sm info" data-pednovolanc="receber">${ic('plus',13)} Adicionar</button>`,
     R.rec.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Vencimento</th><th>Forma de pagamento</th><th>Número do documento</th><th>Obs</th><th class="r">Valor</th><th>Status</th><th></th></tr></thead><tbody>${R.rec.map(l=>`<tr class="row"><td class="num">${fdateShort(l.vencimento)}</td><td>${esc(l.forma||'')}</td><td>${esc(l.documento||l.doc||'')}</td><td><span class="sub">${esc(l.obs||'')}</span></td><td class="r num">${brl(l.valor).replace('R$','').trim()}</td><td>${pgSt(l)}</td><td class="r" style="white-space:nowrap">${l.pago?`<button class="btn sm ok" data-recprint="${l.id}" title="Imprimir recibo">${ic('doc',13)} Recibo</button> <button class="icon-btn" title="Enviar recibo por e-mail" data-recibo="${l.id}">${ic('mail',14)}</button>`:`<button class="btn sm" data-pay="${l.id}">${ic('paid',13)} Receber</button>`} <button class="icon-btn" title="Editar" data-edit="lancamentos" data-id="${l.id}">${ic('edit',14)}</button></td></tr>`).join('')}</tbody><tfoot><tr><td colspan="4" class="r"><b>Total</b></td><td class="r num"><b>${brl(sumV(R.rec))}</b></td><td colspan="2" class="muted" style="font-size:12px">recebido ${brl(recPago)}</td></tr></tfoot></table></div>`:`<div class="empty"><span>Nenhum pagamento lançado.</span></div>`,
-    '<b>Importante:</b> as parcelas entram em Contas a Receber quando o pedido é salvo com as condições de pagamento.');
+    (()=>{const I=pedParcInfo(p);return I.R.length&&Math.abs(I.dif)>0.009?`<span style="color:var(--warn)"><b>Atenção:</b> as parcelas somam ${brl(I.soma)} e o pedido é ${brl(tot)} (diferença ${brl(I.dif)}). <button class="clink" data-pparcabrir="${p.id}">ajustar</button></span>`:'<b>Importante:</b> as parcelas entram em Contas a Receber quando o pedido é salvo com as condições de pagamento.'})());
   /* custos */
   const CU=p.custos||[];const PO=planoOpts('pagar');const contaRot=n=>{if(!n)return '';const x=PO.find(o=>o===n||o.endsWith(' - '+n)||o.startsWith(n+' - '));return x||n};
   const fornNome=c=>c.fornecedor||(c.fornecedorNum!=null?(S.data.contatos.find(x=>+x.num===+c.fornecedorNum)||{}).nome||'':'');
@@ -2622,6 +2622,7 @@ async function submitForm(){
     if(col==='projetos'&&!rec.id&&out.fluxo){const f=fluxoOf(out);const p=S.data.projetos.find(x=>x.id===id)||{...out,id};if(f&&f.etapas.length){const et=f.etapas[0];const base=out.dataEvento||today();const prazo=await tarefasDaEtapa(p,et,base);const fim=addDays(base,f.etapas.reduce((a,e)=>a+(+e.dias||0),0));await patch('projetos',id,{etapa:et.nome,prazoEtapa:prazo,historico:[{etapa:et.nome,em:new Date().toISOString()}],...(out.entrega?{}:{entrega:fim})})}}
     if(col==='provas'&&!rec.id){const p=S.data.provas.find(x=>x.id===id);if(p&&!p.atividade)await pvSave(id,{atividade:logAct(p,'Galeria de prova '+out.nome+' foi criada'),clientes:out.contatoId?[{c:out.contatoId,prazo:out.termino||'',lembrete:out.lembrete!==false}]:[]})}
     closeModal();toast(rec.id?'Alterações salvas':`${sc.one[0].toUpperCase()+sc.one.slice(1)} cadastrad${sc.gender}`);
+    if(col==='pedidos'&&rec.id){const old={...rec};setTimeout(()=>pedPosSalvar(old,rec.id),700)}
     if((col==='pedidos'||col==='agenda')&&Array.isArray(out.participantes)){const novos=out.participantes.filter(n=>!(rec.participantes||[]).includes(n));if(novos.length){setTimeout(()=>openAvisar(col,id,novos),250);emAoAgendar(col,id,novos)}}
     if(col==='provas'&&!rec.id)openProva(id,'imagens');
     if(col==='agenda'&&gcCfg().auto&&S.dono)setTimeout(()=>gcSync(true,id),1500);
@@ -2995,7 +2996,7 @@ document.addEventListener('click',async e=>{
   if(d.dupmerge!==undefined){const i=+d.dupmerge,g=dupGroups()[i];const keep=(S.ui.dup.keep||{})[i]||g.membros[0].c.id;t.disabled=true;try{await mesclarContatos(keep,g.membros.map(m=>m.c.id).filter(x=>x!==keep));S.ui.dup.keep={};toast('Contatos mesclados')}catch(err){failWrite(err)}render();return}
   if(d.dupall!==undefined){const G=dupGroups();const L=S.ui.dup.so==='fortes'?G.filter(g=>g.forte):G;t.disabled=true;let n=0;for(const g of L){const i=G.indexOf(g);const keep=(S.ui.dup.keep||{})[i]||g.membros[0].c.id;try{await mesclarContatos(keep,g.membros.map(m=>m.c.id).filter(x=>x!==keep));n++;if(n%5===0)toast('Mesclados '+n+' de '+L.length+'…')}catch(err){failWrite(err);break}}S.ui.dup.keep={};toast(n+' grupos mesclados');render();return}
 
-  if(d.pcgerar){const p=S.data.pedidos.find(x=>x.id===d.pcgerar);const g=pedCustosGerar(p);if(!g.length){toast('Os produtos deste pedido não têm custos cadastrados.',true);return}const keep=(p.custos||[]).filter(c=>c.lancId);await patch('pedidos',p.id,{custos:[...keep,...g]});toast(g.length+' custo'+(g.length>1?'s':'')+' criado'+(g.length>1?'s':''));return}
+  if(d.pcgerar){const p=S.data.pedidos.find(x=>x.id===d.pcgerar);const g=pedCustosGerar(p);if(!g.length){toast('Os produtos deste pedido não têm custos cadastrados.',true);return}const keep=(p.custos||[]).filter(c=>c.lancId);await patch('pedidos',p.id,{custos:[...keep,...g]});const n=await custoLancarTodos(p.id);toast(g.length+' custo'+(g.length>1?'s':'')+' criado'+(g.length>1?'s':'')+(n?' e '+n+' lançado'+(n>1?'s':'')+' em Contas a pagar':''));return}
   if(d.pcadd){custoModal(d.pcadd,-1);return}
   if(d.pcmsave!==undefined){custoModalSalvar(t);return}
   if(d.pcdel!==undefined){armDelete(t,async()=>{const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);const L=[...(p.custos||[])];const c=L[+d.pcdel];L.splice(+d.pcdel,1);await patch('pedidos',p.id,{custos:L});const l=c&&custoLanc(p,c);if(l&&!l.pago){try{await removeRec('lancamentos',l.id);toast('Custo excluído (e a conta a pagar dele)')}catch(e){failWrite(e)}}else toast(l&&l.pago?'Custo excluído. A conta a pagar já estava paga e ficou no financeiro.':'Custo excluído')});return}
@@ -3007,7 +3008,7 @@ document.addEventListener('click',async e=>{
   if(d.pdnota){const v=($('#pd-nota')||{}).value||'';if(!v.trim())return;const p=S.data.pedidos.find(x=>x.id===d.pdnota);await patch('pedidos',p.id,{notasLista:[...(p.notasLista||[]),{t:v.trim(),em:new Date().toISOString()}]});toast('Nota salva');return}
   if(d.pddelnota!==undefined){const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);if(!p)return;const L=[...(p.notasLista||[])];L.splice(+d.pddelnota,1);await patch('pedidos',p.id,{notasLista:L});return}
   if(d.pednovolanc){const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);if(!p)return;openForm('lancamentos',{tipo:d.pednovolanc,vencimento:today(),conta:'Conta principal',pedidoId:p.id,contatoId:p.contatoId,descricao:(d.pednovolanc==='pagar'?'Custo · ':'Pagamento · ')+p.titulo});return}
-  if(d.pdel){armDelete(t,async()=>{try{await removeRec('pedidos',d.pdel);toast('Pedido excluído');go('pedidos')}catch(err){failWrite(err)}});return}
+  if(d.pdel){armDelete(t,async()=>{const p0=S.data.pedidos.find(x=>x.id===d.pdel);try{await removeRec('pedidos',d.pdel);toast('Pedido excluído');go('pedidos');if(p0)setTimeout(()=>pedAbertosModal(p0,'excluído'),500)}catch(err){failWrite(err)}});return}
   if(d.edit){e.stopPropagation();const r=S.data[d.edit].find(x=>x.id===d.id);if(r)openForm(d.edit,r);return}
   if(d.selfiltered){S.sel[d.selfiltered]=new Set(S.lastRows[d.selfiltered]||[]);render();return}
   if(d.selclear){S.sel[d.selclear]=new Set();S.bulkArm=null;render();return}
@@ -4187,6 +4188,43 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     if(!rec.cashback){toast('Informe o valor do cashback (ou o % e o valor da compra).',true);return}
     try{await save('cashback',rec);closeModal();toast('Cashback salvo');render()}catch(err){failWrite(err)}}},true);
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-cbq]')){S.ui.cbQ=t.value;clearTimeout(S._cbq);S._cbq=setTimeout(()=>{render();const x=document.querySelector('[data-cbq]');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}},300)}});
+/* ===== pedido x financeiro: total alterado, cancelado ou excluído ===== */
+async function custoLancarTodos(pid){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return 0;const L=(p.custos||[]).map(c=>({...c}));let n=0;
+  for(const c of L){if(c.lancId||!(+c.valor)||!c.venc)continue;const l0=custoLanc(p,c);if(l0){c.lancId=l0.id;continue}
+    const fc=(c.fornecedorNum!=null&&S.data.contatos.find(x=>+x.num===+c.fornecedorNum))||S.data.contatos.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(c.fornecedor||''));
+    try{c.lancId=await save('lancamentos',{tipo:'pagar',categoria:c.conta?String(c.conta).replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${c.nome||'Custo'} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor:+c.valor,vencimento:c.venc,conta:'',pago:false,pedidoId:p.id})||true;n++}catch(e){failWrite(e);break}}
+  if(n||L.some((c,i)=>c.lancId!==((p.custos||[])[i]||{}).lancId))await patch('pedidos',p.id,{custos:L});return n}
+function pedParcInfo(p){const R=S.data.lancamentos.filter(l=>l.pedidoId===p.id&&l.tipo==='receber');const soma=R.reduce((a,l)=>a+(+l.valor||0),0);const ab=R.filter(l=>!l.pago).sort((a,b)=>String(a.vencimento||'').localeCompare(String(b.vencimento||'')));return {R,soma,ab,dif:Math.round((pedidoTotal(p)-soma)*100)/100}}
+function pedPosSalvar(old,id){const p=S.data.pedidos.find(x=>x.id===id);if(!p)return;
+  if(pedStatus(old)!=='Cancelado'&&pedStatus(p)==='Cancelado'){pedAbertosModal(p,'cancelado');return}
+  const I=pedParcInfo(p);if(I.R.length&&Math.abs(I.dif)>0.009&&Math.abs(pedidoTotal(old)-pedidoTotal(p))>0.009)pedParcModal(p.id)}
+function pedParcModal(pid){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;const I=pedParcInfo(p);if(Math.abs(I.dif)<0.01){toast('As parcelas já batem com o total do pedido.');return}
+  const ult=I.ab[I.ab.length-1];const podeUlt=ult&&(+ult.valor||0)+I.dif>0;const podeDiv=I.ab.length&&I.ab.every(l=>(+l.valor||0)+I.dif/I.ab.length>0);
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:540px"><header><h3>Parcelas do pedido #${esc(String(p.num||''))}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+   <div class="mbody" style="display:grid;gap:10px"><p style="margin:0">O total do pedido é <b class="num">${brl(pedidoTotal(p))}</b>, mas as parcelas em Contas a receber somam <b class="num">${brl(I.soma)}</b>.</p>
+    <p style="margin:0">Diferença: <b class="num" style="color:${I.dif>0?'var(--ok)':'var(--danger)'}">${I.dif>0?'+':''}${brl(I.dif)}</b> · ${I.ab.length} parcela${I.ab.length===1?'':'s'} em aberto.</p>
+    <div style="display:grid;gap:8px">
+     ${podeUlt?`<button class="btn" data-pparc="ult" data-pid="${p.id}">Somar a diferença na última parcela em aberto (${fdateShort(ult.vencimento)}: ${brl(+ult.valor)} → ${brl((+ult.valor||0)+I.dif)})</button>`:''}
+     ${podeDiv&&I.ab.length>1?`<button class="btn" data-pparc="div" data-pid="${p.id}">Dividir a diferença entre as ${I.ab.length} parcelas em aberto</button>`:''}
+     ${I.dif>0?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" data-pparc="nova" data-pid="${p.id}">Criar uma parcela nova de ${brl(I.dif)} para</button><input type="date" id="pparc-data" class="search" style="width:auto" value="${esc(p.dataEvento&&p.dataEvento>today()?p.dataEvento:addDays(today(),30))}"></div>`:''}
+    </div></div>
+   <footer><span class="sp"></span><button class="btn" data-close>Deixar como está</button></footer></div></div>`}
+function pedAbertosModal(p,motivo){const L=S.data.lancamentos.filter(l=>l.pedidoId===p.id&&!l.pago);if(!L.length)return;const r=L.filter(l=>l.tipo==='receber'),g=L.filter(l=>l.tipo==='pagar');
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:520px"><header><h3>Pedido #${esc(String(p.num||''))} ${esc(motivo)}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+   <div class="mbody" style="display:grid;gap:8px"><p style="margin:0">Este pedido ainda tem contas <b>em aberto</b> no financeiro:</p>
+    ${r.length?`<div>• ${r.length} a receber · <b class="num">${brl(r.reduce((a,l)=>a+(+l.valor||0),0))}</b></div>`:''}${g.length?`<div>• ${g.length} a pagar · <b class="num">${brl(g.reduce((a,l)=>a+(+l.valor||0),0))}</b></div>`:''}
+    <p class="muted" style="margin:0;font-size:12.5px">As contas já pagas ou recebidas ficam sempre no financeiro.</p></div>
+   <footer><span class="sp"></span><button class="btn" data-close>Manter no financeiro</button><button class="btn danger" data-pabdel="${esc(p.id)}">${ic('trash',14)} Apagar as ${L.length} em aberto</button></footer></div></div>`}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-pparc],[data-pabdel],[data-pparcabrir]');if(!t)return;e.preventDefault();const d=t.dataset;
+  if(d.pparcabrir){pedParcModal(d.pparcabrir);return}
+  if(d.pabdel){t.disabled=true;const L=S.data.lancamentos.filter(l=>l.pedidoId===d.pabdel&&!l.pago);let n=0;for(const l of L){try{await removeRec('lancamentos',l.id);n++}catch(err){failWrite(err);break}}
+    const p=S.data.pedidos.find(x=>x.id===d.pabdel);if(p&&(p.custos||[]).length){const ids=new Set(L.map(l=>l.id));await patch('pedidos',p.id,{custos:p.custos.map(c=>ids.has(c.lancId)?{...c,lancId:''}:c)})}
+    closeModal();toast(n+' conta'+(n===1?'':'s')+' em aberto apagada'+(n===1?'':'s'));return}
+  const p=S.data.pedidos.find(x=>x.id===d.pid);if(!p)return;const I=pedParcInfo(p);t.disabled=true;
+  try{if(d.pparc==='ult'){const l=I.ab[I.ab.length-1];await save('lancamentos',{...l,valor:Math.round(((+l.valor||0)+I.dif)*100)/100})}
+    else if(d.pparc==='div'){const n=I.ab.length;const base=Math.floor(I.dif/n*100)/100;for(let k=0;k<n;k++){const l=I.ab[k];const add=k===n-1?Math.round((I.dif-base*(n-1))*100)/100:base;await save('lancamentos',{...l,valor:Math.round(((+l.valor||0)+add)*100)/100})}}
+    else if(d.pparc==='nova'){const dt=($('#pparc-data')||{}).value||today();await save('lancamentos',{tipo:'receber',categoria:'Evento',descricao:`Parcela adicional · ${p.titulo||''}`,contatoId:p.contatoId||'',valor:I.dif,vencimento:dt,conta:p.contaDeposito||'',forma:p.pagamento||'',pago:false,pedidoId:p.id})}
+    closeModal();toast('Parcelas ajustadas')}catch(err){t.disabled=false;failWrite(err)}});
 /* campo de dinheiro: 15285 → 15.285 · 15285,5 → 15.285,50 */
 function moneyFmt(v){if(v===''||v==null||isNaN(+v))return '';return (+v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function moneyParse(t){t=String(t||'').replace(/[^\d,]/g,'');const [a,b='']=t.split(',');return +(a||'0')+(b?+('0.'+b.slice(0,2)):0)}
