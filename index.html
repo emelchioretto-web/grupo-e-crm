@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029152233';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029154941';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2360,13 +2360,19 @@ VIEWS.fintrans=()=>{
      <div class="toolbar" style="justify-content:space-between"><span class="muted" style="font-size:12px">Mostrando ${(pgN-1)*pp+1} a ${Math.min(pgN*pp,nAll)} de ${nAll}</span><div class="seg"><button data-txpg="${pgN-1}" ${pgN===1?'disabled':''}>‹</button><button class="on">${pgN}</button><button data-txpg="${pgN+1}" ${pgN===nPg?'disabled':''}>›</button></div></div>`:`<div class="empty"><span>Nenhuma movimentação no período.</span></div>`}
      <span class="muted" style="font-size:12px">O saldo acumulado parte do saldo do Alboom em 27/10/2026. Movimentos feitos direto no banco no Alboom (Transações) não vieram na exportação.</span></div></section>`);
 };
-function txForm(){const B=contasNomes();$('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>Nova transação</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
-  <div class="mbody"><div class="fgrid"><div class="field full"><label for="tx-tipo">Tipo</label><select id="tx-tipo"><option value="transf">Transferência entre contas</option><option value="dep">Depósito / entrada na conta</option><option value="ret">Retirada / saída da conta</option></select></div>
-  <div class="field"><label for="tx-de">Conta</label><select id="tx-de">${B.map(n=>`<option>${esc(n)}</option>`).join('')}</select></div><div class="field"><label for="tx-para">Para a conta (transferência)</label><select id="tx-para">${B.map(n=>`<option>${esc(n)}</option>`).join('')}</select></div>
-  <div class="field"><label for="tx-valor">Valor (R$)</label><input id="tx-valor" type="number" step="0.01" min="0"></div><div class="field"><label for="tx-data">Data</label><input id="tx-data" type="date" value="${today()}"></div>
+function txForm(contaNome,tipo0){const B=contasNomes(),cf=contaNome||S.ui.tx.conta,fixa=cf&&B.includes(cf)?cf:'';const outras=B.filter(n=>n!==fixa);
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>Nova transação${fixa?' · '+esc(fixa):''}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody"><div class="fgrid"><div class="field full"><label for="tx-tipo">Tipo</label><select id="tx-tipo"><option value="transf">Transferência ${fixa?'para outra conta':'entre contas'}</option><option value="dep">Depósito / entrada na conta</option><option value="ret">Retirada / saída da conta</option></select></div>
+  ${fixa?`<input type="hidden" id="tx-de" value="${esc(fixa)}">`:`<div class="field"><label for="tx-de">Conta</label><select id="tx-de">${B.map(n=>`<option>${esc(n)}</option>`).join('')}</select></div>`}
+  <div class="field" id="tx-para-f"><label for="tx-para">${fixa?'Transferir para a conta':'Para a conta'}</label><select id="tx-para">${outras.map(n=>`<option>${esc(n)}</option>`).join('')}</select></div>
+  <div class="field"><label for="tx-valor">Valor (R$)</label><input id="tx-valor" data-money inputmode="decimal" placeholder="0,00"></div><div class="field"><label for="tx-data">Data</label><input id="tx-data" type="date" value="${today()}"></div>
   <div class="field full"><label for="tx-desc">Descrição</label><input id="tx-desc" placeholder="Ex.: Transferência para pagar fornecedores"></div></div>
-  <p class="muted" style="font-size:12px">Transferências entre contas não entram nos relatórios de resultado (não são receita nem despesa).</p></div>
-  <footer><button class="btn" data-close>Cancelar</button><button class="btn pri" data-txsave>Salvar</button></footer></div></div>`}
+  <p class="muted" style="font-size:12px" id="tx-nota">Transferências entre contas não entram nos relatórios de resultado (não são receita nem despesa).</p></div>
+  <footer><button class="btn" data-close>Cancelar</button><button class="btn pri" data-txsave>Salvar</button></footer></div></div>`;
+  const tp=$('#tx-tipo'),pf=$('#tx-para-f'),de=$('#tx-de'),pa=$('#tx-para');
+  const upd=()=>{const t=tp.value==='transf';pf.style.display=t?'':'none';$('#tx-nota').style.display=t?'':'none';
+    if(!fixa){const atual=pa.value;pa.innerHTML=B.filter(n=>n!==de.value).map(n=>`<option ${n===atual?'selected':''}>${esc(n)}</option>`).join('')}};
+  if(tipo0)tp.value=tipo0;tp.onchange=upd;if(!fixa)de.onchange=upd;upd();setTimeout(()=>{try{$('#tx-valor').focus()}catch(_){}},30)}
 /* ================= configurações ================= */
 const FLUXOS_DEF=[
  {nome:'Álbum - Casamento',etapas:[['Fotografar',0],['Baixar Fotos',2],['Renomear Arquivos',2],['Triar Fotos / Separar',5],['Postar Internet',5],['Editar Fotos',3],['Exportar Fotos',2,'Exportar Fotos Internet e Entrega Alta'],['Subir Galerias',35],['Cliente Escolhendo',120],['Editas fotos álbum',10],['Fazer Diagramação',20],['Aprovação Diagramação',10],['Envira para Impressão',1],['Imprimindo',60],['Recebido',2],['Pendrive - Embalagem',2],['Nota Fiscal',2],['Enviar Cliente',5],['Entregue',0],['Converter DNG',2],['Fazer Backup HD',2],['Finalizado',0]]},
@@ -2499,28 +2505,28 @@ function fieldHTML(f,rec){
   else if(f.t==='area')input=`<textarea id="${id}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
   else if(f.t==='items')return `<div class="field full"><label>${f.l}</label>${itemsEditor(v||[])}</div>`;
   else if(f.t==='custos')return `<div class="field full"><label>${f.l}</label>${custosEditor(rec)}</div>`;
-  else{const type={money:'number',number:'number',date:'date',time:'time',email:'email',tel:'tel',url:'url'}[f.t]||'text';input=`<input id="${id}" type="${type}" ${f.t==='money'?'step="0.01" min="0" inputmode="decimal"':''} value="${esc(v)}" placeholder="${esc(f.ph||'')}">`}
+  else{const type={money:'number',number:'number',date:'date',time:'time',email:'email',tel:'tel',url:'url'}[f.t]||'text';input=f.t==='money'?`<input id="${id}" type="text" data-money inputmode="decimal" value="${esc(moneyFmt(v))}" placeholder="${esc(f.ph||'0,00')}">`:`<input id="${id}" type="${type}" value="${esc(v)}" placeholder="${esc(f.ph||'')}">`}
   const ga=(f.grp?` data-grp="${esc(f.grp.join('|'))}"`:'')+(f.lg?` data-lg='${esc(JSON.stringify({_:f.l,...f.lg}))}'`:'');
   return `<div class="field ${f.full?'full':''}"${ga}><label for="${id}">${f.lg?`<span data-lgt>${f.l}</span>`:f.l}${req}</label>${input}</div>`;
 }
 function pedFormSync(){const el=$('#f-categoria');if(!el||!M||M.col!=='pedidos')return;const g=pedGrupo(el.value);$$('#mform [data-grp]').forEach(x=>x.hidden=!x.dataset.grp.split('|').includes(g));$$('#mform [data-lg]').forEach(x=>{try{const L=JSON.parse(x.dataset.lg);const t=x.querySelector('[data-lgt]');if(t)t.textContent=L[g]||L._}catch(e){}})}
 function fornecedoresLista(){return [...new Set([...S.data.contatos.filter(c=>c.categoria==='Fornecedor').map(c=>SCHEMAS.contatos.labelOf(c)),...cfg().equipe.map(m=>m.nome)])].sort((a,b)=>a.localeCompare(b,'pt-BR'))}
-function custoRow(c){return `<div class="cr" data-custo style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 90px 80px 30px;gap:8px;align-items:center"><input data-cn value="${esc(c.nome||'')}" placeholder="Ex.: Operador, Fotógrafo freelancer" aria-label="Custo"><input data-cf list="dl-forn" value="${esc(c.fornecedor||'')}" placeholder="Fornecedor" aria-label="Fornecedor"><input data-cv type="number" step="0.01" min="0" value="${esc(c.valor??'')}" placeholder="Valor" aria-label="Valor"><input data-cd type="number" step="1" value="${esc(c.dias??'')}" placeholder="Dias" title="Dias depois do evento para pagar" aria-label="Dias após o evento"><button type="button" class="icon-btn del" data-crm title="Remover">${ic('x',14)}</button><input type="hidden" data-cc value="${esc(c.conta||'')}"><input type="hidden" data-cnum value="${esc(c.fornecedorNum||'')}"></div>`}
+function custoRow(c){return `<div class="cr" data-custo style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 90px 80px 30px;gap:8px;align-items:center"><input data-cn value="${esc(c.nome||'')}" placeholder="Ex.: Operador, Fotógrafo freelancer" aria-label="Custo"><input data-cf list="dl-forn" value="${esc(c.fornecedor||'')}" placeholder="Fornecedor" aria-label="Fornecedor"><input data-cv data-money inputmode="decimal" value="${esc(moneyFmt(c.valor??''))}" placeholder="Valor" aria-label="Valor"><input data-cd type="number" step="1" value="${esc(c.dias??'')}" placeholder="Dias" title="Dias depois do evento para pagar" aria-label="Dias após o evento"><button type="button" class="icon-btn del" data-crm title="Remover">${ic('x',14)}</button><input type="hidden" data-cc value="${esc(c.conta||'')}"><input type="hidden" data-cnum value="${esc(c.fornecedorNum||'')}"></div>`}
 function custosEditor(rec){const L=rec.custos||[];const pk=(rec.pacote||[]).map(x=>{const pr=S.data.produtos.find(y=>y.id===x.produtoId);return pr?`${esc(pr.nome)}${+x.qtd>1?' ×'+x.qtd:''}`:''}).filter(Boolean);
   return `<div style="display:grid;gap:8px" id="custosEd"><datalist id="dl-forn">${fornecedoresLista().map(x=>`<option value="${esc(x)}">`).join('')}</datalist>${pk.length?`<span class="muted" style="font-size:12.5px">Pacote com: ${pk.join(', ')}. Sem custos próprios, ele usa os custos desses produtos.</span>`:''}<div class="cr h" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 90px 80px 30px;gap:8px;font-size:11.5px;color:var(--muted);font-weight:600"><span>Custo</span><span>Fornecedor</span><span>Valor</span><span>Dias após</span><span></span></div><div id="custoRows" style="display:grid;gap:8px">${L.map(custoRow).join('')}</div><div><button type="button" class="btn sm" data-cadd>${ic('plus',14)} Adicionar custo</button> <span class="muted" style="font-size:12px">"Dias após" = quantos dias depois do evento vence o pagamento.</span></div></div>`}
-function readCustos(){return $$('#custoRows [data-custo]').map(r=>({nome:$('[data-cn]',r).value.trim(),fornecedor:$('[data-cf]',r).value.trim(),valor:+$('[data-cv]',r).value||0,dias:$('[data-cd]',r).value===''?'':+$('[data-cd]',r).value,conta:$('[data-cc]',r).value,...($('[data-cnum]',r).value?{fornecedorNum:+$('[data-cnum]',r).value}:{})})).filter(c=>c.nome||c.valor)}
+function readCustos(){return $$('#custoRows [data-custo]').map(r=>({nome:$('[data-cn]',r).value.trim(),fornecedor:$('[data-cf]',r).value.trim(),valor:moneyParse($('[data-cv]',r).value),dias:$('[data-cd]',r).value===''?'':+$('[data-cd]',r).value,conta:$('[data-cc]',r).value,...($('[data-cnum]',r).value?{fornecedorNum:+$('[data-cnum]',r).value}:{})})).filter(c=>c.nome||c.valor)}
 function prodCustos(pr,seen){if(!pr)return [];if((pr.custos||[]).length)return pr.custos;seen=seen||new Set();if(seen.has(pr.id))return [];seen.add(pr.id);return (pr.pacote||[]).flatMap(x=>{const sub=S.data.produtos.find(y=>y.id===x.produtoId);return prodCustos(sub,seen).map(c=>({...c,valor:(+c.valor||0)*(+x.qtd||1)}))})}
 function pedCustosGerar(p){const base=p.dataEvento||today();return (p.itens||[]).flatMap(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);return prodCustos(pr).map(c=>({id:'cu'+Math.random().toString(36).slice(2,9),nome:c.nome,fornecedor:c.fornecedor||'',valor:Math.round((+c.valor||0)*(+i.qtd||1)*100)/100,venc:c.dias!==''&&c.dias!=null?addDays(base,+c.dias):base,conta:c.conta||'',produtoId:pr.id}))})}
 const pedCustoTotal=p=>(p.custos||[]).length?sumV(p.custos):null;
 function itemRow(i){
   const prods=[...S.data.produtos].filter(p=>p.ativo!==false||p.id===i.produtoId).sort(SCHEMAS.produtos.sort);
-  return `<div class="ir" data-item data-desc="${esc(i.desc||'')}" data-pid="${esc(i.produtoId||'')}"><select data-ip><option value="">${i.desc&&!i.produtoId?esc(i.desc):'— produto ou serviço —'}</option>${prods.map(p=>`<option value="${p.id}" ${p.id===i.produtoId?'selected':''}>${esc(p.nome)}</option>`).join('')}</select><input data-iq type="number" min="0" step="1" value="${esc(i.qtd??1)}" aria-label="Quantidade"><input data-iv type="number" min="0" step="0.01" value="${esc(i.valor??'')}" aria-label="Valor unitário" placeholder="Valor"><span class="num sub-t" data-isub>${brl((+i.qtd||0)*(+i.valor||0))}</span><button type="button" class="icon-btn del" data-irm title="Remover item">${ic('x',14)}</button><textarea data-idsc rows="2" placeholder="Descrição do item (vai para o contrato; em branco usa a do produto)">${esc(i.descricao||'')}</textarea></div>`;
+  return `<div class="ir" data-item data-desc="${esc(i.desc||'')}" data-pid="${esc(i.produtoId||'')}"><select data-ip><option value="">${i.desc&&!i.produtoId?esc(i.desc):'— produto ou serviço —'}</option>${prods.map(p=>`<option value="${p.id}" ${p.id===i.produtoId?'selected':''}>${esc(p.nome)}</option>`).join('')}</select><input data-iq type="number" min="0" step="1" value="${esc(i.qtd??1)}" aria-label="Quantidade"><input data-iv data-money inputmode="decimal" value="${esc(moneyFmt(i.valor??''))}" aria-label="Valor unitário" placeholder="Valor"><span class="num sub-t" data-isub>${brl((+i.qtd||0)*(+i.valor||0))}</span><button type="button" class="icon-btn del" data-irm title="Remover item">${ic('x',14)}</button><textarea data-idsc rows="2" placeholder="Descrição do item (vai para o contrato; em branco usa a do produto)">${esc(i.descricao||'')}</textarea></div>`;
 }
 function itemsEditor(items){
   return `<div class="items-ed" id="itemsEd"><div class="ir h"><span>Produto / serviço</span><span>Qtd</span><span>Valor unit.</span><span class="sub-t">Subtotal</span><span></span></div><div id="itemRows" style="display:grid;gap:8px">${(items.length?items:[{qtd:1}]).map(itemRow).join('')}</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn sm" data-iadd>${ic('plus',14)} Adicionar item</button><div class="tot" style="margin-left:auto">Total do pedido <b id="itemsTot">—</b></div></div></div>`;
 }
-function readItems(){return $$('#itemRows [data-item]').map(r=>{const o={produtoId:$('[data-ip]',r).value,qtd:+$('[data-iq]',r).value||0,valor:+$('[data-iv]',r).value||0};const pr=o.produtoId&&S.data.produtos.find(x=>x.id===o.produtoId);if(r.dataset.desc&&(!o.produtoId||(pr&&pr.nome!==r.dataset.desc&&r.dataset.pid===o.produtoId)))o.desc=r.dataset.desc;const ds=($('[data-idsc]',r)||{}).value;if(ds&&ds.trim())o.descricao=ds.trim();return o}).filter(i=>i.produtoId||i.valor)}
-function updItemsTotal(){if(!$('#itemsEd'))return;$$('#itemRows [data-item]').forEach(r=>{$('[data-isub]',r).textContent=brl((+$('[data-iq]',r).value||0)*(+$('[data-iv]',r).value||0))});const d=+($('#f-desconto')?.value||0);$('#itemsTot').textContent=brl(Math.max(0,readItems().reduce((s,i)=>s+i.qtd*i.valor,0)-d))}
+function readItems(){return $$('#itemRows [data-item]').map(r=>{const o={produtoId:$('[data-ip]',r).value,qtd:+$('[data-iq]',r).value||0,valor:moneyParse($('[data-iv]',r).value)};const pr=o.produtoId&&S.data.produtos.find(x=>x.id===o.produtoId);if(r.dataset.desc&&(!o.produtoId||(pr&&pr.nome!==r.dataset.desc&&r.dataset.pid===o.produtoId)))o.desc=r.dataset.desc;const ds=($('[data-idsc]',r)||{}).value;if(ds&&ds.trim())o.descricao=ds.trim();return o}).filter(i=>i.produtoId||i.valor)}
+function updItemsTotal(){if(!$('#itemsEd'))return;$$('#itemRows [data-item]').forEach(r=>{$('[data-isub]',r).textContent=brl((+$('[data-iq]',r).value||0)*moneyParse($('[data-iv]',r).value))});const d=moneyParse($('#f-desconto')?.value||'');$('#itemsTot').textContent=brl(Math.max(0,readItems().reduce((s,i)=>s+i.qtd*i.valor,0)-d))}
 
 function relRows(list,col,fmt){return list.length?`<div class="list-rows">${list.map(r=>`<div class="lr" style="grid-template-columns:86px minmax(0,1fr) auto"><span class="num muted">${fmt.d(r)}</span><button type="button" class="t" data-edit="${col}" data-id="${r.id}">${esc(SCHEMAS[col].labelOf(r))}</button><span>${fmt.r(r)}</span></div>`).join('')}</div>`:`<span class="muted" style="font-size:13px">Nenhum.</span>`}
 const byDate=k=>(a,b)=>(b[k]||'').localeCompare(a[k]||'');
@@ -2590,7 +2596,7 @@ async function submitForm(){
     const el=document.getElementById('f-'+f.k);if(!el)return;
     if(f.t==='pessoas'||f.t==='multi'){out[f.k]=[...el.querySelectorAll('input:checked')].map(i=>i.value);return}
     let v=f.t==='check'?el.checked:el.value;
-    if(f.t==='money'||f.t==='number')v=v===''?'':+v;
+    if(f.t==='money')v=String(v).trim()===''?'':moneyParse(v);else if(f.t==='number')v=v===''?'':+v;
     if(typeof v==='string')v=v.trim();
     if(f.t==='ref'&&el.tagName==='INPUT'){const r=refFromInput(v,f.ref);if(r===null){missing.push(f.l+' (escolha um nome da lista)');return}v=r}
     out[f.k]=v;
@@ -3146,7 +3152,7 @@ document.addEventListener('click',async e=>{
   if(d.pcpg){S.ui.pc.pg=+d.pcpg;render();return}
   if(d.txpg){S.ui.tx.pg=+d.txpg;render();return}
   if(d.txnew!==undefined){txForm();return}
-  if(d.txsave!==undefined){const tp=$('#tx-tipo').value,de=$('#tx-de').value,para=$('#tx-para').value,v=+$('#tx-valor').value||0,dt=$('#tx-data').value||today(),ds=$('#tx-desc').value.trim();if(!v){toast('Informe o valor.',true);return}if(tp==='transf'&&de===para){toast('Escolha contas diferentes.',true);return}
+  if(d.txsave!==undefined){const tp=$('#tx-tipo').value,de=$('#tx-de').value,para=$('#tx-para').value,v=moneyParse($('#tx-valor').value),dt=$('#tx-data').value||today(),ds=$('#tx-desc').value.trim();if(!v){toast('Informe o valor.',true);return}if(tp==='transf'&&de===para){toast('Escolha contas diferentes.',true);return}
     const cod=n=>((bancos().find(b=>b.nome===n)||{}).codigo)||'';const base={pago:true,dataPagamento:dt,vencimento:dt,valor:v,forma:'Transferência'};
     if(tp==='transf'){await save('lancamentos',{...base,tipo:'pagar',transf:true,categoria:'Transferência entre contas',conta:de,contaCod:cod(de),descricao:ds||('Transferência para '+para)});await save('lancamentos',{...base,tipo:'receber',transf:true,categoria:'Transferência entre contas',conta:para,contaCod:cod(para),descricao:ds||('Transferência de '+de)})}
     else await save('lancamentos',{...base,tipo:tp==='dep'?'receber':'pagar',categoria:tp==='dep'?'Depósito / entrada':'Retirada / saída',conta:de,contaCod:cod(de),descricao:ds||(tp==='dep'?'Depósito':'Retirada')});
@@ -3245,7 +3251,7 @@ document.addEventListener('change',e=>{
   if(t.id==='f-categoria'&&M&&M.col==='pedidos')pedFormSync();
   if(t.dataset&&t.dataset.dupkeep!==undefined){S.ui.dup.keep={...(S.ui.dup.keep||{}),[t.dataset.dupkeep]:t.value};render();return}
   if(t.dataset&&t.dataset.pcf){const [i,k]=t.dataset.pcf.split(':');const p=S.data.pedidos.find(x=>x.id===S.ui.pd.id);if(p){const L=(p.custos||[]).map(c=>({...c}));if(L[+i]){const old={...L[+i]};L[+i][k]=k==='valor'?moneyParse(t.value):k==='pago'?t.checked:t.value;if(k==='fornecedor')L[+i].fornecedorNum=null;const lid=custoSyncLanc(p,old,L[+i]);if(lid)L[+i].lancId=lid;patch('pedidos',p.id,{custos:L}).catch(failWrite)}}return}
-  if(t.matches('[data-ip]')){const p=S.data.produtos.find(x=>x.id===t.value);const v=t.closest('[data-item]').querySelector('[data-iv]');if(p&&p.preco&&!v.value)v.value=p.preco;updItemsTotal()}
+  if(t.matches('[data-ip]')){const p=S.data.produtos.find(x=>x.id===t.value);const v=t.closest('[data-item]').querySelector('[data-iv]');if(p&&p.preco&&!v.value)v.value=moneyFmt(p.preco);updItemsTotal()}
 });
 document.addEventListener('keydown',e=>{
   if(LBX){if(e.key==='Escape'){LBX=null;drawLbx()}else if(e.key==='ArrowRight'||e.key==='ArrowLeft'){LBX.i=Math.max(0,Math.min(LBX.list.length-1,LBX.i+(e.key==='ArrowRight'?1:-1)));drawLbx()}return}
@@ -3394,7 +3400,7 @@ VIEWS.backup=()=>{const B=bkCfg();const prox=B.auto?(B.ultimo?new Date(Date.pars
     <button class="btn pri" data-bkdrive ${BK_RUN?'disabled':''}>${ic('upload',15)} ${S.bkMsg?esc(S.bkMsg):'Fazer backup agora no Drive'}</button>
     <button class="btn" data-bkxlsx>${ic('down',15)} Baixar backup completo (Excel)</button>
     <button class="btn" data-bkjson>${ic('down',15)} Baixar backup completo (JSON)</button>
-    ${window.__HOSTED?(S.dono?`<button class="btn" onclick="window.crmMigrar&&window.crmMigrar()">${ic('upload',15)} Continuar / conferir importação</button>`:''):`<button class="btn" data-bkmigra>${ic('down',15)} ${S.migMsg?esc(S.migMsg):'Exportar para o app novo'}</button>`}
+    ${window.__HOSTED?(S.dono?`<button class="btn" onclick="window.crmMigrar&&window.crmMigrar()">${ic('upload',15)} Continuar / conferir importação</button>`:'')+`<button class="btn" onclick="importarPedidoArquivo()">${ic('upload',15)} Trazer pedido do Alboom</button>`:`<button class="btn" data-bkmigra>${ic('down',15)} ${S.migMsg?esc(S.migMsg):'Exportar para o app novo'}</button>`}
    </div>
    <p class="muted" style="margin:0;font-size:12.5px">Os arquivos enviados (PDFs das propostas, fotos das provas) não vão dentro do backup: os originais continuam nas suas pastas. Guarde também os backups baixados junto com os seus outros backups.</p>
   </div></section>
@@ -3914,10 +3920,10 @@ VIEWS.contasbanc=CB_OLD;
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-cbsel],[data-cbger],[data-cbtx],[data-cbpg],[data-cbver],[data-cbtxb]');if(!t)return;const d=t.dataset;
   if('cbsel' in d){S.ui.cbx.conta=d.cbsel;S.ui.cbx.pg=1;render();return}
   if('cbver' in d){S.ui.cbx.conta=d.cbver;S.ui.cbx.pg=1;go('fintrans');return}
-  if('cbtxb' in d){S.ui.cbx.conta=d.cbtxb;txForm();const b=bancos().find(x=>x.id===d.cbtxb);setTimeout(()=>{const tp=$('#tx-tipo'),de=$('#tx-de');if(tp)tp.value='transf';if(de&&b)de.value=b.nome},0);return}
+  if('cbtxb' in d){S.ui.cbx.conta=d.cbtxb;const b=bancos().find(x=>x.id===d.cbtxb);txForm(b&&b.nome,'transf');return}
   if('cbger' in d){S.ui.cb={...(S.ui.cb||{tipo:'Todos'}),gerenciar:!(S.ui.cb||{}).gerenciar};render();return}
   if('cbpg' in d){S.ui.cbx.pg=+d.cbpg;render();return}
-  if('cbtx' in d){txForm();const b=bancos().find(x=>x.id===S.ui.cbx.conta);setTimeout(()=>{const tp=$('#tx-tipo'),de=$('#tx-de');if(tp)tp.value=d.cbtx;if(de&&b)de.value=b.nome},0);return}});
+  if('cbtx' in d){const b=bancos().find(x=>x.id===S.ui.cbx.conta);txForm(b&&b.nome,d.cbtx);return}});
 document.addEventListener('change',async e=>{const t=e.target;if(!t.matches)return;
   if(t.matches('[data-cbper]')){S.ui.cbx.per=t.value;S.ui.cbx.pg=1;render();return}
   if(t.matches('[data-cbde]')){S.ui.cbx.de=t.value;render();return}if(t.matches('[data-cbate]')){S.ui.cbx.ate=t.value;render();return}
@@ -4096,6 +4102,45 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 document.addEventListener('change',e=>{const t=e.target;if(!(t.matches&&t.matches('[data-gccal]')))return;const c=(S.gcCals||[]).find(x=>x.id===t.value);const ant=gcCfg().agenda||'primary';if(t.value===ant)return;
   if((S.data.agenda||[]).some(x=>x.gcal&&x.gcal.id)&&!confirm('Os eventos já publicados vão ser movidos para a nova agenda na próxima publicação (os participantes recebem o cancelamento do antigo e o convite novo). Continuar?')){render();return}
   cfgSet('gcal',{...gcCfg(),agenda:t.value,agendaNome:c?c.summary:''});render()});
+/* ===== Trazer um pedido do Alboom (arquivo .json gerado no Alboom) ===== */
+async function importarPedidoAlboom(R){
+  const o=R.order,cs=R.costs||[],ags=(R.agreements&&R.agreements.rows)||R.agreements||[];if(!o||!o.id)throw new Error('Arquivo sem pedido.');
+  const num=+o.id,pid='pd-'+num,cl=x=>String(x??'').replace(/\s+/g,' ').trim(),dig=x=>String(x||'').replace(/\D/g,''),n2=x=>Math.round((+x||0)*100)/100;
+  const ex=S.data.pedidos.find(p=>+p.num===num||p.id===pid);if(ex)throw new Error('Já existe um pedido #'+num+' no CRM ('+(ex.titulo||'')+').');
+  const UF={'santa catarina':'SC','paraná':'PR','parana':'PR','rio grande do sul':'RS','são paulo':'SP','sao paulo':'SP'};
+  async function contato(id,d,cat){id=+id;if(!id)return '';const C=S.data.contatos;
+    let c=C.find(x=>+x.origemId===id)||(dig(d&&d.cpf).length>=11&&C.find(x=>dig(x.cpf)===dig(d.cpf)))||(d&&d.email&&C.find(x=>nrm(x.email||'')===nrm(d.email)))||(d&&cl(d.name)&&C.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(cl(d.name+' '+(d.lastname||'')))))||C.find(x=>+x.num===id&&x.importadoEm);
+    if(c||!d)return c?c.id:'';const st=cl(d.state);
+    const r={categoria:cat,pj:dig(d.cpf).length===14||d.is_company==='1',nome:cl(d.name),sobrenome:cl(d.lastname),email:cl(d.email),email2:cl(d.email2),fone:cl(d.phone),celular:cl(d.cellular||d.mobile),rg:cl(d.rg),cpf:cl(d.cpf),empresa:cl(d.company),
+      endereco:cl(d.address1),bairro:cl(d.address2),cidade:cl(d.city),uf:UF[st.toLowerCase()]||st,cep:cl(d.zipcode),origemId:id,importadoEm:today()};
+    Object.keys(r).forEach(k=>{if(r[k]===''||r[k]==null)delete r[k]});if(!C.some(x=>+x.num===id))r.num=id;
+    return await save('contatos',{...r,id:'ct-'+id})}
+  const ctId=await contato(o.customer_id,o.customer,'Cliente');
+  const [de,hr]=String(o.event_date||'').split(' ');const he=hr&&hr.slice(0,5)!=='00:00'?hr.slice(0,5):'';
+  const prods=S.data.produtos||[];
+  const itens=(o.order_items||[]).map(i=>{const pr=prods.find(x=>+x.origemId===+i.product_id||(i.code&&x.codigo===i.code))||prods.find(x=>nrm(x.nome||'')===nrm(i.name||''));
+    return {produtoId:pr?pr.id:'',desc:cl(i.name),detalhes:String(i.description||'').replace(/​/g,'').trim(),qtd:+i.qty||1,valor:n2(i.price),desconto:n2(i.discount)||undefined}});
+  const plano=planoTodos();
+  const custos=cs.map(c=>({id:'cu'+Math.random().toString(36).slice(2,9),nome:cl(c.name),valor:n2(c.cost),venc:c.due_date||'',fornecedor:cl(c.vendor_name),fornecedorNum:c.vendor_id?+c.vendor_id:undefined,conta:c.account_cogs_id?(c.account_cogs_id+' - '+(plano[c.account_cogs_id]||cl(c.account_cogs_name))):'',origemId:+c.id}));
+  const vend=cl((o.user_name||'')+' '+(o.user_lastname||'')),deleg=cl((o.delegated_name||'')+' '+(o.delegated_lastname||''));
+  const st={'475':'Concluido','474':'Cancelado','471':'Em Aberto'}[String(o.status_id)]||'';
+  const ped={id:pid,num,titulo:cl(o.name),contatoId:ctId,dataEvento:de||'',horaEvento:he,local:[cl(o.place_event)||cl(o.place_reception),cl(o.city_event)].filter(Boolean).join(', '),
+    itens,desconto:n2(o.discount)||undefined,pagamento:cl(o.payment_method),contratoStatus:{Concluido:'Assinado',Cancelado:'Cancelado','Em Aberto':'Enviado'}[st]||'Rascunho',situacaoAlboom:st,
+    categoria:cl(o.category_name),notas:cl(o.memo),totalAlboom:n2(o.total),convidados:cl(o.guests),vendedor:vend,responsavel:deleg||vend,custoAlboom:n2(o.cost),emissao:o.add_date||today(),
+    indicadoPor:cl((o.referrer_name||'')+' '+(o.referrer_lastname||'')),indicadoNum:+o.referrer_id||undefined,custos,importadoEm:today(),criadoEm:(o.add_date||today())+'T12:00:00'};
+  Object.keys(ped).forEach(k=>{if(ped[k]===''||ped[k]==null)delete ped[k]});
+  await save('pedidos',JSON.parse(JSON.stringify(ped)));for(let t=0;t<50&&!S.data.pedidos.some(p=>p.id===pid);t++)await new Promise(r=>setTimeout(r,200));
+  const pg=o.order_payments||[];let nR=0;
+  for(const [k,x] of pg.entries()){if(x.deleted==='1')continue;const pago=x.cleared==='1';
+    await save('lancamentos',JSON.parse(JSON.stringify({tipo:'receber',descricao:`${pg.length>1?(k+1)+'/'+pg.length+' - ':''}#${num} - ${ped.titulo}`,valor:n2(x.value),vencimento:x.due_date||'',pago,dataPagamento:pago?(x.cleared_date||x.due_date||''):undefined,forma:cl(x.category_name),doc:cl(x.document),obs:cl(x.memo)||undefined,
+      pedidoId:pid,contatoId:ctId,categoria:ped.categoria||'Pedido',usuario:vend||undefined,origemAlboom:+x.id})));nR++}
+  const nP=await custoLancarTodos(pid);
+  let nC=0;if(S.mode==='db')for(const a of ags){try{await S.db.collection('contratosAlb').doc('ca-'+a.id).set({num:+a.id,nome:cl(a.name),texto:a.text||'',criadoEm:a.created||'',modificadoEm:a.modified||'',enviadoEm:a.sent_date||'',visto:a.viewed||'',assinadoEm:a.signed||'',assinante:a.signator||'',ip:a.ip||'',hash:a.sig_hash||'',usuario:cl(a.user_name),cliente:cl(a.customer_name),link:a.short_url||'',codigo:a.unique_id||'',origem:'Alboom',pedidoId:pid,pedidoNum:num,contatoNum:+a.customer_id||0,contatoId:ctId});nC++}catch(e){}}
+  return {pid,nR,nP,nC}}
+function importarPedidoArquivo(){const inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=async()=>{const f=inp.files[0];if(!f)return;
+  try{const R=JSON.parse(await f.text());if(R.formato!=='alboom-pedido')throw new Error('Este arquivo não é um pedido do Alboom.');toast('Trazendo o pedido #'+R.order.id+'…');
+    const r=await importarPedidoAlboom(R);toast(`Pedido #${R.order.id} copiado: ${r.nR} conta(s) a receber, ${r.nP} a pagar${r.nC?', '+r.nC+' contrato':''}.`);openPedido(r.pid)}
+  catch(e){toast((e&&e.message)||String(e),true)}};inp.click()}
 /* ===== Contratos antigos do Alboom ===== */
 async function ctAlbDe(campo,valor){if(S.mode!=='db')return [];try{const q=await S.db.collection('contratosAlb').where(campo,'==',valor).get();return q.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''))}catch(e){return null}}
 function ctAlbLista(L){if(L===null)return '<span class="muted">Não consegui carregar agora.</span>';if(!L.length)return '<span class="muted">Nenhum.</span>';
