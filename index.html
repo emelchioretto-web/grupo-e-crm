@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029154941';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029155703';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -158,10 +158,10 @@ const MCP={
   async listTools(){return []}};
 
 /* ---------- anexos (Firebase Storage) ---------- */
-let ST=null;try{ST=firebase.storage()}catch(e){}
+let ST=null;try{ST=firebase.storage();ST.setMaxUploadRetryTime(20000);ST.setMaxOperationRetryTime(20000)}catch(e){}
 const ASSETS=ST&&{
   async upload(blob){const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8);const nome=(blob.name||'arquivo').replace(/[^\w.\-]+/g,'_');const ref=ST.ref('anexos/'+id+'-'+nome);
-    try{await ref.put(blob,{contentType:blob.type||'application/octet-stream'})}catch(e){throw erro('Não consegui enviar o arquivo: '+(e.code==='storage/unauthorized'?'sem permissão no armazenamento':e.message||e))}
+    try{await ref.put(blob,{contentType:blob.type||'application/octet-stream'})}catch(e){throw erro('Não consegui enviar o arquivo: '+(e.code==='storage/unauthorized'?'sem permissão no armazenamento (confira as regras do Storage no Firebase)':/retry-limit|bucket-not-found|not.?found|404/i.test((e.code||'')+' '+(e.message||''))?'o armazenamento de arquivos (Storage) ainda não foi ativado no Firebase':e.message||e))}
     return {id:await ref.getDownloadURL(),url:await ref.getDownloadURL(),sizeBytes:blob.size,contentType:blob.type}},
   async list(){return {assets:[],usage:{}}},
   async delete(id){try{if(/^https?:/.test(id))await ST.refFromURL(id).delete()}catch(e){}return {ok:true}}};
