@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029163406';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029165013';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -591,6 +591,12 @@ a.btn{color:inherit;text-decoration:none}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.form-grid .full{grid-column:1/-1}
 .chip-tg{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}.chip-tg.on{background:var(--accent);border-color:var(--accent);color:#fff}
 @media (max-width:860px){.cb-split{grid-template-columns:1fr!important}}
+.ssel{position:fixed;z-index:9800;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden}
+.ssel input{margin:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:14px;background:var(--surface);color:var(--fg)}
+.ssel ul{list-style:none;margin:0;padding:0 0 6px;overflow:auto}
+.ssel li{padding:6px 12px;font-size:13.5px;cursor:pointer;white-space:pre}
+.ssel li.on{background:var(--accent);color:#fff}.ssel li.grp{font-weight:600}.ssel li.dis{opacity:.5;cursor:default}
+.ssel .nada{padding:10px 12px;font-size:13px;color:var(--muted)}
 </style>
 
 <div class="app" id="app">
@@ -3564,7 +3570,7 @@ function ctRender(){const C=S.ui.ctr,p=S.data.pedidos.find(x=>x.id===C.pid);cons
     <textarea id="ctTexto" spellcheck="true" lang="pt-BR" style="width:100%;min-height:52vh;font:14px/1.6 Georgia,'Times New Roman',serif;padding:16px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)">${esc(C.texto)}</textarea>
     <span class="muted" style="font-size:12px">Contrato nº ${esc(C.num||'')} · você pode editar o texto antes de salvar. Palavras com erro ficam sublinhadas pelo corretor do navegador. ${ger.length?`Versões salvas neste pedido: ${ger.length}.`:''}</span>
    </div>
-   <footer><button class="btn" data-ctrev>${ic('check',15)} Revisar ortografia</button><span class="sp"></span><button class="btn" data-ctcopy>${ic('copy',15)} Copiar</button><button class="btn" data-ctpdf>${ic('down',15)} Baixar PDF</button><button class="btn pri" data-ctsave>Salvar no pedido</button></footer></div></div>`;
+   <footer><button class="btn" data-ctrev>${ic('check',15)} Revisar ortografia</button><span class="sp"></span><button class="btn" data-ctcopy>${ic('copy',15)} Copiar</button><button class="btn" data-ctpdf>${ic('down',15)} Baixar PDF</button><button class="btn" data-ctsave>Salvar no pedido</button><button class="btn pri" data-ctsave="assinar">${ic('edit',15)} Salvar e enviar para assinatura</button></footer></div></div>`;
   const ta=$('#ctTexto');ta.addEventListener('input',()=>{S.ui.ctr.texto=ta.value});$('#ctModelo').addEventListener('change',e=>{S.ui.ctr.modelo=e.target.value})}
 function ctLerTexto(){const ta=$('#ctTexto');if(ta)S.ui.ctr.texto=ta.value;return S.ui.ctr.texto}
 /* ---- PDF ---- */
@@ -3598,16 +3604,25 @@ async function contratoPDF(texto,titulo,opt){opt=opt||{};const {jsPDF}=await loa
   const blob=doc.output('blob');if(opt.ds)return {blob,tags};return blob}
 /* ---- revisão ortográfica com Claude ---- */
 let SAMPLE;async function getSample(){if(SAMPLE!==undefined)return SAMPLE;try{SAMPLE=window.claude&&window.claude.use?await window.claude.use('sample'):null}catch(e){SAMPLE=null}return SAMPLE}
-async function revisarTexto(texto,onDone){const sm=await getSample();if(!sm){toast('A revisão com o Claude só funciona com o CRM aberto no claude.ai.',true);return}
+async function ltSugestoes(texto){const out=[];const pz=[];let buf='';texto.split('\n').forEach(l=>{if((buf+l).length>14000){pz.push(buf);buf=''}buf+=l+'\n'});if(buf)pz.push(buf);
+  let base=0;for(const t of pz){const r=await fetch('https://api.languagetool.org/v2/check',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({text:t,language:'pt-BR',level:'default'})});
+    if(!r.ok)throw new Error(r.status===429?'Muitas revisões em pouco tempo. Espere 1 minuto e tente de novo.':'O serviço de revisão não respondeu ('+r.status+').');
+    const j=await r.json();for(const m of (j.matches||[])){const rep=(m.replacements||[])[0];if(!rep||rep.value==null)continue;const a=m.offset,b=m.offset+m.length,erro=t.slice(a,b);
+      if(/[\[\]_]/.test(erro)||/^\d/.test(erro))continue;{const ab=t.lastIndexOf('[',a),fe=t.lastIndexOf(']',a);if(ab>fe&&t.indexOf(']',a)>-1&&t.indexOf(']',a)<t.indexOf('\n',a)+(t.indexOf('\n',a)<0?1e9:0))continue}
+      let i0=a,i1=b;while(i0>0&&a-i0<25&&t[i0-1]!=='\n')i0--;while(i1<t.length&&i1-b<25&&t[i1]!=='\n')i1++;
+      while(i0<a&&!/\s/.test(t[i0-1]||' '))i0++;while(i1>b&&!/\s/.test(t[i1]||' '))i1--;
+      const orig=t.slice(i0,i1),corr=t.slice(i0,a)+rep.value+t.slice(b,i1);if(orig&&orig!==corr&&texto.includes(orig))out.push({original:orig,corrigido:corr,motivo:m.message||'',gi:base+a,len:m.length,rep:rep.value})}base+=t.length}
+  return out}
+async function revisarTexto(texto,onDone){const sm=await getSample();
   const ov=document.createElement('div');ov.className='overlay';ov.style.zIndex=90;ov.innerHTML=`<div class="modal" style="max-width:760px"><header><h3>${ic('check',18)} Revisão de ortografia</h3><button type="button" class="icon-btn x" data-rx aria-label="Fechar">${ic('x',15)}</button></header><div class="mbody" id="rvBody"><span class="muted">Revisando o texto… pode levar alguns segundos.</span></div><footer><span class="sp"></span><button class="btn" data-rx>Fechar</button><button class="btn pri" id="rvAll" hidden>Aplicar marcadas</button></footer></div>`;document.body.appendChild(ov);
   ov.addEventListener('click',e=>{if(e.target===ov||e.target.closest('[data-rx]'))ov.remove()});
   try{const pedaços=[];let buf='';texto.split('\n').forEach(l=>{if((buf+l).length>9000){pedaços.push(buf);buf=''}buf+=l+'\n'});if(buf)pedaços.push(buf);
-    let sug=[];for(const pz of pedaços){const r=await sm.json(`Você é revisor de português do Brasil. Revise o trecho de contrato abaixo e aponte SOMENTE erros de ortografia, acentuação, digitação, concordância e pontuação evidentes. Não mude o sentido jurídico, não reescreva cláusulas, não altere números, valores, nomes próprios nem códigos entre colchetes como [customer_name]. Responda só com JSON no formato {"sugestoes":[{"original":"trecho exato com o erro (copiado do texto, 2 a 8 palavras para ser único)","corrigido":"mesmo trecho corrigido","motivo":"explicação curta"}]}. Se não houver erros, responda {"sugestoes":[]}.\n\nTEXTO:\n${pz}`,{modelTier:'default',cache:false});
+    let sug=[];if(!sm){sug=await ltSugestoes(texto)}else for(const pz of pedaços){const r=await sm.json(`Você é revisor de português do Brasil. Revise o trecho de contrato abaixo e aponte SOMENTE erros de ortografia, acentuação, digitação, concordância e pontuação evidentes. Não mude o sentido jurídico, não reescreva cláusulas, não altere números, valores, nomes próprios nem códigos entre colchetes como [customer_name]. Responda só com JSON no formato {"sugestoes":[{"original":"trecho exato com o erro (copiado do texto, 2 a 8 palavras para ser único)","corrigido":"mesmo trecho corrigido","motivo":"explicação curta"}]}. Se não houver erros, responda {"sugestoes":[]}.\n\nTEXTO:\n${pz}`,{modelTier:'default',cache:false});
       (r&&r.sugestoes||[]).forEach(x=>{if(x&&x.original&&x.corrigido&&x.original!==x.corrigido&&texto.includes(x.original))sug.push(x)})}
     const body=ov.querySelector('#rvBody');
     if(!sug.length){body.innerHTML='<b>Nenhum erro encontrado.</b>';return}
     body.innerHTML=`<p class="muted" style="margin:0 0 8px">${sug.length} sugest${sug.length>1?'ões':'ão'}. Desmarque o que não quiser aplicar.</p><div class="list-rows">${sug.map((x,i)=>`<label class="lr" style="grid-template-columns:24px minmax(0,1fr);align-items:start;cursor:pointer"><input type="checkbox" checked data-rvi="${i}" style="margin-top:4px"><span><span style="text-decoration:line-through;color:var(--danger)">${esc(x.original)}</span> → <b style="color:var(--ok)">${esc(x.corrigido)}</b><br><span class="muted" style="font-size:12px">${esc(x.motivo||'')}</span></span></label>`).join('')}</div>`;
-    const b=ov.querySelector('#rvAll');b.hidden=false;b.onclick=()=>{let t=texto;ov.querySelectorAll('[data-rvi]').forEach(cb=>{if(cb.checked){const x=sug[+cb.dataset.rvi];t=t.split(x.original).join(x.corrigido)}});ov.remove();onDone(t);toast('Correções aplicadas')}}
+    const b=ov.querySelector('#rvAll');b.hidden=false;b.onclick=()=>{let t=texto;const sel=[...ov.querySelectorAll('[data-rvi]')].filter(cb=>cb.checked).map(cb=>sug[+cb.dataset.rvi]);if(sel.length&&sel[0].gi!=null){sel.sort((x,y)=>y.gi-x.gi).forEach(x=>{t=t.slice(0,x.gi)+x.rep+t.slice(x.gi+x.len)})}else sel.forEach(x=>{t=t.split(x.original).join(x.corrigido)});ov.remove();onDone(t);toast('Correções aplicadas')}}
   catch(e){const m=e&&e.code==='not_granted'?'Você não permitiu o uso do Claude por esta página.':e&&e.code==='rate_limited'?'Muitas revisões seguidas. Tente de novo em alguns minutos.':((e&&e.message)||String(e));ov.querySelector('#rvBody').innerHTML=`<span style="color:var(--danger)">${esc(m)}</span>`}}
 /* ---- editor de modelos (Configurações) ---- */
 function ctEditor(i){const L=cfg().contratos||[];const novo=i==null;const c=novo?{nome:'',texto:'',ativo:true,templateId:''}:L[i];
@@ -3640,7 +3655,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   if('ctcopy' in d){const tx=ctLerTexto().replace(/\[page_break\]/g,'');try{await navigator.clipboard.writeText(tx);toast('Contrato copiado')}catch(err){toast('Selecione o texto e copie manualmente.',true)}return}
   if('ctrev' in d){revisarTexto(ctLerTexto(),v=>{C.texto=v;ctRender()});return}
   if('ctpdf' in d){try{t.disabled=true;const b=await contratoPDF(ctLerTexto(),(C.modelo||'Contrato')+' - Pedido '+(p.num||''));await salvarArquivo(nomeArq(`Contrato ${p.num||''} - ${p.titulo||''}`)+'.pdf',b)}catch(err){toast((err&&err.message)||String(err),true)}finally{t.disabled=false}return}
-  if('ctsave' in d){const tx=ctLerTexto();const ger=(p.contratosGerados||[]).filter(g=>String(g.num)!==String(C.num));ger.push({modelo:C.modelo||'Texto automático',texto:tx,num:C.num,em:new Date().toISOString(),por:usuarioAtual()});await save('pedidos',{...p,contratosGerados:ger.slice(-10),contratoStatus:p.contratoStatus&&p.contratoStatus!=='Rascunho'?p.contratoStatus:'Rascunho'});toast('Contrato salvo no pedido');return}
+  if('ctsave' in d){const tx=ctLerTexto();const ger=(p.contratosGerados||[]).filter(g=>String(g.num)!==String(C.num));ger.push({modelo:C.modelo||'Texto automático',texto:tx,num:C.num,em:new Date().toISOString(),por:usuarioAtual()});await save('pedidos',{...p,contratosGerados:ger.slice(-10),contratoStatus:p.contratoStatus&&p.contratoStatus!=='Rascunho'?p.contratoStatus:'Rascunho'});toast('Contrato salvo no pedido');if(d.ctsave==='assinar'){for(let k=0;k<20&&!((S.data.pedidos.find(x=>x.id===p.id)||{}).contratosGerados||[]).some(g=>g.texto===tx);k++)await new Promise(r=>setTimeout(r,150));closeModal();openSign(p.id)}return}
 });
 document.addEventListener('change',async e=>{const t=e.target;if(!(t.matches&&t.matches('#ctSigFile')))return;const f=t.files&&t.files[0];if(!f)return;try{const as=await (window.claude&&window.claude.use?window.claude.use('assets'):null);if(!as){toast('Envio de imagens indisponível neste acesso.',true);return}const r=await as.upload(f);cfgSet('estudio',{...cfg().estudio,assinaturaImg:r.id});toast('Assinatura salva');render()}catch(err){toast('Não consegui enviar: '+((err&&err.message)||err),true)}});
 
@@ -4378,6 +4393,32 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 (function(){const h=(location.hash||'').slice(1);if(h&&(VIEWS[h]))S.ui.view=h==='contato'?'contatos':(h==='prova'||h==='provaview')?'provas':h})();
 render();
 initStore();
+
+/* ---- listas longas: abrir com campo de busca (digitar procura em qualquer parte do nome) ---- */
+(function(){const MIN=12;let cur=null;
+  const norm=x=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const elegivel=el=>el&&el.tagName==='SELECT'&&!el.multiple&&!el.disabled&&!el.hasAttribute('data-nativo')&&el.options.length>MIN;
+  function fechar(foco){if(!cur)return;const sel=cur.sel;cur.box.remove();document.removeEventListener('mousedown',fora,true);window.removeEventListener('resize',pos);cur=null;if(foco)try{sel.focus()}catch(_){}}
+  function fora(e){if(cur&&!cur.box.contains(e.target)&&e.target!==cur.sel)fechar(false)}
+  function pos(){if(!cur)return;const r=cur.sel.getBoundingClientRect(),vh=innerHeight,w=Math.max(r.width,300);const left=Math.max(8,Math.min(r.left,innerWidth-w-8));const abaixo=vh-r.bottom-12,acima=r.top-12;const up=abaixo<260&&acima>abaixo;const h=Math.min(380,up?acima:abaixo);
+    Object.assign(cur.box.style,{left:left+'px',width:Math.min(w,innerWidth-16)+'px',maxHeight:h+'px',top:up?'':(r.bottom+4)+'px',bottom:up?(vh-r.top+4)+'px':''})}
+  function abrir(sel,txt){fechar(false);const box=document.createElement('div');box.className='ssel';box.innerHTML='<input type="search" placeholder="Digite para procurar…" aria-label="Procurar"><ul role="listbox"></ul>';document.body.appendChild(box);
+    const inp=box.querySelector('input'),ul=box.querySelector('ul');cur={sel,box,inp,ul,i:-1,vis:[]};
+    const opts=[...sel.options].map((o,k)=>({k,t:o.text,n:norm(o.text),dis:o.disabled,v:o.value}));
+    const lista=()=>{const q=norm(inp.value).trim().split(/\s+/).filter(Boolean);cur.vis=opts.filter(o=>q.every(w=>o.n.includes(w)));
+      ul.innerHTML=cur.vis.length?cur.vis.map((o,j)=>`<li data-j="${j}" class="${o.k===sel.selectedIndex?'on':''}${o.dis?' dis':''}${/^\s*\d+(\.\d+)?\s-\s/.test(o.t)&&!/^\s*\d+\.\d+\.\d+/.test(o.t)?' grp':''}">${esc(o.t.trim()?o.t:'—')}</li>`).join(''):'<div class="nada">Nada encontrado.</div>';
+      cur.i=q.length?cur.vis.findIndex(o=>!o.dis):cur.vis.findIndex(o=>o.k===sel.selectedIndex);marca()};
+    const marca=()=>{ul.querySelectorAll('li').forEach((li,j)=>li.classList.toggle('on',j===cur.i));const a=ul.querySelector('li.on');if(a)a.scrollIntoView({block:'nearest'})};
+    const escolher=j=>{const o=cur.vis[j];if(!o||o.dis)return;if(sel.selectedIndex!==o.k){sel.selectedIndex=o.k;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}))}fechar(true)};
+    inp.addEventListener('input',lista);
+    inp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();cur.i=Math.min(cur.vis.length-1,cur.i+1);marca()}else if(e.key==='ArrowUp'){e.preventDefault();cur.i=Math.max(0,cur.i-1);marca()}else if(e.key==='Enter'){e.preventDefault();escolher(cur.i)}else if(e.key==='Escape'||e.key==='Tab'){e.preventDefault();fechar(true)}});
+    ul.addEventListener('mousedown',e=>{const li=e.target.closest('li');if(li){e.preventDefault();escolher(+li.dataset.j)}});
+    inp.value=txt||'';lista();pos();document.addEventListener('mousedown',fora,true);window.addEventListener('resize',pos);inp.focus();const L=inp.value.length;try{inp.setSelectionRange(L,L)}catch(_){}setTimeout(()=>{if(cur&&cur.inp===inp&&document.activeElement!==inp)inp.focus()},0)}
+  document.addEventListener('mousedown',e=>{const el=e.target;if(e.button!==0||!elegivel(el))return;e.preventDefault();if(cur&&cur.sel===el){fechar(true);return}el.focus();abrir(el,'')},true);
+  document.addEventListener('keydown',e=>{const el=e.target;if(!elegivel(el)||cur||e.ctrlKey||e.metaKey||e.altKey)return;
+    if(e.key.length===1&&e.key!==' '){e.preventDefault();abrir(el,e.key)}else if(e.key==='Enter'||e.key===' '||(e.key==='ArrowDown'&&e.altKey)){e.preventDefault();abrir(el,'')}},true);
+  document.addEventListener('scroll',e=>{if(cur&&!cur.box.contains(e.target))pos()},true);
+})();
 </script>
 
 </body></html>
