@@ -1490,7 +1490,7 @@ VIEWS.contato=()=>{
         ${c.instagram?`<div>${ic('img',15)}<span>${esc(c.instagram)}</span></div>`:''}
       </div>
       <div class="ct-btns">
-        ${c.email?`<a href="mailto:${esc(c.email)}" style="--c:var(--ev-pre)">${ic('mail',15)} Enviar e-mail</a>`:''}
+        ${c.email?`<a href="mailto:${esc(c.email)}" data-mailto="${esc(c.email)}" data-mailnome="${esc(c.nome||'')}" style="--c:var(--ev-pre)">${ic('mail',15)} Enviar e-mail</a>`:''}
         ${wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noopener" style="--c:#25a85a">${ic('wa',15)} Enviar WhatsApp</a>`:''}
         ${c.email?`<button style="--c:var(--info)" data-copy-email="${esc(c.email)}">${ic('doc',15)} Copiar e-mail</button>`:''}
       </div>
@@ -1614,7 +1614,7 @@ VIEWS.pedido=()=>{
         <b>Cliente</b><span>${p.contatoId?`<button class="clink" data-contato="${p.contatoId}">${esc(contatoNome(p.contatoId))}</button>`:'—'}${c.email?`<br><span class="muted">${esc(c.email)}</span>`:''}${c.celular?`<br><span class="num muted">${esc(c.celular)}</span>`:''}${[c.cidade,c.uf].filter(Boolean).length?`<br><span class="muted">${esc([c.cidade,c.uf].filter(Boolean).join(' • '))}</span>`:''}</span>
       </div>
       <div class="ct-btns">
-        ${c.email?`<a href="mailto:${esc(c.email)}" style="--c:var(--ev-pre)">${ic('mail',15)} Enviar e-mail</a>`:''}
+        ${c.email?`<a href="mailto:${esc(c.email)}" data-mailto="${esc(c.email)}" data-mailnome="${esc(c.nome||'')}" style="--c:var(--ev-pre)">${ic('mail',15)} Enviar e-mail</a>`:''}
         ${wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noopener" style="--c:#25a85a">${ic('wa',15)} Enviar WhatsApp</a>`:''}
         <button style="--c:var(--info)" data-sign="${p.id}">${ic('edit',15)} Assinatura digital</button>
       </div>
@@ -4035,6 +4035,20 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   if('ctalbfecha' in t.dataset){const o=t.closest('[data-ctalbx]');if(o)o.remove();return}
   if('ctalbprint' in t.dataset){const fr=$('#ctAlbFr');try{fr.contentWindow.focus();fr.contentWindow.print()}catch(_){toast('Use Baixar e imprima o arquivo.',true)}return}
   if(t.dataset.ctalbbaixar){const c=_ctAlbCache[t.dataset.ctalbbaixar];if(c)salvarArquivo(nomeArq('Contrato '+c.num+' '+(c.cliente||''))+'.html',new Blob([ctAlbHtml(c)],{type:'text/html'}))}});
+/* ===== escrever e-mail para um contato (sai pelo Gmail da empresa) ===== */
+function mailModal(para,nome){$('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:640px"><header><h3>${ic('mail',18)} Enviar e-mail</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody" style="display:grid;gap:10px"><div class="field" style="margin:0"><label>Para</label><input class="search" id="ml-para" value="${esc(para)}"></div>
+  <div class="field" style="margin:0"><label>Assunto</label><input class="search" id="ml-ass" value=""></div>
+  <div class="field" style="margin:0"><label>Mensagem (a assinatura entra no final). Use *texto* para negrito</label><textarea id="ml-txt" spellcheck="true" lang="pt-BR" style="min-height:220px;font:14px/1.5 Arial,sans-serif">Olá ${esc(String(nome||'').split(' ')[0])},\n\n</textarea></div>
+  <span class="muted" style="font-size:12px">Sai pelo Gmail da empresa e fica registrado em E-mails.</span></div>
+  <footer><span class="sp"></span><a class="btn" href="mailto:${esc(para)}">Abrir no meu programa de e-mail</a><button class="btn" data-close>Cancelar</button><button class="btn pri" data-mlsend>${ic('mail',15)} Enviar</button></footer></div></div>`;setTimeout(()=>{const x=$('#ml-ass');if(x)x.focus()},50)}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-mailto],[data-mlsend]');if(!t)return;
+  if(t.dataset.mailto!==undefined){e.preventDefault();mailModal(t.dataset.mailto,t.dataset.mailnome||'');return}
+  e.preventDefault();const para=$('#ml-para').value.trim(),ass=$('#ml-ass').value.trim(),txt=$('#ml-txt').value;
+  if(!/^\S+@\S+\.\S+$/.test(para)){toast('Confira o e-mail do destinatário.',true);return}if(!ass){toast('Escreva o assunto.',true);return}
+  t.disabled=true;t.textContent='Enviando…';const texto=emCorpo(txt);
+  try{await gmEnviar({para,assunto:ass,texto});try{await save('emails',{chave:'manual:'+Date.now(),tipo:'manual',para,nome:'',assunto:ass,texto,status:'enviado',enviadoEm:new Date().toISOString(),por:usuarioAtual()})}catch(_){}closeModal();toast('E-mail enviado')}
+  catch(err){t.disabled=false;t.textContent='Enviar';toast(gmErr(err),true)}});
 /* ===== migração para o app com login próprio ===== */
 const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
 function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC_T[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
