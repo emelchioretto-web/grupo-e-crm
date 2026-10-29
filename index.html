@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029182349';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029183828';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -866,7 +866,7 @@ const SCHEMAS={
       {k:'local',l:'Local do evento',lg:{Casamento:'Local da cerimônia','Job sem data':'Local'},full:1,tab:0},
       {k:'localRecepcao',l:'Local da Recepção',grp:['Casamento'],full:1,tab:0},
       {k:'cidade',l:'Cidade',tab:0},{k:'estado',l:'Estado',def:'Santa Catarina',tab:0},{k:'pais',l:'País',def:'Brasil',tab:0},
-      {k:'notas',l:'Obs',t:'area',full:1,tab:0},
+      {k:'notas',l:'Obs e dados de operação',t:'area',full:1,tab:0},
       {k:'vendedor',l:'Vendedor',t:'pessoa',req:1,def:'Elton Melchioretto',tab:0},
       {k:'responsavel',l:'Delegar a',t:'pessoa',tab:0},
       {k:'participantes',l:'Participantes / equipe do evento (recebem aviso no WhatsApp)',t:'pessoas',full:1,tab:0},
@@ -4015,19 +4015,20 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 /* ===== Dados de operação (agendamentos) ===== */
 const OP_PADRAO=`Dados de operação:
 
-PEDIDO: {pedido}
-EVENTO: {evento}
-Data Evento: {data}
-Equipamento: {equipamento}
-Local Montagem Equipamento: {local}
-Link Maps: {maps}
-Hora de montagem: até às {montagem}
-Hora da liberação do equipamento: das {inicio} às {fim}{duracao}
-Contato do Responsável pelo evento a seguir: {responsavel}
-Contato do OPERADOR a seguir: {operador}
+*PEDIDO:* {pedido}
+*EVENTO:* {evento}
+*Data Evento:* {data}
+*Equipamento:* {equipamento}
+*Local Montagem Equipamento:* {local}
+*Link Maps:* {maps}
+*Hora de montagem:* {montagem}
+*Hora da liberação do equipamento:* {liberacao}
+*Contato do Responsável pelo evento a seguir:* {responsavel}
+*Contato do OPERADOR a seguir:* {operador}
 
-NÃO ESQUEÇA A ALIMENTAÇÃO PARA A EQUIPE ☺️`;
-const OP_VARS=['pedido','evento','data','equipamento','local','maps','montagem','inicio','fim','duracao','responsavel','operador','cliente'];
+
+*NÃO ESQUEÇA A ALIMENTAÇÃO PARA A EQUIPE ☺️*`;
+const OP_VARS=['pedido','evento','data','equipamento','local','maps','montagem','liberacao','inicio','fim','duracao','responsavel','operador','cliente'];
 function opModelo(){return (cfg().opModelo||'').trim()?cfg().opModelo:OP_PADRAO}
 const telFmt=t=>{const d=String(t||'').replace(/\D/g,'');if(!d)return '';return typeof fmtTel==='function'?fmtTel(d):d};
 function opDados(r){const ped=r.pedidoId?S.data.pedidos.find(p=>p.id===r.pedidoId):null;const tit=String(r.titulo||'');
@@ -4041,8 +4042,21 @@ function opDados(r){const ped=r.pedidoId?S.data.pedidos.find(p=>p.id===r.pedidoI
   const adm=new Set((cfg().equipe||[]).filter(m=>m.tipo==='Administrador').map(m=>m.nome));
   const ops=(r.participantes||[]).filter(n=>!adm.has(n)).map(n=>{const m=(cfg().equipe||[]).find(x=>x.nome===n);const t=m?telFmt(m.celular):'';return n.split(' ')[0]+(t?' - '+t:'')}).join(' / ');
   const d=r.data||(ped&&ped.dataEvento)||'';
-  return {pedido:(ped&&ped.num)||'',evento,data:d?fdate(d).replace(/\/(\d{2})(\d{2})$/,'/$2'):'',equipamento:equip,local:loc,maps,montagem:'',inicio:ini,fim,duracao:dur,responsavel:cn?(cn+(ct?' - '+ct:'')):'',cliente:cn,operador:ops}}
+  return {pedido:(ped&&ped.num)||'',evento,data:d?fdate(d).replace(/\/(\d{2})(\d{2})$/,'/$2'):'',equipamento:equip,local:loc,maps,montagem:r.montagem?'até às '+r.montagem:'',liberacao:ini&&fim?`das ${ini} às ${fim}${dur}`:'',inicio:ini,fim,duracao:dur,responsavel:cn?(cn+(ct?' - '+ct:'')):'',cliente:cn,operador:ops}}
 function opGerar(r){const D=opDados(r);return opModelo().replace(/\{(\w+)\}/g,(m,k)=>k in D?String(D[k]||''):m)}
+
+/* dados de operação também nas observações do pedido */
+function opDoPedido(p){const D={...opDados({pedidoId:p.id,titulo:p.titulo,data:p.dataEvento,hora:p.horaEvento,horaFim:p.horaFimEvento,local:p.local,contatoId:p.contatoId,participantes:[]}),montagem:'',liberacao:'',responsavel:'',operador:''};return opModelo().replace(/\{(\w+)\}/g,(m,k)=>k in D?String(D[k]||''):m)}
+const OP_DESDE='2026-10-31';
+async function opAutoPedido(id){const p=S.data.pedidos.find(x=>x.id===id);if(!p||!p.dataEvento||p.dataEvento<OP_DESDE||pedStatus(p)==='Cancelado')return false;if(/dados de opera/i.test(p.notas||''))return false;
+  const n=String(p.notas||'').replace(/\s+$/,'');await patch('pedidos',p.id,{notas:(n?n+'\n\n':'')+opDoPedido(p)});return true}
+const _saveOp=save;save=async function(col,rec){const id=await _saveOp(col,rec);if(col==='pedidos'&&id&&!(rec&&rec._semOp))setTimeout(()=>{opAutoPedido(typeof id==='string'?id:rec.id).catch(()=>{})},900);return id};
+async function opPreencherTodos(){if(cfg().opLote31||S._opLote)return;if(!S.dono)return;S._opLote=1;
+  if((cfg().opModelo||'').trim()&&!/\*PEDIDO:\*/.test(cfg().opModelo))cfgSet('opModelo','');
+  cfgSet('opLote31',new Date().toISOString());let n=0;
+  for(const p of S.data.pedidos.filter(p=>p.dataEvento&&p.dataEvento>=OP_DESDE)){try{if(await opAutoPedido(p.id))n++}catch(e){}}
+  if(n)toast(n+' pedido'+(n>1?'s':'')+' a partir de 31/10 receberam os dados de operação nas observações.')}
+setTimeout(function opLoteTenta(){if(S.loaded&&S.loaded.has&&S.loaded.has('pedidos')&&S.cfg&&S.dono&&S.data.pedidos.length)opPreencherTodos();else setTimeout(opLoteTenta,5000)},8000);
 function opDasNotas(n){n=String(n||'');const i=n.search(/dados de opera[cç][aã]o/i);return i>=0?n.slice(i).trim():''}
 const OP_ST={'':'Rascunho',enviado:'Enviado ao cliente para aprovar',aprovado:'Aprovado pelo cliente',operador:'Enviado ao operador'};
 function agOrigem(r){const p=r.pedidoId?S.data.pedidos.find(x=>x.id===r.pedidoId):(r.pedidoNum?S.data.pedidos.find(x=>+x.num===+r.pedidoNum):null);if(!p)return '';
