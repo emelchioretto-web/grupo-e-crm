@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029151656';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029152233';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -233,7 +233,7 @@ button{cursor:pointer}
 
 /* ---------- shell ---------- */
 .app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
-.side{background:var(--side);color:var(--side-fg);position:sticky;top:0;height:100vh;overflow-y:auto;padding-left:env(safe-area-inset-left,0px);display:flex;flex-direction:column;z-index:50}
+.side{background:var(--side);color:var(--side-fg);position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent;scrollbar-gutter:stable;padding-left:env(safe-area-inset-left,0px);display:flex;flex-direction:column;z-index:50}
 .brand{padding:22px 20px 18px;border-bottom:1px solid var(--side-line);display:grid;gap:2px}
 .brand b{font-family:var(--f-display);font-weight:700;font-size:24px;letter-spacing:.14em;color:var(--side-fg-strong);line-height:1}
 .brand span{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--side-fg)}
@@ -241,8 +241,9 @@ button{cursor:pointer}
 .nav .grp{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:16px 20px 6px}
 .nav a{display:flex;align-items:center;gap:11px;padding:9px 20px;color:var(--side-fg);text-decoration:none;font-weight:500;border-left:3px solid transparent}
 .nav a.sub{padding-left:48px;font-weight:400;font-size:13px}
-.nav .navrow{display:flex;align-items:stretch}.nav .navrow>a{flex:1;min-width:0;padding-right:4px}.nav .navrow>a>span:not(.count){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nav .navtog{flex:none;width:38px;display:grid;place-items:center;background:none;border:0;color:var(--side-fg);opacity:.85;cursor:pointer}
+.nav .navrow{display:flex;align-items:stretch;padding-right:4px}
+.side::-webkit-scrollbar{width:6px}.side::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}.side::-webkit-scrollbar-track{background:transparent}.nav .navrow>a{flex:1;min-width:0;padding-right:4px}.nav .navrow>a>span:not(.count){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav .navtog{flex:none;width:32px;display:grid;place-items:center;background:none;border:0;color:var(--side-fg);opacity:.85;cursor:pointer}
 .nav .navtog:hover{opacity:1;background:var(--side-2)}.nav .navtog svg{transition:transform .15s}.nav .navg.open>.navrow .navtog svg,.nav .navsg.open>.navrow .navtog svg{transform:rotate(90deg)}
 .nav .navkids2 a.sub{padding-left:70px;font-size:12.5px}.nav a.navsgh{gap:8px}.nav a.navsgh svg{width:15px;height:15px}
 .nav a:hover{background:var(--side-2);color:var(--side-fg-strong)}
