@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029142431';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029142718';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1076,6 +1076,7 @@ const usuarioAtual=()=>{try{const eq=cfg().equipe||[];const ql=quemLocal();if(ql
 async function save(col,rec){
   if(col==='lancamentos'&&rec.id&&String(rec.id).startsWith('f~'))return saveFinItem(rec);
   if(col==='lancamentos'&&!rec.aid){rec={...rec,aid:lancProxNum()};if(!rec.criadoEm)rec.criadoEm=new Date().toISOString()}
+  if(col==='lancamentos'&&!rec.usuario){const u=usuarioAtual();if(u)rec={...rec,usuario:u}}
   if(col==='oportunidades'){const old=rec.id&&S.data.oportunidades.find(x=>x.id===rec.id);if((old&&old.etapa!==rec.etapa)||(!old&&rec.etapa))rec={...rec,historico:[...((old&&old.historico)||rec.historico||[]),{em:new Date().toISOString(),etapa:rec.etapa,de:old?old.etapa:'',usuario:usuarioAtual(),venc:rec.proximaAcao||''}]}}
   const body={...rec};delete body.id;
   body.atualizadoEm=new Date().toISOString();
