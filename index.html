@@ -6,7 +6,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
-;window.GOOGLE_CLIENT_ID='';</script>
+;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
 const CFG=window.FIREBASE_CONFIG;const DONO='emelchioretto@gmail.com';
@@ -101,7 +101,9 @@ auth.onAuthStateChanged(async user=>{
   const email=String(user.email||'').toLowerCase();
   EU={id:user.uid,name:user.displayName||'',email,isOwner:email===DONO,canEdit:true,avatarUrl:user.photoURL||'',color:'#2f6f5e'};
   tela('<p>Verificando acesso…</p>');
-  let g;try{g=await fs.doc('config/geral').get()}catch(e){
+  let g,ultErr;for(let t=0;t<3&&!g;t++){try{g=await fs.doc('config/geral').get(t?{source:'server'}:undefined)}catch(e){ultErr=e;if(e&&e.code==='permission-denied')break;await new Promise(r=>setTimeout(r,1500))}}
+  if(!g&&ultErr&&ultErr.code!=='permission-denied'){tela(`<p style="margin-top:0">Não consegui abrir o banco agora.</p><p style="font-size:12px;color:#777">${String(ultErr.code||'')} ${String(ultErr.message||ultErr).replace(/</g,'&lt;').slice(0,200)}</p><p><button id="gxr2">Tentar de novo</button></p><p><a href="#" id="gxs2" style="color:#6b716d">Sair</a></p>`);document.getElementById('gxr2').onclick=()=>location.reload();document.getElementById('gxs2').onclick=ev=>{ev.preventDefault();window.crmSair()};return}
+  if(!g)try{throw ultErr}catch(e){
     tela(`<p style="margin-top:0"><b>${user.email}</b> não tem acesso a este CRM.</p><p>Peça ao Elton para cadastrar este e-mail como <b>Administrador</b> em Configurações › Usuários.</p><p><button id="gxo">Entrar com outra conta</button></p>`);document.getElementById('gxo').onclick=()=>auth.signOut();return}
   let pend=false;try{pend=localStorage.getItem('crm-mig-pend')==='1'}catch(_){}
   if(!g.exists||(pend&&EU.isOwner)){if(!EU.isOwner){tela('<p>O CRM ainda está sendo preparado. Tente mais tarde.</p>');return}window.__migCont=g.exists;await telaMigrar(user)}
@@ -128,7 +130,8 @@ function pedir(titulo,texto,campos){return new Promise(res=>{const o=document.cr
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button data-c style="padding:8px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer">Cancelar</button><button data-o style="padding:8px 14px;border-radius:8px;border:0;background:#1f6f54;color:#fff;cursor:pointer;font-weight:600">Salvar</button></div></div>`;
   document.body.appendChild(o);o.querySelector('[data-c]').onclick=()=>{o.remove();res(null)};
   o.querySelector('[data-o]').onclick=()=>{const v=campos.map((c,k)=>{const el=o.querySelector(`[data-k="${k}"]`);return c.check?el.checked:el.value.trim()});if(campos.some((c,k)=>!c.check&&!c.opc&&!v[k]))return;o.remove();res(v)}})}
-async function ponteCfg(){let x=await segredos();if(x.gasUrl&&x.gasSegredo)return x;
+async function ponteCfg(){let x=await segredos();x={...x,gasUrl:x.gasUrl||window.GAS_URL||''};if(x.gasUrl&&x.gasSegredo)return x;
+  if(x.gasUrl){const v=await pedir('Ligar o Google do CRM','Cole o <b>código secreto</b> que o Claude te passou. É feito uma vez só.',[{label:'Código secreto'}]);if(!v)throw erro('O Google do CRM ainda não foi ligado.','sem_config');await fs.doc('config/segredos').set({gasUrl:x.gasUrl,gasSegredo:v[0]},{merge:true});return {...x,gasSegredo:v[0]}}
   const v=await pedir('Ligar o Google do CRM','Cole o endereço do <b>Apps Script</b> (termina em <code>/exec</code>) e o código secreto que o Claude te passou. É feito uma vez só.',[{label:'Endereço do app da Web',ph:'https://script.google.com/macros/s/.../exec'},{label:'Código secreto'}]);
   if(!v)throw erro('O Google do CRM ainda não foi ligado.','sem_config');await fs.doc('config/segredos').set({gasUrl:v[0],gasSegredo:v[1]},{merge:true});return {...x,gasUrl:v[0],gasSegredo:v[1]}}
 async function ponte(server,tool,input,extra){const c=await ponteCfg();let r;
