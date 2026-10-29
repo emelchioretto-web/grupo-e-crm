@@ -3,8 +3,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
-;</script>
+;window.GOOGLE_CLIENT_ID='';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
 const CFG=window.FIREBASE_CONFIG;const DONO='emelchioretto@gmail.com';
@@ -29,6 +31,7 @@ function wQ(q){return {where:(f,o,v)=>wQ(q.where(f,o,enc(v))),orderBy:(f,d)=>wQ(
   onSnapshot:(n,e)=>q.onSnapshot(s=>n(wQS(s)),x=>e&&e(mErr(x)))}}
 function wColl(c){return {...wQ(c),path:c.path,id:c.id,doc:id=>wDoc(id?c.doc(id):c.doc()),add:d=>P(c.add(enc(d))).then(wDoc)}}
 const DB={collection:p=>wColl(fs.collection(p)),doc:p=>wDoc(fs.doc(p)),_fs:fs,_enc:enc};
+window.__CRM_HOST={fs,auth,DONO,eu:()=>EU};
 
 /* ---------- tela de entrada ---------- */
 const css=`#gx{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;background:#0f1412;font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1c1f1d}
@@ -41,8 +44,8 @@ const st=document.createElement('style');st.textContent=css;document.head.append
 const G='<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 function tela(html){let el=document.getElementById('gx');if(!el){el=document.createElement('div');el.id='gx';document.body.appendChild(el)}el.innerHTML=`<div class="c"><h1>ELTON</h1><div class="s">MELCHIORETTO · GRUPO E</div>${html}</div>`;return el}
 function fechar(){const el=document.getElementById('gx');if(el)el.remove()}
-const entrar=async()=>{const pv=new firebase.auth.GoogleAuthProvider();pv.setCustomParameters({prompt:'select_account'});
-  try{await auth.signInWithPopup(pv)}catch(e){if(/popup|cancel/i.test(e.code||'')&&!/cancelled-popup|closed-by-user/.test(e.code||''))await auth.signInWithRedirect(pv);else if(!/closed-by-user|cancelled-popup/.test(e.code||''))tela(`<p class="er">Não consegui entrar: ${String(e.message||e).replace(/</g,'&lt;')}</p><p><button id="gxb">${G} Tentar de novo</button></p>`),document.getElementById('gxb').onclick=entrar}};
+const entrar=async()=>{const pv=new firebase.auth.GoogleAuthProvider();pv.setCustomParameters({prompt:'select_account'});['https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar','https://www.googleapis.com/auth/drive'].forEach(x=>pv.addScope(x));
+  try{const r=await auth.signInWithPopup(pv);const t=r&&r.credential&&r.credential.accessToken;if(t&&window.__crmSetToken)window.__crmSetToken(t,3300)}catch(e){if(/popup|cancel/i.test(e.code||'')&&!/cancelled-popup|closed-by-user/.test(e.code||''))await auth.signInWithRedirect(pv);else if(!/closed-by-user|cancelled-popup/.test(e.code||''))tela(`<p class="er">Não consegui entrar: ${String(e.message||e).replace(/</g,'&lt;')}</p><p><button id="gxb">${G} Tentar de novo</button></p>`),document.getElementById('gxb').onclick=entrar}};
 const LKEY='crm-email-link';
 function telaLogin(msg){tela(`<p style="margin-top:0">Entre para abrir o CRM.</p><p><button id="gxb">${G} Entrar com Google</button></p>
   <p style="margin:18px 0 8px">ou receba um link de acesso no seu e-mail:</p>
@@ -90,7 +93,7 @@ function syncAcesso(user){fs.doc('config/geral').onSnapshot(s=>{if(!s.exists)ret
 
 /* ---------- pronto para o CRM ---------- */
 let pronto;const ready=new Promise(r=>pronto=r);let EU=null;
-auth.getRedirectResult().catch(()=>{});
+auth.getRedirectResult().then(r=>{const t=r&&r.credential&&r.credential.accessToken;if(t&&window.__crmSetToken)window.__crmSetToken(t,3300)}).catch(()=>{});
 const quandoPronto=f=>document.body?f():document.addEventListener('DOMContentLoaded',f);
 quandoPronto(()=>{tela('<p>Carregando…</p>');
 auth.onAuthStateChanged(async user=>{
@@ -103,12 +106,136 @@ auth.onAuthStateChanged(async user=>{
   let pend=false;try{pend=localStorage.getItem('crm-mig-pend')==='1'}catch(_){}
   if(!g.exists||(pend&&EU.isOwner)){if(!EU.isOwner){tela('<p>O CRM ainda está sendo preparado. Tente mais tarde.</p>');return}window.__migCont=g.exists;await telaMigrar(user)}
   window.crmMigrar=()=>{window.__migCont=true;telaMigrar(user).then(()=>location.reload())};
-  syncAcesso(user);fechar();pronto(DB)});});
+  syncAcesso(user);fechar();pronto(DB);try{const H=window.__CRM_HOST;H.onLogin&&H.onLogin()}catch(_){}});});
 
 /* ---------- o que o CRM pede ---------- */
 const dl={save:async({filename,data})=>{const b=data instanceof Blob?data:new Blob([data]);const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return {ok:true}}};
 window.claude={use:async n=>{if(n==='db')return ready;if(n==='user'){await ready;return {me:async()=>EU,isOwner:async()=>EU.isOwner,canEdit:async()=>true,id:async()=>EU.id,name:async()=>EU.name,email:async()=>EU.email,can:async()=>true,profiles:async ids=>Object.fromEntries([].concat(ids).map(i=>[i,{id:i,name:'',avatarUrl:'',color:'#888',email:null,isMe:i===EU.id,guest:false}]))}}
-  if(n==='downloads')return dl;return null}};
+  if(n==='downloads')return dl;const X=(window.__CRM_HOST||{}).extra||{};if(n==='mcp'){await ready;return X.mcp||null}if(n==='assets'){await ready;return X.assets||null}return null}};
+})();
+</script>
+<script>/* Grupo E CRM — conectores fora do claude.ai: Gmail, Agenda e Drive (conta Google de quem entrou),
+   DocuSeal (chave da API guardada no banco) e anexos (Firebase Storage). */
+(function(){
+const H=window.__CRM_HOST;if(!H)return;const {fs,auth,DONO}=H;
+const GCID=window.GOOGLE_CLIENT_ID||'';
+const SCOPES='https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive';
+let TOK=null,EXP=0,pend=null;
+const eu=()=>H.eu&&H.eu();
+const temGoogle=()=>{const u=auth.currentUser;return !!(u&&u.providerData.some(p=>p.providerId==='google.com'))};
+const erro=(msg,code)=>{const e=new Error(msg);e.code=code||'tool_error';return e};
+window.__crmSetToken=(t,s)=>{if(t){TOK=t;EXP=Date.now()+(s||3300)*1000;chip()}};
+
+/* ---------- token Google ---------- */
+function gsi(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();let n=0;const t=setInterval(()=>{if(window.google&&google.accounts&&google.accounts.oauth2){clearInterval(t);res()}else if(++n>100){clearInterval(t);rej(erro('Não consegui carregar o login do Google.'))}},100)})}
+async function token(interativo){
+  if(TOK&&Date.now()<EXP-60000)return TOK;
+  if(!temGoogle())throw erro('Quem entrou por link de e-mail não tem conta Google ligada. Este envio fica para quando o Elton abrir o CRM.','sem_google');
+  if(!GCID)throw erro('Falta configurar o ID do cliente Google no app.','sem_config');
+  if(!interativo)throw erro('O Google precisa ser reconectado: clique em "Conectar Google", no canto de baixo da tela.','needs_reauth');
+  if(pend)return pend;await gsi();
+  pend=new Promise((res,rej)=>{const tc=google.accounts.oauth2.initTokenClient({client_id:GCID,scope:SCOPES,login_hint:(auth.currentUser||{}).email||'',prompt:'',
+      callback:r=>{pend=null;if(r.error)return rej(erro('O Google não autorizou: '+r.error,'needs_reauth'));TOK=r.access_token;EXP=Date.now()+(+r.expires_in||3600)*1000;chip();res(TOK)},
+      error_callback:e=>{pend=null;chip();rej(erro(e&&e.type==='popup_failed_to_open'?'O navegador bloqueou a janela do Google. Clique em "Conectar Google", no canto de baixo da tela.':'O login do Google foi fechado.','needs_reauth'))}});
+    tc.requestAccessToken({prompt:''})});
+  return pend}
+async function gf(url,opt={},raw){let t=await token(false);
+  const go=tk=>fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+tk}});
+  let r=await go(t);if(r.status===401){TOK=null;chip();throw erro('O acesso ao Google expirou. Clique em "Conectar Google", no canto de baixo da tela.','needs_reauth')}
+  if(!r.ok){let m='';try{const j=await r.json();m=(j.error&&(j.error.message||j.error))||''}catch(_){}throw erro((r.status===404?'not found (404) ':'')+'Google respondeu '+r.status+(m?': '+m:''))}
+  if(raw)return r;const tx=await r.text();try{return tx?JSON.parse(tx):{}}catch(_){return tx}}
+
+/* botão "Conectar Google" */
+let CH;function chip(){if(!document.body)return;const precisa=temGoogle()&&GCID&&!(TOK&&Date.now()<EXP-60000);
+  if(!CH){CH=document.createElement('button');CH.type='button';CH.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9000;display:none;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid #d6d9d6;background:#fff;color:#1c1f1d;font:600 13px system-ui;box-shadow:0 6px 20px rgba(0,0,0,.18);cursor:pointer';
+    CH.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#d97706"></span> Conectar Google (e-mails, agenda, Drive)';CH.onclick=()=>token(true).then(()=>{if(window.toast)toast('Google conectado');saidaRodar()}).catch(e=>window.toast&&toast(e.message,true));document.body.appendChild(CH)}
+  CH.style.display=precisa?'flex':'none'}
+setInterval(chip,60000);
+/* no primeiro clique da sessão, renova o acesso ao Google sozinho (precisa de um clique por causa do bloqueador de janelas) */
+document.addEventListener('pointerdown',()=>{if(temGoogle()&&GCID&&!(TOK&&Date.now()<EXP-300000)&&!pend&&!(window.__gtTent&&Date.now()-window.__gtTent<600000)){window.__gtTent=Date.now();token(true).then(()=>saidaRodar()).catch(()=>{})}},true);
+
+/* ---------- Gmail ---------- */
+const b64u=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const hdr=s=>/^[\x20-\x7e]*$/.test(s)?s:'=?UTF-8?B?'+btoa(unescape(encodeURIComponent(s)))+'?=';
+const b64l=s=>btoa(unescape(encodeURIComponent(s))).replace(/.{76}/g,'$&\r\n');
+async function gmail(i){const para=[].concat(i.to||[]).filter(Boolean);const bd='crm'+Math.random().toString(36).slice(2);
+  const nome=((window.cfg&&cfg().estudio&&cfg().estudio.nome)||'');
+  const m=[`To: ${para.join(', ')}`,...(nome?[`From: ${hdr(nome)} <${(auth.currentUser||{}).email}>`]:[]),`Subject: ${hdr(i.subject||'')}`,'MIME-Version: 1.0',`Content-Type: multipart/alternative; boundary="${bd}"`,'',
+    `--${bd}`,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',b64l(i.body||''),
+    `--${bd}`,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',b64l(i.htmlBody||String(i.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')),`--${bd}--`].join('\r\n');
+  return gf('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raw:b64u(m)})})}
+/* quem entrou sem Google: o e-mail vai para uma fila e sai pelo Gmail do Elton quando ele abrir o CRM */
+async function gmailOuFila(i){if(temGoogle())return gmail(i);
+  await fs.collection('saida').add({tipo:'gmail',input:JSON.parse(JSON.stringify(i)),status:'fila',por:(auth.currentUser||{}).email||'',em:new Date().toISOString()});
+  return {queued:true,mensagem:'Na fila: sai pelo Gmail do Elton quando ele abrir o CRM.'}}
+let SR=false;async function saidaRodar(){if(SR||!temGoogle()||!(eu()&&eu().isOwner))return;if(!(TOK&&Date.now()<EXP-60000))return;SR=true;
+  try{const s=await fs.collection('saida').where('status','==','fila').get();for(const d of s.docs){const x=d.data();try{if(x.tipo==='gmail')await gmail(x.input);await d.ref.update({status:'enviado',enviadoEm:new Date().toISOString()})}catch(e){await d.ref.update({status:'fila',ultimoErro:String(e.message||e).slice(0,300)});if(e.code==='needs_reauth')break}}}catch(e){}SR=false}
+setInterval(saidaRodar,5*60*1000);
+
+/* ---------- Agenda ---------- */
+const cal=id=>'https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(id||'primary');
+const su=n=>'sendUpdates='+(String(n||'').toUpperCase()==='ALL'?'all':'none');
+function evBody(i){const b={};if(i.summary!=null)b.summary=i.summary;if(i.location!=null)b.location=i.location;if(i.description!=null)b.description=i.description;
+  if(i.startTime)b.start={dateTime:i.startTime,timeZone:i.timeZone||'America/Sao_Paulo'};if(i.endTime)b.end={dateTime:i.endTime,timeZone:i.timeZone||'America/Sao_Paulo'};return b}
+const AG={
+  list_calendars:async()=>{const r=await gf('https://www.googleapis.com/calendar/v3/users/me/calendarList');return {calendars:r.items||[]}},
+  create_event:async i=>{const b=evBody(i);if(i.attendees&&i.attendees.length)b.attendees=i.attendees.map(a=>({email:a.email,displayName:a.displayName}));return gf(cal(i.calendarId)+'/events?'+su(i.notificationLevel),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})},
+  update_event:async i=>{const b=evBody(i);if((i.addedAttendees||[]).length||(i.removedAttendeeEmails||[]).length){const cur=await gf(cal(i.calendarId)+'/events/'+encodeURIComponent(i.eventId));let at=(cur.attendees||[]).filter(a=>!(i.removedAttendeeEmails||[]).includes(a.email));(i.addedAttendees||[]).forEach(a=>{if(!at.some(x=>x.email===a.email))at.push({email:a.email,displayName:a.displayName})});b.attendees=at}
+    return gf(cal(i.calendarId)+'/events/'+encodeURIComponent(i.eventId)+'?'+su(i.notificationLevel),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})},
+  delete_event:async i=>{await gf(cal(i.calendarId)+'/events/'+encodeURIComponent(i.eventId)+'?'+su(i.notificationLevel),{method:'DELETE'},true);return {ok:true}}};
+
+/* ---------- Drive ---------- */
+async function driveCriar(i){const meta={name:i.title||'arquivo'};if(i.parentId)meta.parents=[i.parentId];
+  if(!i.base64Content&&!i.content){meta.mimeType=i.contentMimeType||'application/vnd.google-apps.folder';const r=await gf('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(meta)});return {id:r.id,viewUrl:r.webViewLink}}
+  const bin=i.base64Content?Uint8Array.from(atob(i.base64Content),c=>c.charCodeAt(0)):new TextEncoder().encode(i.content);
+  const fd=new FormData();fd.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));fd.append('file',new Blob([bin],{type:i.contentMimeType||'application/octet-stream'}));
+  const r=await gf('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',body:fd});return {id:r.id,viewUrl:r.webViewLink}}
+async function driveBaixar(i){const id=encodeURIComponent(i.fileId);const m=await gf('https://www.googleapis.com/drive/v3/files/'+id+'?fields=mimeType');
+  const url=/google-apps/.test(m.mimeType||'')?'https://www.googleapis.com/drive/v3/files/'+id+'/export?mimeType='+encodeURIComponent(i.exportMimeType||'text/csv'):'https://www.googleapis.com/drive/v3/files/'+id+'?alt=media';
+  const r=await gf(url,{},true);const u=new Uint8Array(await r.arrayBuffer());let s='';for(let k=0;k<u.length;k+=32768)s+=String.fromCharCode.apply(null,u.subarray(k,k+32768));return {content:btoa(s),mimeType:m.mimeType}}
+
+/* ---------- DocuSeal ---------- */
+async function dsCfg(){const d=await fs.doc('config/segredos').get();const x=d.exists?d.data():{};return {key:x.docusealKey||'',base:x.docusealBase||'https://api.docuseal.com'}}
+function dsPedirChave(){return new Promise(res=>{const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px;font:14px/1.5 system-ui';
+  o.innerHTML=`<div style="background:#fff;color:#1c1f1d;border-radius:14px;max-width:440px;width:100%;padding:22px"><h3 style="margin:0 0 8px">Chave da API do DocuSeal</h3><p style="margin:0 0 10px;color:#555">Fora do claude.ai, o CRM fala com o DocuSeal pela chave da sua conta. No DocuSeal: <b>Configurações › API</b>, copie a chave e cole aqui. Ela fica guardada no banco, só para administradores.</p>
+  <input id="dsk" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;font:14px monospace" placeholder="cole a chave aqui"><label style="display:flex;gap:6px;align-items:center;margin:10px 0;color:#555"><input type="checkbox" id="dseu"> minha conta é do DocuSeal Europa (docuseal.eu)</label>
+  <div style="display:flex;gap:8px;justify-content:flex-end"><button id="dsc" style="padding:8px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer">Cancelar</button><button id="dso" style="padding:8px 14px;border-radius:8px;border:0;background:#1f6f54;color:#fff;cursor:pointer;font-weight:600">Salvar</button></div></div>`;
+  document.body.appendChild(o);o.querySelector('#dsc').onclick=()=>{o.remove();res(null)};
+  o.querySelector('#dso').onclick=async()=>{const k=o.querySelector('#dsk').value.trim();if(!k)return;const base=o.querySelector('#dseu').checked?'https://api.docuseal.eu':'https://api.docuseal.com';await fs.doc('config/segredos').set({docusealKey:k,docusealBase:base},{merge:true});o.remove();res({key:k,base})}})}
+async function ds(path,opt){let c=await dsCfg();if(!c.key){c=await dsPedirChave();if(!c)throw erro('Sem a chave da API do DocuSeal.')}
+  let r;try{r=await fetch(c.base+path,{...opt,headers:{...(opt&&opt.headers||{}),'X-Auth-Token':c.key,'Content-Type':'application/json'}})}catch(e){throw erro('Não consegui falar com o DocuSeal pelo navegador ('+(e.message||e)+').')}
+  if(r.status===401){await fs.doc('config/segredos').set({docusealKey:''},{merge:true});throw erro('A chave do DocuSeal não foi aceita. Tente de novo e cole a chave certa.')}
+  const tx=await r.text();let j;try{j=JSON.parse(tx)}catch(_){j=tx}if(!r.ok)throw erro('DocuSeal respondeu '+r.status+': '+(j&&j.error||tx).toString().slice(0,200));return j}
+const DSX={
+  send_documents:i=>ds('/submissions',{method:'POST',body:JSON.stringify({template_id:i.template_id,send_email:i.send_email!==false,submitters:(i.submitters||[]).map(s=>({role:s.role,email:s.email,name:s.name,values:Object.fromEntries((s.fields||[]).map(f=>[f.name,f.value]))}))})}),
+  search_documents:i=>ds('/submissions?'+new URLSearchParams({q:i.q||'',limit:String(i.limit||20)}),{method:'GET'})};
+
+/* ---------- o que o CRM chama ---------- */
+const SCH={Gmail:{send_message:{type:'object',properties:{to:{type:'array'},subject:{type:'string'},body:{type:'string'},htmlBody:{type:'string'}}}}};
+const MCP={
+  async callTool(server,tool,input){let p;
+    if(server==='Gmail'&&tool==='send_message')p=await gmailOuFila(input||{});
+    else if(server==='Google Calendar'&&AG[tool])p=await AG[tool](input||{});
+    else if(server==='Google Drive'&&tool==='create_file')p=await driveCriar(input||{});
+    else if(server==='Google Drive'&&tool==='download_file_content')p=await driveBaixar(input||{});
+    else if(server==='DocuSeal'&&DSX[tool])p=await DSX[tool](input||{});
+    else throw erro('Função não disponível: '+server+' / '+tool,'not_in_manifest');
+    return {payload:p,content:[{type:'text',text:JSON.stringify(p)}]}},
+  async describeTool(server,tool){const s=SCH[server]&&SCH[server][tool];return {name:tool,inputSchema:s||null}},
+  async listTools(){return []}};
+
+/* ---------- anexos (Firebase Storage) ---------- */
+let ST=null;try{ST=firebase.storage()}catch(e){}
+const ASSETS=ST&&{
+  async upload(blob){const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8);const nome=(blob.name||'arquivo').replace(/[^\w.\-]+/g,'_');const ref=ST.ref('anexos/'+id+'-'+nome);
+    try{await ref.put(blob,{contentType:blob.type||'application/octet-stream'})}catch(e){throw erro('Não consegui enviar o arquivo: '+(e.code==='storage/unauthorized'?'sem permissão no armazenamento':e.message||e))}
+    return {id:await ref.getDownloadURL(),url:await ref.getDownloadURL(),sizeBytes:blob.size,contentType:blob.type}},
+  async list(){return {assets:[],usage:{}}},
+  async delete(id){try{if(/^https?:/.test(id))await ST.refFromURL(id).delete()}catch(e){}return {ok:true}}};
+
+H.extra={mcp:MCP,assets:ASSETS};
+const quando=f=>document.body?f():document.addEventListener('DOMContentLoaded',f);quando(chip);
+H.onLogin=()=>{chip();setTimeout(saidaRodar,8000)};
 })();
 </script></head><body>
 <title>Grupo E CRM</title>
@@ -499,6 +626,13 @@ a.btn{color:inherit;text-decoration:none}
 .cfg-nav{display:grid;padding:8px}.cfg-nav button{text-align:left;padding:9px 12px;border-radius:8px;border:0;background:none;color:var(--fg);font:inherit;cursor:pointer}.cfg-nav button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}.cfg-nav button:hover{background:var(--accent-soft)}
 @media (max-width:800px){.cfg-wrap{grid-template-columns:1fr}.cfg-nav{grid-auto-flow:column;overflow-x:auto}}
 .wmgrid{display:grid;grid-template-columns:repeat(3,28px);gap:6px}.wm{width:28px;height:22px;border:1.5px solid var(--line);border-radius:5px;background:var(--bg);cursor:pointer}.wm.on{background:var(--accent);border-color:var(--accent)}
+.eqh,.eqc{display:grid;grid-template-columns:minmax(110px,1.3fr) 84px auto minmax(100px,.9fr) minmax(120px,1.3fr) 46px 76px 22px 60px;gap:6px;align-items:center}
+.eqh{font-size:11.5px;color:var(--muted);font-weight:600;padding:0 8px 6px;border-bottom:1px solid var(--line)}.eqh .r,.eqc .r{text-align:right}
+.eqc{padding:8px;border-bottom:1px solid var(--line)}.eqc:nth-child(even){background:color-mix(in srgb,var(--line) 25%,transparent)}
+.eqc .search{width:100%;min-width:0;padding:7px 9px}.eq-a{display:flex;gap:4px}.eq-a .chip-tg{padding:4px 8px;font-size:12px;white-space:nowrap}.eq-x{display:flex;gap:2px;justify-content:flex-end}.eq-o .lbl-m{display:none}
+@media(max-width:1280px){.eqh{display:none}.eqc{grid-template-columns:1fr 1fr;grid-template-areas:"n t" "a a" "c e" "v p" "o x";row-gap:6px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+ .eq-n{grid-area:n}.eq-t{grid-area:t}.eq-a{grid-area:a;flex-wrap:wrap}.eq-c{grid-area:c}.eq-e{grid-area:e}.eq-v{grid-area:v;text-align:left!important}.eq-p{grid-area:p}.eq-o{grid-area:o}.eq-x{grid-area:x}.eq-o .lbl-m{display:inline}}
+@media(max-width:520px){.eqc{grid-template-columns:1fr 1fr 1fr 100px;grid-template-areas:"n n n t" "a a a a" "c c e e" "v p o x"}.eq-t{min-width:84px}.eq-c,.eq-e{font-size:13px}}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.form-grid .full{grid-column:1/-1}
 .chip-tg{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}.chip-tg.on{background:var(--accent);border-color:var(--accent);color:#fff}
 @media (max-width:860px){.cb-split{grid-template-columns:1fr!important}}
@@ -1609,7 +1743,7 @@ const pvLeg=p=>Object.assign({},LEG_DEF,(typeof cfg==='function'?cfg().provas.le
 const pvImgs=p=>p.tipo==='Álbum'?[p.capa,...(p.paginas||[]),p.contracapa].filter(Boolean):(p.imgs||[]);
 const pvBytes=p=>pvImgs(p).reduce((a,i)=>a+(+i.s||0),0)||(+p.tamanho||0);
 const fmtBytes=b=>b>=1048576?(b/1048576).toLocaleString('pt-BR',{maximumFractionDigits:1})+' MB':Math.round(b/1024)+' kB';
-const blobUrl=id=>'/_blob/'+id;
+const blobUrl=id=>/^https?:/.test(String(id))?id:'/_blob/'+id;
 function pvClientes(p){if(p.clientes&&p.clientes.length)return p.clientes;return p.contatoId?[{c:p.contatoId,prazo:p.termino||'',lembrete:p.lembrete!==false}]:[]}
 function normLabel(v){if(!v)return '';const t=String(v).trim().toLowerCase();
   const m={red:'Red',vermelho:'Red',yellow:'Yellow',amarelo:'Yellow',green:'Green',verde:'Green',blue:'Blue',azul:'Blue',purple:'Purple',roxo:'Purple','lilás':'Purple',lilas:'Purple',violeta:'Purple'};return m[t]||''}
@@ -2304,11 +2438,11 @@ const crow=(l,inner)=>`<div class="field"><label>${l}</label>${inner}</div>`;
 VIEWS.config=()=>{
   const C=cfg(),T=S.ui.cfg;let body='';
   if(T.tab==='estudio'){const e=C.estudio;const fi=(k,l,full)=>`<div class="field ${full?'full':''}"><label>${l}</label><input data-cfgt="estudio.${k}" value="${esc(e[k]||'')}"></div>`;
-    body=`<div class="form-grid">${fi('nome','Nome do estúdio',1)}${fi('razao','Razão social')}${fi('cnpj','CNPJ')}${fi('celular','Celular / WhatsApp')}${fi('fone','Telefone')}${fi('email','E-mail')}${fi('site','Site')}${fi('facebook','Facebook')}${fi('instagram','Instagram')}${fi('endereco','Endereço',1)}${fi('bairro','Bairro')}${fi('cidade','Cidade')}${fi('uf','Estado')}${fi('cep','CEP')}</div><p class="muted" style="font-size:12px">Estes dados aparecem nos contratos, nas fichas e na impressão de projetos.</p>`}
+    body=`<div class="form-grid">${fi('nome','Nome do estúdio',1)}${fi('razao','Razão social')}${fi('cnpj','CNPJ')}${fi('celular','Celular / WhatsApp')}${fi('fone','Telefone')}<h4 class="full" style="margin:10px 0 0">Elton Melchioretto Fotografia e Filmagem</h4>${fi('email','E-mail')}${fi('site','Site')}${fi('facebook','Facebook')}${fi('instagram','Instagram')}<h4 class="full" style="margin:10px 0 0">Prime 360 Foto Cabine</h4>${fi('email2','E-mail')}${fi('site2','Site')}${fi('facebook2','Facebook')}${fi('instagram2','Instagram')}${fi('celular2','Celular / WhatsApp')}<h4 class="full" style="margin:10px 0 0">Endereço</h4>${fi('endereco','Endereço',1)}${fi('bairro','Bairro')}${fi('cidade','Cidade')}${fi('uf','Estado')}${fi('cep','CEP')}</div><p class="muted" style="font-size:12px">Estes dados aparecem nos contratos, nas fichas e na impressão de projetos.</p>`}
   if(T.tab==='equipe'){const eq=C.equipe;const pay=n=>{const c=S.data.contatos.filter(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(n)).map(x=>x.id);if(!c.length)return 0;const pm=+(S.ui.eqPer??12);const de=pm?addDays(today(),-Math.round(pm*30.44)):'0000';return S.data.lancamentos.filter(l=>l.tipo==='pagar'&&l.pago&&c.includes(l.contatoId)&&(l.dataPagamento||l.vencimento)>=de).reduce((s,l)=>s+(+l.valor||0),0)};
     const ev=n=>eventosDaPessoa(n,3650).length;
     const eqF=S.ui.eqAtivo||'ativos';const nA=eq.filter(m=>m.ativo!==false).length,nI=eq.length-nA;const vis=m=>eqF==='todos'||(eqF==='ativos'?m.ativo!==false:m.ativo===false);
-    body=`<p class="muted" style="margin:0 0 8px;font-size:12.5px">Para um <b>Administrador</b> entrar no CRM: abra o menu Compartilhar desta página, convide o e-mail da conta Claude dele e escolha <b>Pode editar</b>. Quem não é administrador não vê os dados. O histórico registra o nome de quem fez cada alteração. Lembretes, backup, agenda Google e importação de fichas rodam só quando o Elton está com o CRM aberto, porque usam as contas dele.${S.eu?` Você está como: <b>${esc(usuarioAtual())}</b>.`:''}</p><div class="seg" style="justify-self:start;margin-bottom:8px"><button data-eqfil="ativos" class="${eqF==='ativos'?'on':''}">Ativos (${nA})</button><button data-eqfil="inativos" class="${eqF==='inativos'?'on':''}">Inativos (${nI})</button><button data-eqfil="todos" class="${eqF==='todos'?'on':''}">Todos (${eq.length})</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nome</th><th>Tipo</th><th>Trabalha para</th><th>Celular</th><th>E-mail</th><th class="r">Próximos eventos</th><th class="r">Pago em <select class="search" style="padding:2px 6px;font-size:12px;width:auto;display:inline-block" data-eqper>${[[1,'1 mês'],[6,'6 meses'],[12,'12 meses'],[0,'todo o período']].map(([v,l])=>`<option value="${v}" ${+(S.ui.eqPer??12)===v?'selected':''}>${l}</option>`).join('')}</select></th><th>Ativo</th><th></th></tr></thead><tbody>${eq.map((m,i)=>!vis(m)?'':`<tr class="row"><td><input class="search" style="min-width:200px" data-eq="${i}.nome" value="${esc(m.nome)}"></td><td><select class="search" data-eq="${i}.tipo">${['Administrador','Usuário','Freelance'].map(o=>`<option ${m.tipo===o?'selected':''}>${o}</option>`).join('')}</select></td><td><div style="display:flex;gap:4px;flex-wrap:nowrap">${EQ_AREAS.map(a=>{const on=eqAreas(m).includes(a);return `<button type="button" class="chip-tg ${on?'on':''}" data-eqarea="${i}|${esc(a)}" aria-pressed="${on}">${on?ic('check',12):''} ${esc(a)}</button>`}).join('')}</div></td><td><input class="search" style="width:140px" data-eq="${i}.celular" value="${esc(m.celular||'')}"></td><td><input class="search" style="min-width:200px" type="email" data-eq="${i}.email" value="${esc(m.email||'')}" placeholder="e-mail"></td><td class="r num"><button class="clink" data-agpessoa="${esc(m.nome)}" title="Ver e enviar a agenda desta pessoa">${ev(m.nome)||'0'} ${ic('cal',13)}</button></td><td class="r">${(v=>v?`<button class="clink num" data-eqpag="${esc(m.nome)}" title="Ver os trabalhos pagos">${brl(v)}</button>`:'')(pay(m.nome))}</td><td><input type="checkbox" data-eq="${i}.ativo" ${m.ativo!==false?'checked':''}></td><td style="white-space:nowrap"><button class="icon-btn" title="Dados de pagamento, PIX e outras informações" data-eqobs="${i}">${ic('doc',15)}${m.obs?'<span style="position:relative;top:-6px;left:-4px;width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block"></span>':''}</button><button class="icon-btn del" title="Remover" data-eqdel="${i}">${ic('trash',15)}</button></td></tr>`).join('')}</tbody></table></div><button class="btn sm" data-eqadd>${ic('plus',14)} Adicionar pessoa</button><p class="muted" style="font-size:12px">Os nomes aparecem como opção de responsável nos pedidos, projetos e tarefas, e no filtro da agenda. "Pago em 12 meses" soma os pagamentos do financeiro feitos ao contato com o mesmo nome.</p>`}
+    body=`<p class="muted" style="margin:0 0 8px;font-size:12.5px">${window.__HOSTED?'Quem é <b>Administrador</b> e tem e-mail aqui consegue entrar no CRM (pelo Google ou pelo link que chega no e-mail). Os outros não entram.':'Para um <b>Administrador</b> entrar no CRM: abra o menu Compartilhar desta página, convide o e-mail da conta Claude dele e escolha <b>Pode editar</b>. Quem não é administrador não vê os dados.'} O histórico registra o nome de quem fez cada alteração. Lembretes, backup, agenda Google e importação de fichas rodam só quando o Elton está com o CRM aberto, porque usam as contas dele.${S.eu?` Você está como: <b>${esc(usuarioAtual())}</b>.`:''}</p><div class="seg" style="justify-self:start;margin-bottom:8px"><button data-eqfil="ativos" class="${eqF==='ativos'?'on':''}">Ativos (${nA})</button><button data-eqfil="inativos" class="${eqF==='inativos'?'on':''}">Inativos (${nI})</button><button data-eqfil="todos" class="${eqF==='todos'?'on':''}">Todos (${eq.length})</button></div><div class="eqh"><span>Nome</span><span>Tipo</span><span>Trabalha para</span><span>Celular</span><span>E-mail</span><span class="r">Eventos</span><span class="r">Pago <select class="search" style="padding:1px 4px;font-size:11.5px;width:auto;display:inline-block" data-eqper>${[[1,'1 mês'],[6,'6m'],[12,'12m'],[0,'tudo']].map(([v,l])=>`<option value="${v}" ${+(S.ui.eqPer??12)===v?'selected':''}>${l}</option>`).join('')}</select></span><span>Ativo</span><span></span></div><div class="eqlist">${eq.map((m,i)=>!vis(m)?'':`<div class="eqc"><input class="search eq-n" data-eq="${i}.nome" value="${esc(m.nome)}" placeholder="Nome"><select class="search eq-t" data-eq="${i}.tipo">${[['Administrador','Adm'],['Usuário','Usuário'],['Freelance','Freela']].map(([o,l])=>`<option value="${o}" ${m.tipo===o?'selected':''}>${l}</option>`).join('')}</select><div class="eq-a">${EQ_AREAS.map(a=>{const on=eqAreas(m).includes(a);return `<button type="button" class="chip-tg ${on?'on':''}" data-eqarea="${i}|${esc(a)}" aria-pressed="${on}" title="${esc(a)}">${on?ic('check',11):''}${esc({'Elton Melchioretto':'Elton','Prime 360':'Prime'}[a]||a)}</button>`}).join('')}</div><input class="search eq-c" data-eq="${i}.celular" value="${esc(m.celular||'')}" placeholder="Celular"><input class="search eq-e" type="email" data-eq="${i}.email" value="${esc(m.email||'')}" placeholder="e-mail"><span class="eq-v r num"><button class="clink" data-agpessoa="${esc(m.nome)}" title="Ver e enviar a agenda desta pessoa">${ev(m.nome)||'0'} ${ic('cal',13)}</button></span><span class="eq-p r">${(v=>v?`<button class="clink num" data-eqpag="${esc(m.nome)}" title="Ver os trabalhos pagos">${brl(v).replace(/,\d\d$/,'')}</button>`:'<span class="muted">—</span>')(pay(m.nome))}</span><label class="eq-o"><input type="checkbox" data-eq="${i}.ativo" ${m.ativo!==false?'checked':''}><span class="lbl-m"> ativo</span></label><span class="eq-x"><button class="icon-btn" title="Dados de pagamento, PIX e outras informações" data-eqobs="${i}">${ic('doc',15)}${m.obs?'<span style="position:relative;top:-6px;left:-4px;width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block"></span>':''}</button><button class="icon-btn del" title="Remover" data-eqdel="${i}">${ic('trash',15)}</button></span></div>`).join('')}</div><button class="btn sm" data-eqadd>${ic('plus',14)} Adicionar pessoa</button><p class="muted" style="font-size:12px">Os nomes aparecem como opção de responsável nos pedidos, projetos e tarefas, e no filtro da agenda. "Pago em 12 meses" soma os pagamentos do financeiro feitos ao contato com o mesmo nome.</p>`}
   if(T.tab==='assinatura')body=`<div class="field full"><label>Assinatura adicionada às mensagens</label><textarea data-cfgt="assinatura" style="min-height:260px;font-family:inherit">${esc(C.assinatura)}</textarea></div><div><button class="btn sm" data-copy="${esc(C.assinatura)}">${ic('copy',14)} Copiar assinatura</button></div><p class="muted" style="font-size:12px">A assinatura entra no final de todos os e-mails que o CRM envia pelo seu Gmail (lembretes de vencimento, recibos, provas e agenda dos freelancers) e nas mensagens montadas para o WhatsApp. Os modelos e regras ficam no menu E-mails.</p>`;
   if(T.tab==='provas'){const P=C.provas,L=P.legenda;const pos=[0,1,2,3,4,5,6,7,8].map(i=>`<button class="wm ${+P.marca.pos===i?'on':''}" data-wmpos="${i}" aria-label="Posição ${i+1}"></button>`).join('');
     body=`<h4>Configurações da prova</h4><div class="form-grid">${crow('Redimensionar imagens antes de enviar',yn('provas.redim',P.redim))}<div></div>${crow('Largura máxima (px)',`<input type="number" data-cfgn="provas.maxW" value="${P.maxW}">`)}${crow('Altura máxima (px)',`<input type="number" data-cfgn="provas.maxH" value="${P.maxH}">`)}</div>
@@ -2330,8 +2464,8 @@ VIEWS.config=()=>{
      <p class="muted" style="font-size:12px">Pedidos entram sozinhos: Espelho Mágico em "Espelho"; cabine, totem, spinner, grua e hashtag em "Toten/Cabine/Hashtag"; sessões e ensaios em "Sessão"; o resto em "Evento". Dá para trocar em cada pedido no campo "Categoria na agenda".</p>
      <h4>Início da semana</h4><div class="seg">${['Domingo','Segunda'].map(o=>`<button data-cfgs="agenda.semana" data-val="${o}" class="${A.semana===o?'on':''}">${o}</button>`).join('')}</div>
      <h4>Modelo dos dados de operação</h4><p class="muted" style="font-size:12px;margin:0 0 6px">Usado no botão "Preencher automático" de cada agendamento. Variáveis: ${OP_VARS.map(v=>'<code>{'+v+'}</code>').join(' ')}. O que o sistema não souber fica em branco para você completar.</p><textarea class="search" data-opmodelo rows="14" style="width:100%;box-sizing:border-box;font:inherit;font-size:13px">${esc(opModelo())}</textarea><div><button class="btn sm" data-opmodelopadrao>Voltar ao modelo padrão</button></div>${gcCfgHTML()}`}
-  if(T.tab==='fin'){const F=C.financeiro;body=`<h4>Lembretes de vencimento</h4><div class="form-grid">${crow('Ativar lembrete',yn('financeiro.lembrete',F.lembrete))}${crow('Dias de antecedência',`<input type="number" min="0" data-cfgn="financeiro.dias" value="${F.dias}">`)}</div><p class="muted" style="font-size:12px">Contas a receber que vencem nesses dias (e as vencidas) ganham o botão <b>Lembrar</b> no Financeiro, que abre o WhatsApp do cliente com a mensagem pronta. O CRM não manda e-mail sozinho.</p>`}
-  if(T.tab==='equip'){const E=C.equipamentos;body=`<p class="muted" style="font-size:13px">Quantas unidades de cada equipamento vocês têm. A disponibilidade de uma data = unidades − pedidos não cancelados naquela data que usam o equipamento (pelo nome do pedido, categoria e itens).</p><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Equipamento</th><th class="r">Unidades</th><th>Reconhece pedidos com</th></tr></thead><tbody>${E.map((e,i)=>`<tr class="row"><td><input class="search" data-eqp="${i}.nome" value="${esc(e.nome)}"></td><td class="r"><input class="search num" type="number" min="0" style="width:80px;text-align:right" data-eqp="${i}.qtd" value="${e.qtd}"></td><td class="sub">${esc({cabine:'cabine, story maker',totem:'totem/toten, ring light, hashtag',spinner:'spinner, 360, plataforma',espelho:'espelho',premios:'prêmios, cabine de vento',grua:'grua'}[e.chave]||'')}</td></tr>`).join('')}</tbody></table></div><button class="btn sm" data-disp>${ic('cal',14)} Testar disponibilidade</button>`}
+  if(T.tab==='fin'){const F=C.financeiro;body=`<h4>Lembretes de vencimento</h4><div class="form-grid">${crow('Ativar lembrete',yn('financeiro.lembrete',F.lembrete))}${crow('Dias de antecedência',`<input type="number" min="0" data-cfgn="financeiro.dias" value="${F.dias}">`)}</div><p class="muted" style="font-size:12px">Contas a receber que vencem nesses dias (e as vencidas) ganham o botão <b>Lembrar</b> no Financeiro, que abre o WhatsApp do cliente com a mensagem pronta.</p><p class="muted" style="font-size:12px"><b>E-mail de lembrete:</b> sai sozinho ${esc(String(emCfg().tipos.venc.antes||'15'))} dias antes da data de cada parcela (sem data, conta do dia do evento), uma vez só, e não vai para parcelas no cartão de crédito. O texto e os dias ficam em <b>E-mails › Configurar › Lembrete de vencimento</b>.</p>`}
+  if(T.tab==='equip'){const E=C.equipamentos;body=`<p class="muted" style="font-size:13px">Quantas unidades de cada equipamento vocês têm. A disponibilidade de uma data = unidades − pedidos não cancelados naquela data que usam o equipamento (pelo nome do pedido, categoria e itens).</p><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Equipamento</th><th class="r">Unidades</th><th>Reconhece pedidos com</th></tr></thead><tbody>${E.map((e,i)=>`<tr class="row"><td><input class="search" data-eqp="${i}.nome" value="${esc(e.nome)}"></td><td class="r"><input class="search num" type="number" min="0" style="width:80px;text-align:right" data-eqp="${i}.qtd" value="${e.qtd}"></td><td style="display:flex;gap:6px;align-items:center"><input class="search" style="flex:1;min-width:220px" data-eqp="${i}.palavras" value="${esc(e.palavras!=null?e.palavras:(EQ_PAL[e.chave]||''))}" placeholder="palavras separadas por vírgula"><button class="icon-btn del" title="Remover equipamento" data-eqpdel="${i}">${ic('trash',14)}</button></td></tr>`).join('')}</tbody></table></div><p class="muted" style="font-size:12px">"Reconhece pedidos com": se o nome do pedido, a categoria ou um item tiver uma dessas palavras, o pedido conta como uso daquele equipamento. Separe por vírgula.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-eqpadd>${ic('plus',14)} Adicionar equipamento</button><button class="btn sm" data-disp>${ic('cal',14)} Testar disponibilidade</button>`}
   if(T.tab==='funil'){const F=C.funil;body=`<p class="muted" style="font-size:13px">Cada etapa aberta do funil pode ter um prazo e tarefas criadas automaticamente quando a oportunidade entra nela. O nome do Alboom fica guardado como referência.</p><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Etapa no CRM</th><th>Nome no Alboom</th><th class="r">Duração (dias)</th><th>Tarefas ao entrar (uma por linha)</th></tr></thead><tbody>${ABERTAS.map(k=>{const e=F[k]||{};return `<tr class="row"><td>${badge(k,ETAPA_COR[k])}</td><td><input class="search" data-cfgt="funil.${k}.nome" value="${esc(e.nome||'')}"></td><td class="r"><input class="search num" type="number" min="0" style="width:80px;text-align:right" data-cfgn="funil.${k}.dias" value="${e.dias??''}"></td><td><textarea class="search" rows="1" style="min-width:240px" data-cfgt="funil.${k}.tarefas">${esc(e.tarefas||'')}</textarea></td></tr>`}).join('')}</tbody></table></div><p class="muted" style="font-size:12px">"Venda efetivada" e "Perdida" são as etapas finais e não entram no funil.</p>`}
   if(T.tab==='oport')body=`<div class="field full"><label>Origens da oportunidade (uma por linha)</label><textarea data-cfglist="origens" style="min-height:180px">${esc(C.origens.join('\n'))}</textarea></div><div class="field"><label>Dias sem movimento para pedir acompanhamento</label><input type="number" min="1" data-cfgn="followup" value="${C.followup}"></div><p class="muted" style="font-size:12px">No funil, oportunidades abertas paradas há mais dias que isso ganham o aviso "acompanhar".</p>${orcCfgHTML()}`;
   if(T.tab==='contratos'){body=ctListHTML()}
@@ -2621,8 +2755,14 @@ VIEWS.fichas=()=>{
 };
 
 /* ---- disponibilidade de equipamentos ---- */
+const EQ_PAL={cabine:'cabine, story maker',totem:'totem, toten, ring light',spinner:'spinner, 360, plataforma',espelho:'espelho',premios:'cabine de prêmios, cabine de vento',grua:'grua',instaprint:'insta print, instaprint, hashtag',totemgame:'totem game, toten game',gametempo:'game do tempo',pista:'pista'};
 const EQ_RE={cabine:/cabine(?! de (pr[eê]mios|vento))|story ?maker/,totem:/tote[mn](?! ?(game|ia\b))|ring ?li[gh]/,spinner:/spinner|\b360\b|plataforma/,espelho:/espelho/,premios:/cabine de (pr[eê]mios|vento)/,grua:/grua/,instaprint:/insta ?print|hashtag/,totemgame:/tote[mn] ?game/,gametempo:/game do tempo/,pista:/pista/};
-function eqDoTexto(t){t=nrm(t);const out=[];for(const k in EQ_RE)if(EQ_RE[k].test(t))out.push(k);return out}
+const _eqRx={};function eqRx(e){if(e.palavras==null&&EQ_RE[e.chave])return EQ_RE[e.chave];const src=String(e.palavras!=null?e.palavras:'');if(_eqRx[e.chave]&&_eqRx[e.chave].s===src)return _eqRx[e.chave].r;
+  const ws=src.split(/[,;\n]+/).map(w=>nrm(w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,' ?')).filter(Boolean);const r=ws.length?new RegExp('(^|[^a-z0-9])('+ws.join('|')+')(?![a-z0-9])'):null;_eqRx[e.chave]={s:src,r};return r}
+function eqDoTexto(t){t=nrm(t);const out=[];(cfg().equipamentos||[]).forEach(e=>{const r=eqRx(e);if(r&&r.test(t))out.push(e.chave)});
+  /* "totem game" não é totem: se achou um equipamento mais específico com o mesmo começo, tira o genérico */
+  if(out.includes('totemgame')&&out.includes('totem')&&!/tote[mn](?! ?game)/.test(t.replace(/tote[mn] ?game/g,'')))out.splice(out.indexOf('totem'),1);
+  if(out.includes('premios')&&out.includes('cabine')&&!/cabine(?! de (pr[eê]mios|vento))/.test(t))out.splice(out.indexOf('cabine'),1);return out}
 function eqDoPedido(p){const ks=new Set(eqDoTexto((p.categoria||'')+' '+(p.titulo||'')));(p.itens||[]).forEach(i=>eqDoTexto(nameOf('produtos',i.produtoId)||i.desc||'').forEach(k=>ks.add(k)));return [...ks]}
 function usoDoDia(data,ignorarId,evPorData){const eq=cfg().equipamentos||[];const uso={};eq.forEach(e=>uso[e.chave]=[]);
   const evs=(evPorData?evPorData[data]||[]:agendaAll().filter(e=>e.data===data));const porPed={};const semEq=[];
@@ -2699,7 +2839,7 @@ async function dsCfg(){if(S.dsCfg)return S.dsCfg;let c={templateId:DS_TPL_DEF,em
 async function dsCfgSave(ch){S.dsCfg={...(await dsCfg()),...ch};if(S.mode==='db')try{await S.db.doc('config/docuseal').set(S.dsCfg)}catch(e){failWrite(e)}}
 let MCP=undefined;async function getMcp(){if(MCP!==undefined)return MCP;try{MCP=window.claude&&window.claude.use?await window.claude.use('mcp'):null}catch(e){MCP=null}return MCP}
 const pendSign=()=>S.data.pedidos.filter(p=>p.assinatura&&p.assinatura.status==='enviado');
-function mcpErrMsg(e,srv){srv=srv||'DocuSeal';const c=e&&e.code;return c==='server_not_connected'?'O '+srv+' não está conectado. Conecte em claude.ai → Configurações → Conectores.':c==='needs_reauth'?'A conexão com o '+srv+' expirou. Reconecte em claude.ai → Configurações → Conectores.':c==='not_in_manifest'||c==='approval_required'?'É preciso permitir o '+srv+' para este CRM (o claude.ai pergunta na primeira vez).':c==='selection_required'?'Escolha qual conexão do '+srv+' usar (o claude.ai mostra a opção).':c==='server_unavailable'?'O '+srv+' não respondeu agora. Tente de novo em instantes.':c==='tool_error'?'O '+srv+' recusou: '+String(e.message||'').slice(0,240):'Não foi possível falar com o '+srv+' ('+(c||'erro')+').'}
+function mcpErrMsg(e,srv){srv=srv||'DocuSeal';const c=e&&e.code;if(window.__HOSTED&&e&&e.message)return e.message;return c==='server_not_connected'?'O '+srv+' não está conectado. Conecte em claude.ai → Configurações → Conectores.':c==='needs_reauth'?'A conexão com o '+srv+' expirou. Reconecte em claude.ai → Configurações → Conectores.':c==='not_in_manifest'||c==='approval_required'?'É preciso permitir o '+srv+' para este CRM (o claude.ai pergunta na primeira vez).':c==='selection_required'?'Escolha qual conexão do '+srv+' usar (o claude.ai mostra a opção).':c==='server_unavailable'?'O '+srv+' não respondeu agora. Tente de novo em instantes.':c==='tool_error'?'O '+srv+' recusou: '+String(e.message||'').slice(0,240):'Não foi possível falar com o '+srv+' ('+(c||'erro')+').'}
 function deepFind(o,pred,out=[],seen=new Set()){if(o&&typeof o==='object'){if(seen.has(o))return out;seen.add(o);if(pred(o))out.push(o);for(const v of Array.isArray(o)?o:Object.values(o))deepFind(v,pred,out,seen)}return out}
 function deepStrings(o,out=[]){if(typeof o==='string')out.push(o);else if(o&&typeof o==='object')for(const v of Array.isArray(o)?o:Object.values(o))deepStrings(v,out);return out}
 function parsePayload(r){let p=r&&(r.payload!==undefined?r.payload:r);if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){}}return p}
@@ -2938,6 +3078,8 @@ document.addEventListener('click',async e=>{
   if(d.fedel!==undefined){fxEdit(f=>f.etapas.splice(+d.fedel,1));return}
   if(d.femv!==undefined){fxEdit(f=>{const i=+d.femv,j=i+(+d.d);if(j<0||j>=f.etapas.length)return;[f.etapas[i],f.etapas[j]]=[f.etapas[j],f.etapas[i]]});return}
   if(d.disp!==undefined){openDisp(d.disp||undefined);return}
+  if(d.eqpadd!==undefined){const a=cfg().equipamentos.map(x=>({...x}));a.push({nome:'Novo equipamento',qtd:1,chave:'eq'+Date.now().toString(36),palavras:''});cfgSet('equipamentos',a);render();return}
+  if(d.eqpdel!==undefined){const i=+d.eqpdel;armDelete(t,()=>{const a=cfg().equipamentos.filter((_,k)=>k!==i);cfgSet('equipamentos',a);render()});return}
   if(d.agpessoa){openAgendaPessoa(d.agpessoa);return}
   if(d.avisar){const [c,i]=d.avisar.split(':');openAvisar(c,i);return}
   if(d.oppficha){const o=S.data.oportunidades.find(x=>x.id===d.oppficha);const c=o&&S.data.contatos.find(x=>x.id===o.contatoId);openDisp(o&&o.dataEvento,c?waNum(c):'',c?(c.nome||'').split(' ')[0]:'');return}
@@ -3064,7 +3206,7 @@ document.addEventListener('change',e=>{
   if(t.dataset.cfguser!==undefined){S.ui.cfg.user=t.value;render();return}
   if(t.dataset.eq){const [i,k]=t.dataset.eq.split('.');const a=cfg().equipe.map(x=>({...x}));a[+i][k]=t.type==='checkbox'?t.checked:t.value.trim();cfgSet('equipe',a);return}
   if(t.dataset.dispdata!==undefined){if(t.value)openDisp(t.value);return}
-  if(t.dataset.eqp){const [i,k]=t.dataset.eqp.split('.');const a=cfg().equipamentos.map(x=>({...x}));a[+i][k]=k==='qtd'?(+t.value||0):t.value.trim();cfgSet('equipamentos',a);return}
+  if(t.dataset.eqp){const [i,k]=t.dataset.eqp.split('.');if(k==='palavras'){const a=cfg().equipamentos.map(x=>({...x}));a[+i].palavras=t.value.trim();cfgSet('equipamentos',a);return}const a=cfg().equipamentos.map(x=>({...x}));a[+i][k]=k==='qtd'?(+t.value||0):t.value.trim();cfgSet('equipamentos',a);return}
   if(t.dataset.agc){const [i,k]=t.dataset.agc.split('.');const a=cfg().agenda.cats.map(x=>({...x}));a[+i][k]=t.value.trim();cfgPath('agenda.cats',a);return}
   if(t.dataset.ct){const [i,k]=t.dataset.ct.split('.');const a=cfg().contratos.map(x=>({...x}));a[+i][k]=t.type==='checkbox'?t.checked:k==='templateId'?(parseInt(t.value)||''):t.value.trim();cfgSet('contratos',a);return}
   if(t.dataset.pt){const [i,k]=t.dataset.pt.split('.');const a=cfg().pedTarefas.map(x=>({...x}));a[+i][k]=t.value;cfgSet('pedTarefas',a);return}
@@ -3546,7 +3688,7 @@ function gmMontar(sch,{para,assunto,texto}){const P=(sch&&sch.properties)||null;
   const kM=pick('mimeType','contentType','body_type','bodyType');if(kM&&!kH&&P[kM]&&P[kM].enum&&P[kM].enum.some(x=>/plain/i.test(x)))o[kM]=P[kM].enum.find(x=>/plain/i.test(x));
   return o}
 async function gmEnviar(m){const mcp=await getMcp();if(!mcp)throw new Error('Conectores indisponíveis neste acesso. Abra o CRM no claude.ai.');const sch=await gmSchema(mcp);const input=gmMontar(sch,m);return mcp.callTool(GM,'send_message',input,{cache:false})}
-const gmErr=e=>{const c=e&&e.code;return c==='server_not_connected'?'O Gmail não está conectado no claude.ai.':c==='approval_required'||c==='not_granted'?'Falta permitir o Gmail para esta página (clique em Enviar e aceite).':((e&&e.message)||String(e))};
+const gmErr=e=>{const c=e&&e.code;if(window.__HOSTED&&e&&e.message)return e.message;return c==='server_not_connected'?'O Gmail não está conectado no claude.ai.':c==='approval_required'||c==='not_granted'?'Falta permitir o Gmail para esta página (clique em Enviar e aceite).':((e&&e.message)||String(e))};
 /* ---- fila: o que deve sair hoje ---- */
 function emJa(chave){return (S.data.emails||[]).some(x=>x.chave===chave&&x.status!=='erro')}
 function emMail(c){return ((c&&c.email)||'').trim()}
