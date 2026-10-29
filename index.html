@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029141606';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029142300';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1065,6 +1065,9 @@ async function saveFinItem(rec){
   Object.keys(body).forEach(x=>{if(body[x]===undefined||body[x]==='')delete body[x]});
   await finWrite(k,arr=>arr.map(x=>String(x.aid)===aid?{...body,aid:x.aid}:x));return rec.id;
 }
+function lancProxNum(){const m=S.data.lancamentos.reduce((m,l)=>Math.max(m,+l.aid||0),0);S._aid=Math.max(S._aid||0,m)+1;return S._aid}
+async function lancNumerar(){if(!S.dono||S.lancNumOk)return;S.lancNumOk=true;const L=(S.lancInd||[]).filter(l=>!l.aid).sort((a,b)=>String(a.criadoEm||'').localeCompare(String(b.criadoEm||'')));for(const l of L){try{await save('lancamentos',{...l,aid:lancProxNum()})}catch(e){break}}}
+setInterval(()=>{if(S.loaded&&S.loaded.has&&S.loaded.has('lancamentos')&&S.finB)lancNumerar()},60000);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const nextNum=col=>S.data[col].reduce((m,r)=>Math.max(m,+r.num||0),0)+1;
 const UKEY='grupoe-usuario';function quemLocal(){try{return localStorage.getItem(UKEY)||''}catch(e){return ''}}
@@ -1072,6 +1075,7 @@ function admins(){try{return (cfg().equipe||[]).filter(m=>m.tipo==='Administrado
 const usuarioAtual=()=>{try{const eq=cfg().equipe||[];const ql=quemLocal();if(ql&&admins().some(m=>m.nome===ql))return ql;const me=S.eu;if(me){const em=String(me.email||'').trim().toLowerCase();const m=em&&eq.find(x=>String(x.email||'').trim().toLowerCase()===em);if(m)return m.nome;if(me.name){const n=nrm(me.name);const ad=eq.filter(x=>x.tipo==='Administrador');const k=ad.find(x=>nrm(x.nome)===n)||ad.find(x=>nrm(x.nome).startsWith(n)||n.startsWith(nrm(x.nome)))||ad.find(x=>nrm(x.nome).split(' ')[0]===n.split(' ')[0]);return k?k.nome:me.name}}return (eq.find(m=>m.tipo==='Administrador')||{}).nome||''}catch(e){return ''}};
 async function save(col,rec){
   if(col==='lancamentos'&&rec.id&&String(rec.id).startsWith('f~'))return saveFinItem(rec);
+  if(col==='lancamentos'&&!rec.aid){rec={...rec,aid:lancProxNum()};if(!rec.criadoEm)rec.criadoEm=new Date().toISOString()}
   if(col==='oportunidades'){const old=rec.id&&S.data.oportunidades.find(x=>x.id===rec.id);if((old&&old.etapa!==rec.etapa)||(!old&&rec.etapa))rec={...rec,historico:[...((old&&old.historico)||rec.historico||[]),{em:new Date().toISOString(),etapa:rec.etapa,de:old?old.etapa:'',usuario:usuarioAtual(),venc:rec.proximaAcao||''}]}}
   const body={...rec};delete body.id;
   body.atualizadoEm=new Date().toISOString();
@@ -2296,10 +2300,10 @@ function finListView(mode){
   const nAll=rows.length,pp=F.pp||100,nPg=Math.max(1,Math.ceil(nAll/pp)),pgN=Math.min(F.pg||1,nPg),tot=rows.reduce((s,l)=>s+(+l.valor||0),0);
   const page=rows.slice((pgN-1)*pp,pgN*pp),totPg=page.reduce((s,l)=>s+(+l.valor||0),0);
   const opts=k=>[...new Set(base.map(l=>l[k]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
-  S.flCsv=[[M.pago?'Recibo':'#',...(M.pago?[]:['Emissão']),M.pago?'Data':'Vencimento','Doc','Tipo','Pedido','Nome','Obs','Categoria','Conta','Usuário','Valor'],...rows.map(l=>[l.aid||'',...(M.pago?[]:[fdate(l.criadoEm)]),fdate(dk(l)),l.doc||'',l.forma||'',l.pedidoId?String(l.pedidoId).replace('pd-',''):'',contatoNome(l.contatoId)||l.contatoNome||'',l.descricao||'',l.categoria||'',l.conta||'',l.usuario||'',(+l.valor||0).toFixed(2).replace('.',',')])];
+  S.flCsv=[[M.pago?'Recibo':'#',...(M.pago?[]:['Emissão']),M.pago?'Data':'Vencimento','Doc','Tipo','Pedido','Nome','Obs','Categoria','Conta','Usuário','Valor'],...rows.map(l=>[l.aid||'',...(M.pago?[]:[fdate(String(l.criadoEm||'').slice(0,10))]),fdate(dk(l)),l.doc||'',l.forma||'',l.pedidoId?String(l.pedidoId).replace('pd-',''):'',contatoNome(l.contatoId)||l.contatoNome||'',l.descricao||'',l.categoria||'',l.conta||'',l.usuario||'',(+l.valor||0).toFixed(2).replace('.',',')])];
   const sel=(k,lab,list)=>`<select class="search" style="flex:0 1 180px" data-flf="${k}" aria-label="${lab}"><option value="">${lab}: todos</option>${list.map(o=>`<option ${F[k]===o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
   const tbl=page.length?`<div class="tbl-wrap" id="flTable"><table class="tbl"><thead><tr><th>${M.pago?'Recibo':'#'}</th>${M.pago?'':'<th>Emissão</th>'}<th>${M.pago?'Data':'Vencimento'}</th><th>Doc</th><th>Tipo</th><th>Pedido</th><th>Nome</th><th>Obs</th><th>Usuário</th><th class="r">Valor</th><th></th></tr></thead><tbody>${page.map(l=>{const late=!l.pago&&l.vencimento<t;return `<tr class="row">
-    <td class="num muted">${esc(l.aid||'')}</td>${M.pago?'':`<td class="num muted">${fdateShort(l.criadoEm)}</td>`}<td><span class="num" style="${late?'color:var(--danger);font-weight:600':''}">${fdate(dk(l))}</span></td><td class="num muted">${esc(l.doc||'')}</td><td class="sub">${esc(l.forma||'')}</td>
+    <td class="num muted">${esc(l.aid||'')}</td>${M.pago?'':`<td class="num muted">${fdateShort(String(l.criadoEm||'').slice(0,10))}</td>`}<td><span class="num" style="${late?'color:var(--danger);font-weight:600':''}">${fdate(dk(l))}</span></td><td class="num muted">${esc(l.doc||'')}</td><td class="sub">${esc(l.forma||'')}</td>
     <td>${l.pedidoId?`<button class="chip on" style="--c:var(--idle)" data-edit="pedidos" data-id="${l.pedidoId}">${ic('cart',12)} ${esc(String(l.pedidoId).replace('pd-',''))}</button>`:''}</td>
     <td>${l.contatoId?`<button class="link" data-contato="${l.contatoId}">${esc(contatoNome(l.contatoId))}</button>`:esc(l.contatoNome||'')}</td>
     <td><span class="sub">${esc(l.descricao||'')}</span>${l.categoria?`<div class="sub" style="opacity:.75">${esc(l.categoria)}${M.pago&&l.conta?' · '+esc(l.conta):''}</div>`:''}</td><td class="sub">${esc((l.usuario||'').split(' ')[0])}</td>
