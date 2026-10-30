@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029190601';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261029192720';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -3373,7 +3373,7 @@ async function backupDrive(silent){
     if(!pasta){const r=await mcp.callTool(GD,'create_file',{title:'Backups - CRM Grupo E',contentMimeType:'application/vnd.google-apps.folder'},{cache:false});const pl=parsePayload(r)||{};pasta=pl.id;if(!pasta)throw new Error('O Google Drive não devolveu a pasta.');bkSet({pasta,pastaUrl:pl.viewUrl||''})}
     const nome='Backup CRM Grupo E - '+hojeArq();
     S.bkMsg='Enviando dados para o Google Drive…';if(S.ui.view==='backup')render();
-    const D=dadosBackup();const LIM=600000;
+    const D=dadosBackup();const LIM=window.__HOSTED?8000000:600000;
     const partes=[];const addParte=(nome,obj)=>partes.push({nome,obj});
     addParte('00 config e resumo',{sistema:D.sistema,formato:D.formato,geradoEm:D.geradoEm,config:D.config,configFinanceiro:D.configFinanceiro,resumo:D.resumo});
     Object.entries(D.dados).forEach(([c,rows])=>addParte('dados '+c,{colecao:c,rows}));
@@ -3393,7 +3393,7 @@ async function backupDrive(silent){
     let xErr='';const fazX=!silent||!B.ultimoXlsx||Date.now()-Date.parse(B.ultimoXlsx)>=20*3600e3;
     if(fazX){try{S.bkMsg='Enviando planilha Excel…';if(S.ui.view==='backup')render();
       const buf=await planilhaBackup();const b64=u8b64(new Uint8Array(buf));
-      if(b64.length>LIM*2.5)throw new Error('a planilha completa ficou grande demais para o envio automático; use "Baixar backup completo (Excel)"');
+      if(b64.length>(window.__HOSTED?40000000:LIM*2.5))throw new Error('a planilha completa ficou grande demais para o envio automático; use "Baixar backup completo (Excel)"');
       await mcp.callTool(GD,'create_file',{title:nome+'.xlsx',parentId:sub,contentMimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',disableConversionToGoogleType:true,base64Content:b64},{cache:false});
       bkSet({ultimoXlsx:iniciou})}catch(e2){xErr=(e2&&e2.message)||String(e2);bkSet({ultimoErro:new Date().toISOString()+' · Dados salvos; só a planilha Excel não subiu: '+xErr})}}
     if(!silent)toast(xErr?'Dados salvos no Drive; a planilha Excel falhou (veja o aviso).':'Backup salvo no seu Google Drive.',!!xErr)}
