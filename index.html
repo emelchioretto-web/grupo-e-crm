@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261030084248';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261030085240';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4238,7 +4238,10 @@ function pvEditCli(k){const {p,dr}=pvCli();const c=dr[k]||{};const ct=S.data.con
   <div class="fgrid"><div class="field"><label>Prazo</label><input type="date" id="pvc-p" value="${esc(c.prazo||'')}"></div><div class="field"><label>Enviar lembrete</label><div class="seg"><button type="button" data-pvclem="1" class="${c.lembrete!==false?'on':''}">Sim</button><button type="button" data-pvclem="0" class="${c.lembrete===false?'on':''}">Não</button></div></div>
   <div class="field"><label>Concluído em</label><input type="date" id="pvc-ok" value="${esc(c.ok||'')}"></div></div></div>
   <footer><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn pri" data-pvcsave="${k}">Salvar</button></footer></div></div>`}
-function pvConvite(modo,ks){const {p,dr}=pvCli();const L=(ks||dr.map((_,k)=>k)).map(k=>({k,c:dr[k]})).filter(x=>x.c);const PC=cfg().provas||{};
+async function pvConvite(modo,ks){{const {p}=pvCli();if(window.__HOSTED&&!p.galeria){toast('Criando a galeria do cliente…');try{await pvPublicar(p.id)}catch(e){toast('Não consegui criar a galeria: '+((e&&e.message)||e),true);return}await sleep(600)}
+    const q=pvCli();const ven=(ks||q.dr.map((_,k)=>k)).map(k=>q.dr[k]).filter(c=>c&&c.prazo&&c.prazo<today()&&!c.ok);const sem=!pvImgs(q.p).length;
+    if((ven.length||sem)&&!confirm((sem?'Esta prova ainda não tem imagens no CRM: o cliente vai abrir a galeria vazia.\n':'')+(ven.length?'O prazo de '+ven.map(c=>contatoNome(c.c)).join(', ')+' já passou ('+fdate(ven[0].prazo)+'): a galeria vai abrir pausada. Acerte o prazo na engrenagem › Editar.\n':'')+'\nEnviar mesmo assim?'))return}
+  const {p,dr}=pvCli();const L=(ks||dr.map((_,k)=>k)).map(k=>({k,c:dr[k]})).filter(x=>x.c);const PC=cfg().provas||{};
   if(modo==='mail'){if(L.length===1){const {c}=L[0];const ct=S.data.contatos.find(x=>x.id===c.c)||{};if(!ct.email){toast('Este cliente não tem e-mail no cadastro.',true);return}
       mailModal(ct.email,SCHEMAS.contatos.labelOf(ct),pvAssunto(p),pvFill(PC.textoConvite||PV_TXT_DEF,pvVars(p,c)));S.ui.pvMail={pid:p.id,k:L[0].k};return}
     const para=L.map(x=>(S.data.contatos.find(y=>y.id===x.c.c)||{}).email).filter(Boolean);if(!para.length){toast('Nenhum cliente com e-mail.',true);return}
