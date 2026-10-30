@@ -138,13 +138,13 @@ function quem(){const cl=G.g.clientes||{};$('#app').innerHTML=`<div class="gate"
 async function entrar(){let r={};try{const d=await db.doc(`galerias/${TOKEN}/respostas/${G.cid}`).get();if(d.exists)r=d.data()}catch(e){}
   G.r={sel:[],fav:[],aprov:{},alt:{},...r};G.r.nome=(G.g.clientes[G.cid]||{}).nome||'';
   if(!sessionStorage.getItem('vis-'+TOKEN)){try{sessionStorage.setItem('vis-'+TOKEN,'1')}catch(e){}salvar({vis:(+G.r.vis||0)+1,ult:hoje()},true)}
-  render();document.addEventListener('keydown',tecla)}
+  render();document.addEventListener('keydown',tecla);let vi=null;try{vi=sessionStorage.getItem('info-'+TOKEN)}catch(e){}if(!vi&&!G.r.ok){try{sessionStorage.setItem('info-'+TOKEN,'1')}catch(e){}setTimeout(infoModal,400)}}
 const cli=()=>(G.g.clientes||{})[G.cid]||{};
 const prazo=()=>cli().prazo||G.g.prazo||'';
 const pausada=()=>!G.r.ok&&prazo()&&prazo()<hoje();
 const somenteVer=()=>G.g.tipo==='Visualização'||G.g.somenteVer||!!G.r.ok||pausada();
 function topo(extra){const g=G.g;const w=(g.empresa||{}).wa;return `<div class="top"><div class="wrap"><h1 class="display">${esc(g.nome||'')}<small>${esc(G.r.nome||'')}${prazo()&&!G.r.ok?' · prazo até '+fdate(prazo()):''}</small></h1>${extra||''}
-  ${g.instrucoes||g.descricao?`<button class="btn sm" data-a="instr">${ic('info',15)} Instruções</button>`:''}${w?`<a class="btn sm ok" href="https://wa.me/${w}?text=${encodeURIComponent('Olá! Sobre a galeria "'+(g.nome||'')+'":')}" target="_blank" rel="noopener">${ic('wa',15)} Ajuda</a>`:''}</div></div>`}
+  <button class="btn sm" data-a="instr">${ic('info',15)} Instruções</button>${w?`<a class="btn sm ok" href="https://wa.me/${w}?text=${encodeURIComponent('Olá! Sobre a galeria "'+(g.nome||'')+'":')}" target="_blank" rel="noopener">${ic('wa',15)} Ajuda</a>`:''}</div></div>`}
 function aviso(){if(G.r.ok&&G.g.tipo==='Álbum'&&Object.keys(G.r.alt||{}).length)return `<div class="banner warn"><b>Alterações enviadas em ${fdate(G.r.ok)}.</b> Estamos fazendo os ajustes; você vai receber o álbum de novo para aprovar.</div>`;
   if(G.r.ok)return `<div class="banner ok"><b>${G.g.tipo==='Álbum'?'Álbum aprovado':'Seleção concluída'} em ${fdate(G.r.ok)}.</b> Obrigado! Se precisar mudar algo, fale com a gente pelo WhatsApp.</div>`;
   if(pausada())return `<div class="banner warn"><b>O prazo terminou em ${fdate(prazo())}.</b> A galeria está pausada. Fale com a gente pelo WhatsApp para liberar.</div>`;return ''}
@@ -201,6 +201,24 @@ function renderAlbum(){const P=paginas(),GR=grupos();if(!GR.length){$('#app').in
   liga();if(!G._top){G._top=1}else{const st=$('.stage');if(st&&st.getBoundingClientRect().top<70)window.scrollTo({top:0,behavior:'smooth'})}const th=$('.thumbs .on');if(th)th.scrollIntoView({block:'nearest',inline:'center'})}
 /* ===== ações ===== */
 function liga(){$('#app').onclick=clique}
+const INSTR_PAD={'Álbum':`• Passe por todas as páginas usando as setas ou as miniaturas lá embaixo.
+• Em cada lâmina, clique em "Aprovar" se estiver tudo certo.
+• Se quiser mudar algo, clique em "Pedir alteração" e escreva o que deve ser mudado (trocar foto, posição, texto…).
+• Confira com atenção nomes, datas e textos.
+• Quando terminar todas as páginas:
+   – sem alterações, clique em "Finalizar aprovação";
+   – com alterações, clique em "Enviar para alterações". Vamos ajustar e te mandar de novo para aprovar.
+• Qualquer dúvida, use o botão "Ajuda" para falar com a gente no WhatsApp.`,
+ 'Seleção de fotos':`• Clique no ✓ para selecionar uma foto e no ♥ para marcar como favorita.
+• Clique na foto para ver em tela cheia e use as setas para passar.
+• Use os filtros "Selecionadas" e "Favoritas" para revisar suas escolhas.
+• O contador lá em cima mostra quantas você escolheu do pacote.
+• Quando terminar, clique em "Finalizar seleção". Depois de finalizar, não dá para mudar por aqui.
+• Qualquer dúvida, use o botão "Ajuda" para falar com a gente no WhatsApp.`,
+ 'Visualização':`• Clique na foto para ver em tela cheia e use as setas para passar.
+• Qualquer dúvida, use o botão "Ajuda" para falar com a gente no WhatsApp.`};
+function infoModal(){const g=G.g;const ins=g.instrucoes||INSTR_PAD[g.tipo]||INSTR_PAD['Visualização'];
+  modal(`<h2 class="display" style="display:flex;gap:8px;align-items:center">${ic('info',22)} Informações sobre esta galeria</h2>${g.descricao?`<div><b>Descrição</b><div class="pre" style="margin-top:4px">${esc(g.descricao)}</div></div>`:''}<div><b>Instruções</b><div class="pre" style="margin-top:4px">${esc(ins)}</div></div><div style="text-align:right"><button class="btn pri" data-a="mx">Entendi</button></div>`)}
 function modal(h){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="sheet">${h}</div>`;o.onclick=e=>{if(e.target===o||e.target.closest('[data-a="mx"]'))o.remove();else clique(e)};document.body.appendChild(o);return o}
 function clique(e){const t=e.target.closest('[data-a],[data-o],[data-s],[data-f],[data-v],[data-pg]');if(!t)return;const d=t.dataset;
   if(d.s!==undefined){e.stopPropagation();toggle(+d.s,'sel');render();return}if(d.f!==undefined){e.stopPropagation();toggle(+d.f,'fav');render();return}
@@ -209,7 +227,7 @@ function clique(e){const t=e.target.closest('[data-a],[data-o],[data-s],[data-f]
   if(a==='mais'){G.lim+=120;render();return}
   if(a==='lbx'){fecharLb();return}if(a==='lbp'){passo(-1);return}if(a==='lbn'){passo(1);return}
   if(a==='lbs'){toggle(G.lb,'sel');lightbox(G.lb);return}if(a==='lbf'){toggle(G.lb,'fav');lightbox(G.lb);return}
-  if(a==='instr'){modal(`<h2 class="display">Instruções</h2>${G.g.descricao?`<div class="pre">${esc(G.g.descricao)}</div>`:''}${G.g.instrucoes?`<div class="pre">${esc(G.g.instrucoes)}</div>`:''}<div><button class="btn pri" data-a="mx">Entendi</button></div>`);return}
+  if(a==='instr'){infoModal();return}
   if(a==='pp'){irPg(G.pg-1);return}if(a==='pn'){irPg(G.pg+1);return}if(a==='zoom'){const GR=grupos();lbAlbum(GR[G.pg],paginas());return}
   if(a==='aprovar'){const gr=grupos()[G.pg],k=gkey(gr);const ap={...(G.r.aprov||{}),[k]:true},al={...(G.r.alt||{})};delete al[k];salvar({aprov:ap,alt:al});const GR=grupos();if(G.pg<GR.length-1){G.pg++;G.altEd=false}toast('Página aprovada');renderAlbum();return}
   if(a==='alterar'){G.altEd=!G.altEd;renderAlbum();if(G.altEd)setTimeout(()=>{const x=$('#altx');if(x)x.focus()},30);return}
