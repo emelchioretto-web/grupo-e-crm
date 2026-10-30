@@ -145,7 +145,8 @@ const pausada=()=>!G.r.ok&&prazo()&&prazo()<hoje();
 const somenteVer=()=>G.g.tipo==='Visualização'||G.g.somenteVer||!!G.r.ok||pausada();
 function topo(extra){const g=G.g;const w=(g.empresa||{}).wa;return `<div class="top"><div class="wrap"><h1 class="display">${esc(g.nome||'')}<small>${esc(G.r.nome||'')}${prazo()&&!G.r.ok?' · prazo até '+fdate(prazo()):''}</small></h1>${extra||''}
   ${g.instrucoes||g.descricao?`<button class="btn sm" data-a="instr">${ic('info',15)} Instruções</button>`:''}${w?`<a class="btn sm ok" href="https://wa.me/${w}?text=${encodeURIComponent('Olá! Sobre a galeria "'+(g.nome||'')+'":')}" target="_blank" rel="noopener">${ic('wa',15)} Ajuda</a>`:''}</div></div>`}
-function aviso(){if(G.r.ok)return `<div class="banner ok"><b>${G.g.tipo==='Álbum'?'Aprovação enviada':'Seleção concluída'} em ${fdate(G.r.ok)}.</b> Obrigado! Se precisar mudar algo, fale com a gente pelo WhatsApp.</div>`;
+function aviso(){if(G.r.ok&&G.g.tipo==='Álbum'&&Object.keys(G.r.alt||{}).length)return `<div class="banner warn"><b>Alterações enviadas em ${fdate(G.r.ok)}.</b> Estamos fazendo os ajustes; você vai receber o álbum de novo para aprovar.</div>`;
+  if(G.r.ok)return `<div class="banner ok"><b>${G.g.tipo==='Álbum'?'Álbum aprovado':'Seleção concluída'} em ${fdate(G.r.ok)}.</b> Obrigado! Se precisar mudar algo, fale com a gente pelo WhatsApp.</div>`;
   if(pausada())return `<div class="banner warn"><b>O prazo terminou em ${fdate(prazo())}.</b> A galeria está pausada. Fale com a gente pelo WhatsApp para liberar.</div>`;return ''}
 function render(){if(G.g.tipo==='Álbum')return renderAlbum();renderFotos()}
 /* ===== seleção / visualização ===== */
@@ -177,9 +178,10 @@ function tecla(e){if($('.ov'))return;if(e.key==='Escape'&&$('.lb-w'))fecharLb();
   if(G.lb>=0&&(e.key===' '||e.key.toLowerCase()==='s')&&!somenteVer()&&G.g.tipo==='Seleção de fotos'){e.preventDefault();toggle(G.lb,'sel');lightbox(G.lb)}}
 /* ===== álbum ===== */
 function paginas(){const g=G.g;const P=[];if(g.capa)P.push({...g.capa,cap:'Capa'});(g.paginas||[]).forEach((x,i)=>P.push({...x,cap:'Página '+(i+1)}));if(g.contracapa)P.push({...g.contracapa,cap:'Contracapa'});return P}
-function grupos(){const P=paginas();const dup=/Dupla/i.test(G.g.paginasModo||'');if(!dup)return P.map((x,i)=>({ks:[i],cap:x.cap}));const out=[];let i=0;
+function grupos(){const P=paginas();const out=[];let i=0;const larga=x=>x&&x.w&&x.h&&x.w>x.h*1.4;
   if(P[0]&&P[0].cap==='Capa'){out.push({ks:[0],cap:'Capa'});i=1}const fimC=P.length&&P[P.length-1].cap==='Contracapa';const end=fimC?P.length-1:P.length;
-  for(;i<end;i+=2){const ks=[i];if(i+1<end)ks.push(i+1);out.push({ks,cap:ks.map(k=>P[k].cap).join(' e ')})}if(fimC)out.push({ks:[P.length-1],cap:'Contracapa'});return out}
+  while(i<end){if(larga(P[i])||i+1>=end||larga(P[i+1])){out.push({ks:[i],cap:P[i].cap});i++;continue}out.push({ks:[i,i+1],cap:P[i].cap+' e '+P[i+1].cap.replace('Página ','')});i+=2}
+  if(fimC)out.push({ks:[P.length-1],cap:'Contracapa'});return out}
 const gkey=gr=>String(gr.ks[0]);
 function estado(gr){const k=gkey(gr);if((G.r.alt||{})[k])return 'c';if((G.r.aprov||{})[k])return 'a';return ''}
 function irPg(i){const GR=grupos();if(i<0||i>=GR.length)return;G.pg=i;G.altEd=false;const w=$('.lb-w');if(w){const P=paginas();lbAlbum(GR[i],P)}renderAlbum()}
@@ -195,7 +197,7 @@ function renderAlbum(){const P=paginas(),GR=grupos();if(!GR.length){$('#app').in
    ${ro?((G.r.alt||{})[k]?`<div class="alt"><div class="banner warn"><b>Alteração pedida:</b> ${esc(G.r.alt[k])}</div></div>`:''):`<div class="pinfo"><button class="btn ok" data-a="aprovar">${ic('check')} ${st==='a'?'Aprovada':'Aprovar'}</button><button class="btn warn" data-a="alterar">${ic('edit')} ${st==='c'?'Editar alteração':'Pedir alteração'}</button></div>
    ${G.altEd?`<div class="alt"><textarea class="inp" id="altx" placeholder="Descreva o que deseja mudar nesta página (trocar foto, posição, texto…)">${esc((G.r.alt||{})[k]||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end">${st==='c'?`<button class="btn" data-a="altdel">Tirar alteração</button>`:''}<button class="btn pri" data-a="altok">Salvar alteração</button></div></div>`:(st==='c'?`<div class="alt"><div class="banner warn">${esc(G.r.alt[k])}</div></div>`:'')}`}
    <div class="thumbs">${GR.map((x,i)=>{const s=estado(x);return `<button class="${i===G.pg?'on':''}" data-pg="${i}" aria-label="${esc(x.cap)}"><img loading="lazy" src="${esc(P[x.ks[0]].t||P[x.ks[0]].u)}" alt="">${s?`<span class="s" style="background:${s==='a'?'var(--ok)':'var(--warn)'}"></span>`:''}<small>${esc(x.cap.replace(/Página /g,'p. '))}</small></button>`}).join('')}</div>
-  </div></div>${ro?'':`<button class="btn pri fab" data-a="fima">${ic('check')} Finalizar aprovação (${nA+nC} de ${GR.length})</button>`}`;
+  </div></div>${ro?'':nC?`<button class="btn warn fab" data-a="fima">${ic('edit')} Enviar para alterações (${nC})</button>`:`<button class="btn pri fab" data-a="fima">${ic('check')} Finalizar aprovação (${nA} de ${GR.length})</button>`}`;
   liga();if(!G._top){G._top=1}else{const st=$('.stage');if(st&&st.getBoundingClientRect().top<70)window.scrollTo({top:0,behavior:'smooth'})}const th=$('.thumbs .on');if(th)th.scrollIntoView({block:'nearest',inline:'center'})}
 /* ===== ações ===== */
 function liga(){$('#app').onclick=clique}
@@ -215,11 +217,11 @@ function clique(e){const t=e.target.closest('[data-a],[data-o],[data-s],[data-f]
   if(a==='altdel'){const k=gkey(grupos()[G.pg]);const al={...(G.r.alt||{})};delete al[k];salvar({alt:al});G.altEd=false;renderAlbum();return}
   if(a==='fima'){const GR=grupos();const falta=GR.filter(x=>!estado(x));const nC=GR.filter(x=>estado(x)==='c').length;
     if(falta.length){modal(`<h2 class="display">Faltam páginas</h2><p style="margin:0">Ainda faltam <b>${falta.length}</b> página(s) para você aprovar ou pedir alteração: ${esc(falta.slice(0,12).map(x=>x.cap).join(', '))}${falta.length>12?'…':''}.</p><div><button class="btn pri" data-a="mx">Voltar ao álbum</button></div>`);return}
-    modal(`<h2 class="display">Finalizar aprovação</h2><p style="margin:0">${nC?`Você pediu alteração em <b>${nC}</b> página(s). Vamos fazer os ajustes e te enviar de novo.`:'Todas as páginas foram aprovadas. Seu álbum vai para impressão.'}</p><label style="font-weight:600;font-size:14px">Algum recado? (opcional)</label><textarea class="inp" id="obs" style="min-height:80px">${esc(G.r.obs||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-a="mx">Voltar</button><button class="btn pri" data-a="okfim">Enviar aprovação</button></div>`);return}
+    modal(`<h2 class="display">${nC?'Enviar para alterações':'Finalizar aprovação'}</h2><p style="margin:0">${nC?`Você pediu alteração em <b>${nC}</b> lâmina(s). O álbum <b>ainda não está aprovado</b>: vamos fazer os ajustes e te enviar de novo para aprovar.`:'Todas as páginas foram aprovadas. Seu álbum vai para impressão.'}</p><label style="font-weight:600;font-size:14px">Algum recado? (opcional)</label><textarea class="inp" id="obs" style="min-height:80px">${esc(G.r.obs||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-a="mx">Voltar</button><button class="btn ${nC?'warn':'pri'}" data-a="okfim">${nC?'Enviar alterações':'Aprovar o álbum'}</button></div>`);return}
   if(a==='fim'){const ns=(G.r.sel||[]).length,lim=+G.g.limite||0;if(!ns){toast('Selecione as fotos antes de finalizar.');return}const ex=lim&&ns>lim?ns-lim:0;
     modal(`<h2 class="display">Finalizar seleção</h2><p style="margin:0">Você selecionou <b>${ns}</b> foto${ns===1?'':'s'}${lim?` de ${lim} do pacote`:''}.${ex?` São <b>${ex}</b> foto(s) extra${G.g.mostrarPreco&&+G.g.precoExtra?` (${brl(ex*G.g.precoExtra)})`:''}.`:''}${lim&&ns<lim?` Ainda pode escolher mais ${lim-ns}.`:''}</p><p class="muted" style="margin:0">Depois de finalizar, não dá para mudar a seleção por aqui.</p><label style="font-weight:600;font-size:14px">Algum recado? (opcional)</label><textarea class="inp" id="obs" style="min-height:80px">${esc(G.r.obs||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-a="mx">Continuar escolhendo</button><button class="btn pri" data-a="okfim">Finalizar</button></div>`);return}
   if(a==='fimv'){salvar({ok:hoje()},true);toast('Obrigado!');render();return}
-  if(a==='okfim'){const o=$('#obs');salvar({obs:o?o.value.trim():'',ok:hoje()},true).then(()=>{document.querySelectorAll('.ov').forEach(x=>x.remove());toast('Enviado! Obrigado.');G.pg=0;render()});return}
+  if(a==='okfim'){const o=$('#obs');const temAlt=G.g.tipo==='Álbum'&&Object.keys(G.r.alt||{}).length;salvar({obs:o?o.value.trim():'',ok:hoje()},true).then(()=>{document.querySelectorAll('.ov').forEach(x=>x.remove());toast(temAlt?'Alterações enviadas! Obrigado.':'Enviado! Obrigado.');G.pg=0;render()});return}
 }
 boot();
 </script>
