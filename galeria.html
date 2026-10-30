@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Galeria de Provas · Grupo E</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Karla:wght@400;500;600;700&display=swap">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#f3f4f3;--surface:#fff;--fg:#1b2120;--muted:#5d6764;--line:#d9dedc;--accent:#1f6f54;--accent-fg:#fff;--ok:#2c7a4e;--warn:#9a5c0c;--danger:#b23a31;--sel:#1f6f54;--fav:#d8455f;--stage:#151918;--r:12px;
+  --f-display:"Bodoni Moda",Georgia,serif;--f-body:"Karla",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101413;--surface:#181d1c;--fg:#e6ebe9;--muted:#9ba6a3;--line:#2b3331;--accent:#8dc4ab;--accent-fg:#0c1512;--ok:#64c690;--warn:#e2a24c;--danger:#ef8a80;--sel:#8dc4ab;--fav:#f07a8f;--stage:#0a0d0c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101413;--surface:#181d1c;--fg:#e6ebe9;--muted:#9ba6a3;--line:#2b3331;--accent:#8dc4ab;--accent-fg:#0c1512;--ok:#64c690;--warn:#e2a24c;--danger:#ef8a80;--sel:#8dc4ab;--fav:#f07a8f;--stage:#0a0d0c;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:default}
+.display{font-family:var(--f-display);font-weight:400;letter-spacing:.01em}
+.wrap{max-width:1280px;margin:0 auto;padding:0 16px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14px;white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}.btn.warn{background:var(--warn);border-color:var(--warn);color:#fff}
+.btn.sm{padding:6px 12px;font-size:13px}.btn.ghost{background:transparent}
+.muted{color:var(--muted)}.err{color:var(--danger)}
+svg.i{width:18px;height:18px;flex:none}
+/* gate */
+.gate{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.gcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.08)}
+.gcard .cov{aspect-ratio:3/2;background:var(--stage) center/cover no-repeat}
+.gcard .b{padding:22px;display:grid;gap:12px}
+.gcard h1{margin:0;font-size:28px;line-height:1.15}
+.inp{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);font:inherit;font-size:16px}
+.inp:focus{outline:2px solid var(--accent);outline-offset:1px}
+.who{display:grid;gap:8px}.who button{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-align:left;font-weight:600}
+/* top */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:10px;padding-top:10px;padding-bottom:10px;flex-wrap:wrap}
+.top h1{margin:0;font-size:22px;line-height:1.2;flex:1 1 220px;min-width:0}
+.top h1 small{display:block;font-family:var(--f-body);font-size:13px;color:var(--muted)}
+.count{font-weight:700;font-variant-numeric:tabular-nums;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:14px}
+.count.over{border-color:var(--warn);color:var(--warn)}
+.bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:12px 0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:7px 13px;font-size:13px;font-weight:600}.seg button.on{background:var(--accent);color:var(--accent-fg)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.banner{padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);margin:12px 0;font-size:14px}
+.banner.ok{border-color:var(--ok)}.banner.warn{border-color:var(--warn)}
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;padding-bottom:90px}
+@media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:6px}}
+.tile{position:relative;aspect-ratio:4/3;background:var(--stage);border-radius:8px;overflow:hidden;cursor:zoom-in;outline:3px solid transparent;outline-offset:-3px}
+.tile img{width:100%;height:100%;object-fit:contain;display:block;transition:opacity .2s}
+.tile.s{outline-color:var(--sel)}
+.tile .acts{position:absolute;right:6px;bottom:6px;display:flex;gap:6px}
+.tile .nm{position:absolute;left:6px;bottom:6px;font-size:11px;color:#fff;background:rgba(0,0,0,.45);padding:1px 6px;border-radius:6px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .lb{position:absolute;left:6px;top:6px}
+.cb{width:34px;height:34px;border-radius:50%;border:0;background:rgba(0,0,0,.5);color:#fff;display:grid;place-items:center}
+.cb.on.sel{background:var(--sel);color:var(--accent-fg)}.cb.on.fav{background:var(--fav)}
+.more{display:flex;justify-content:center;padding:10px 0 100px}
+/* lightbox */
+.lb-w{position:fixed;inset:0;z-index:50;background:rgba(8,10,10,.96);display:grid;grid-template-rows:auto 1fr auto;color:#eef}
+.lb-w .hd{display:flex;align-items:center;gap:10px;padding:10px 14px;color:#dfe6e3;font-size:14px}
+.lb-w .st{position:relative;display:grid;place-items:center;min-height:0;overflow:hidden}
+.lb-w .st img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:64px;border:0;background:rgba(255,255,255,.08);color:#fff;border-radius:10px;display:grid;place-items:center}
+.nav.p{left:10px}.nav.n{right:10px}
+.lb-w .ft{display:flex;justify-content:center;gap:10px;padding:12px;flex-wrap:wrap}
+.lb-w .btn{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff}
+.lb-w .btn.on.sel{background:var(--sel);border-color:var(--sel);color:var(--accent-fg)}.lb-w .btn.on.fav{background:var(--fav);border-color:var(--fav)}
+.lb-w .btn.ok{background:var(--ok);border-color:var(--ok)}.lb-w .btn.warn{background:var(--warn);border-color:var(--warn)}
+/* album */
+.alb{display:grid;gap:12px;padding:14px 0 120px}
+.stage{background:var(--stage);border-radius:14px;padding:16px;display:grid;place-items:center;min-height:52vh;position:relative}
+.spread{display:flex;gap:2px;justify-content:center;max-width:100%}
+.spread img{max-height:66vh;max-width:100%;object-fit:contain;display:block;box-shadow:0 10px 30px rgba(0,0,0,.4);cursor:zoom-in}
+.spread.two img{max-width:50%}
+.pinfo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+.pst{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+.pst.a{color:var(--ok);border-color:var(--ok)}.pst.c{color:var(--warn);border-color:var(--warn)}
+.alt{width:100%;max-width:720px;justify-self:center;display:grid;gap:8px}
+.alt textarea{min-height:90px}
+.thumbs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px}
+.thumbs button{flex:none;width:86px;padding:0;border:3px solid transparent;border-radius:8px;background:var(--stage);position:relative;overflow:hidden}
+.thumbs button.on{border-color:var(--accent)}
+.thumbs img{width:100%;height:56px;object-fit:cover;display:block}
+.thumbs .s{position:absolute;right:3px;top:3px;width:12px;height:12px;border-radius:50%;border:2px solid #fff}
+.thumbs small{display:block;font-size:11px;padding:2px 0;color:#cfd6d3;background:var(--stage)}
+/* sheet */
+.ov{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:16px}
+.sheet{background:var(--surface);color:var(--fg);border-radius:16px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:22px;display:grid;gap:12px}
+.sheet h2{margin:0;font-size:24px}
+.pre{white-space:pre-wrap;font-size:14.5px}
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:13px 22px;font-size:15px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:80px;z-index:90;background:#1b2120;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw}
+.center{min-height:80vh;display:grid;place-items:center;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<div id="app"><div class="center"><span class="muted">Carregando a galeria…</span></div></div>
+<script>
+window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const IC={check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',l:'<path d="M15 5l-7 7 7 7"/>',r:'<path d="M9 5l7 7-7 7"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',wa:'<path d="M5 19l1.2-3.6A7.5 7.5 0 1 1 9 18.6z"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',dl:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'};
+const ic=(n,s)=>`<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${s?`style="width:${s}px;height:${s}px"`:''}>${IC[n]||''}</svg>`;
+const LBLC={Red:'#d64541',Yellow:'#e9a23b',Green:'#2e9e5b',Blue:'#2f6fd6',Purple:'#9b59d0'};
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const fdate=d=>d?String(d).slice(0,10).split('-').reverse().join('/'):'';
+const brl=v=>(+v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+firebase.initializeApp(window.FIREBASE_CONFIG);const db=firebase.firestore();
+const [TOKEN,CID0]=decodeURIComponent((location.hash||'').slice(1)).split('.');
+const G={g:null,cid:CID0||'',r:{},view:'todas',lim:120,lb:-1,pg:0,altEd:false};
+let saveT=null;
+function salvar(ch,ja){Object.assign(G.r,ch);clearTimeout(saveT);const f=()=>db.doc(`galerias/${TOKEN}/respostas/${G.cid}`).set({...G.r,em:new Date().toISOString()},{merge:true}).catch(e=>toast('Não consegui salvar agora. Verifique a internet.'));if(ja)return f();saveT=setTimeout(f,700)}
+
+async function boot(){
+  if(!TOKEN){return fim('Link incompleto','Confira se você copiou o link inteiro que recebeu.')}
+  let d;try{d=await db.doc('galerias/'+TOKEN).get()}catch(e){return fim('Galeria indisponível','Este link não está mais ativo. Fale com a gente pelo WhatsApp.')}
+  if(!d.exists)return fim('Galeria indisponível','Este link não está mais ativo. Fale com a gente pelo WhatsApp.');
+  G.g=d.data();document.title=(G.g.nome||'Galeria')+' · Grupo E';
+  const cls=Object.keys(G.g.clientes||{});if(!G.cid&&cls.length===1)G.cid=cls[0];
+  if(G.g.privado&&G.g.senhaH&&LS.get('gal-'+TOKEN)!==G.g.senhaH)return gate();
+  if(!G.cid||!(G.g.clientes||{})[G.cid])return quem();
+  entrar()}
+function fim(t,m){const w=(G.g&&G.g.empresa&&G.g.empresa.wa)||'';$('#app').innerHTML=`<div class="center"><div style="max-width:420px;display:grid;gap:10px"><h1 class="display" style="margin:0">${esc(t)}</h1><p class="muted" style="margin:0">${esc(m)}</p>${w?`<div><a class="btn ok" href="https://wa.me/${w}" target="_blank" rel="noopener">${ic('wa')} Falar no WhatsApp</a></div>`:''}</div></div>`}
+function capaUrl(){const g=G.g;return (g.capa&&g.capa.u)||((g.imgs||[])[0]||{}).u||((g.paginas||[])[0]||{}).u||''}
+function gate(){$('#app').innerHTML=`<div class="gate"><form class="gcard" id="gf"><div class="cov" style="background-image:url('${esc(capaUrl())}')"></div><div class="b">
+  <span class="muted" style="font-size:13px">${esc(G.g.tipo||'Galeria')}</span><h1 class="display">${esc(G.g.nome||'')}</h1>
+  <label style="font-weight:600;font-size:14px" for="gs">${ic('lock',15)} Senha da galeria</label><input class="inp" id="gs" type="password" autocomplete="current-password" placeholder="Digite a senha que você recebeu" required>
+  <span class="err" id="ge" hidden>Senha incorreta. Confira e tente de novo.</span><button class="btn pri" style="justify-content:center">Entrar</button></div></form></div>`;
+  $('#gf').onsubmit=async e=>{e.preventDefault();const h=await sha($('#gs').value.trim().toLowerCase());if(h!==G.g.senhaH){$('#ge').hidden=false;return}LS.set('gal-'+TOKEN,h);boot()};$('#gs').focus()}
+function quem(){const cl=G.g.clientes||{};$('#app').innerHTML=`<div class="gate"><div class="gcard"><div class="cov" style="background-image:url('${esc(capaUrl())}')"></div><div class="b"><h1 class="display">${esc(G.g.nome||'')}</h1><p class="muted" style="margin:0">Quem está acessando?</p><div class="who">${Object.entries(cl).map(([k,c])=>`<button data-who="${esc(k)}">${esc(c.nome||'Cliente')}</button>`).join('')}</div></div></div></div>`;
+  document.querySelectorAll('[data-who]').forEach(b=>b.onclick=()=>{G.cid=b.dataset.who;history.replaceState(null,'','#'+TOKEN+'.'+G.cid);entrar()})}
+async function entrar(){let r={};try{const d=await db.doc(`galerias/${TOKEN}/respostas/${G.cid}`).get();if(d.exists)r=d.data()}catch(e){}
+  G.r={sel:[],fav:[],aprov:{},alt:{},...r};G.r.nome=(G.g.clientes[G.cid]||{}).nome||'';
+  if(!sessionStorage.getItem('vis-'+TOKEN)){try{sessionStorage.setItem('vis-'+TOKEN,'1')}catch(e){}salvar({vis:(+G.r.vis||0)+1,ult:hoje()},true)}
+  render();document.addEventListener('keydown',tecla)}
+const cli=()=>(G.g.clientes||{})[G.cid]||{};
+const prazo=()=>cli().prazo||G.g.prazo||'';
+const pausada=()=>!G.r.ok&&prazo()&&prazo()<hoje();
+const somenteVer=()=>G.g.tipo==='Visualização'||G.g.somenteVer||!!G.r.ok||pausada();
+function topo(extra){const g=G.g;const w=(g.empresa||{}).wa;return `<div class="top"><div class="wrap"><h1 class="display">${esc(g.nome||'')}<small>${esc(G.r.nome||'')}${prazo()&&!G.r.ok?' · prazo até '+fdate(prazo()):''}</small></h1>${extra||''}
+  ${g.instrucoes||g.descricao?`<button class="btn sm" data-a="instr">${ic('info',15)} Instruções</button>`:''}${w?`<a class="btn sm ok" href="https://wa.me/${w}?text=${encodeURIComponent('Olá! Sobre a galeria "'+(g.nome||'')+'":')}" target="_blank" rel="noopener">${ic('wa',15)} Ajuda</a>`:''}</div></div>`}
+function aviso(){if(G.r.ok)return `<div class="banner ok"><b>${G.g.tipo==='Álbum'?'Aprovação enviada':'Seleção concluída'} em ${fdate(G.r.ok)}.</b> Obrigado! Se precisar mudar algo, fale com a gente pelo WhatsApp.</div>`;
+  if(pausada())return `<div class="banner warn"><b>O prazo terminou em ${fdate(prazo())}.</b> A galeria está pausada. Fale com a gente pelo WhatsApp para liberar.</div>`;return ''}
+function render(){if(G.g.tipo==='Álbum')return renderAlbum();renderFotos()}
+/* ===== seleção / visualização ===== */
+function lista(){const I=G.g.imgs||[];const S=new Set(G.r.sel||[]),F=new Set(G.r.fav||[]);
+  if(G.view==='sel')return I.filter(x=>S.has(x.n));if(G.view==='fav')return I.filter(x=>F.has(x.n));if(G.view.startsWith('l:'))return I.filter(x=>x.l===G.view.slice(2));return I}
+function renderFotos(){const g=G.g,sel=!somenteVer()&&g.tipo!=='Visualização',ns=(G.r.sel||[]).length,lim=+g.limite||0;const L=lista();const S=new Set(G.r.sel||[]),F=new Set(G.r.fav||[]);
+  const leg=g.legenda||{};const cores=[...new Set((g.imgs||[]).map(x=>x.l).filter(Boolean))];
+  const cnt=g.tipo==='Visualização'?'':`<span class="count ${lim&&ns>lim?'over':''}">${ns}${lim?' / '+lim:''} selecionada${ns===1?'':'s'}</span>`;
+  $('#app').innerHTML=topo(cnt)+`<div class="wrap">${aviso()}
+   <div class="bar"><div class="seg"><button data-v="todas" class="${G.view==='todas'?'on':''}">Todas (${(g.imgs||[]).length})</button>${g.tipo!=='Visualização'?`<button data-v="sel" class="${G.view==='sel'?'on':''}">Selecionadas (${ns})</button>`:''}${g.favoritos!==false?`<button data-v="fav" class="${G.view==='fav'?'on':''}">Favoritas (${(G.r.fav||[]).length})</button>`:''}</div>
+   ${cores.length?`<div class="seg">${cores.map(c=>`<button data-v="l:${c}" class="${G.view==='l:'+c?'on':''}"><span class="dot" style="background:${LBLC[c]||'#888'}"></span> ${esc(leg[c]||c)}</button>`).join('')}</div>`:''}
+   ${lim&&g.mostrarPreco&&+g.precoExtra?`<span class="muted" style="font-size:13px">Pacote com ${lim} fotos · foto extra ${brl(g.precoExtra)}</span>`:''}</div>
+   <div class="grid">${L.slice(0,G.lim).map(x=>{const k=(g.imgs||[]).indexOf(x);return `<div class="tile ${S.has(x.n)?'s':''} ${x.h>x.w?'v':''}" data-o="${k}"><img loading="lazy" src="${esc(x.t||x.u)}" alt="${esc(x.n)}">${x.l?`<span class="lb"><span class="dot" style="background:${LBLC[x.l]||'#888'};width:12px;height:12px;border:2px solid #fff"></span></span>`:''}<span class="nm">${esc(x.n)}</span><span class="acts">${g.favoritos!==false&&!G.r.ok?`<button class="cb fav ${F.has(x.n)?'on':''}" data-f="${k}" aria-label="Favorita">${ic('heart',16)}</button>`:''}${sel?`<button class="cb sel ${S.has(x.n)?'on':''}" data-s="${k}" aria-label="Selecionar">${ic('check',18)}</button>`:''}</span></div>`}).join('')||'<p class="muted">Nenhuma foto aqui.</p>'}</div>
+   ${L.length>G.lim?`<div class="more"><button class="btn" data-a="mais">Mostrar mais fotos (${L.length-G.lim})</button></div>`:''}</div>
+   ${sel?`<button class="btn pri fab" data-a="fim">${ic('check')} Finalizar seleção (${ns})</button>`:''}${g.tipo==='Visualização'&&!G.r.ok&&!pausada()?`<button class="btn pri fab" data-a="fimv">${ic('check')} Já vi as fotos</button>`:''}`;
+  liga()}
+function toggle(k,campo){const x=(G.g.imgs||[])[k];if(!x)return;const L=[...(G.r[campo]||[])];const i=L.indexOf(x.n);
+  if(i>=0)L.splice(i,1);else{if(campo==='sel'){const lim=+G.g.limite||0;if(lim&&L.length>=lim){if(/Bloquear/i.test(G.g.limiteModo||'')){toast(`Você já escolheu as ${lim} fotos do pacote.`);return}if(L.length===lim)toast(`Passou das ${lim} fotos do pacote${G.g.mostrarPreco&&+G.g.precoExtra?': cada foto extra custa '+brl(G.g.precoExtra):''}.`)}}L.push(x.n)}
+  salvar({[campo]:L})}
+function lightbox(k){G.lb=k;const g=G.g,x=(g.imgs||[])[k];if(!x){fecharLb();return}const S=new Set(G.r.sel||[]),F=new Set(G.r.fav||[]);const sel=!somenteVer()&&g.tipo!=='Visualização';
+  let w=$('.lb-w');if(!w){w=document.createElement('div');w.className='lb-w';document.body.appendChild(w);document.body.style.overflow='hidden'}
+  w.innerHTML=`<div class="hd"><span>${k+1} de ${(g.imgs||[]).length} · ${esc(x.n)}</span><span style="flex:1"></span>${g.download?`<a class="btn sm" href="${esc(x.u)}" target="_blank" rel="noopener" download>${ic('dl',15)} Baixar</a>`:''}<button class="btn sm" data-a="lbx" aria-label="Fechar">${ic('x')}</button></div>
+   <div class="st"><img src="${esc(x.u)}" alt="${esc(x.n)}" oncontextmenu="${g.download?'':'return false'}"><button class="nav p" data-a="lbp" aria-label="Anterior">${ic('l',26)}</button><button class="nav n" data-a="lbn" aria-label="Próxima">${ic('r',26)}</button></div>
+   <div class="ft">${g.favoritos!==false&&!G.r.ok?`<button class="btn fav ${F.has(x.n)?'on':''}" data-a="lbf">${ic('heart')} ${F.has(x.n)?'Favorita':'Favoritar'}</button>`:''}${sel?`<button class="btn sel ${S.has(x.n)?'on':''}" data-a="lbs">${ic('check')} ${S.has(x.n)?'Selecionada':'Selecionar'}</button>`:''}</div>`;
+  w.onclick=clique;let sx=0;w.ontouchstart=e=>{sx=e.touches[0].clientX};w.ontouchend=e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)passo(dx<0?1:-1)}}
+function passo(d){if(G.g.tipo==='Álbum'){irPg(G.pg+d);return}const L=lista();const I=G.g.imgs||[];const pos=L.indexOf(I[G.lb]);const nx=L[pos+d];if(nx)lightbox(I.indexOf(nx))}
+function fecharLb(){const w=$('.lb-w');if(w)w.remove();document.body.style.overflow='';G.lb=-1;render()}
+function tecla(e){if($('.ov'))return;if(e.key==='Escape'&&$('.lb-w'))fecharLb();if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')passo(1);if(e.key==='ArrowLeft')passo(-1);
+  if(G.lb>=0&&(e.key===' '||e.key.toLowerCase()==='s')&&!somenteVer()&&G.g.tipo==='Seleção de fotos'){e.preventDefault();toggle(G.lb,'sel');lightbox(G.lb)}}
+/* ===== álbum ===== */
+function paginas(){const g=G.g;const P=[];if(g.capa)P.push({...g.capa,cap:'Capa'});(g.paginas||[]).forEach((x,i)=>P.push({...x,cap:'Página '+(i+1)}));if(g.contracapa)P.push({...g.contracapa,cap:'Contracapa'});return P}
+function grupos(){const P=paginas();const dup=/Dupla/i.test(G.g.paginasModo||'');if(!dup)return P.map((x,i)=>({ks:[i],cap:x.cap}));const out=[];let i=0;
+  if(P[0]&&P[0].cap==='Capa'){out.push({ks:[0],cap:'Capa'});i=1}const fimC=P.length&&P[P.length-1].cap==='Contracapa';const end=fimC?P.length-1:P.length;
+  for(;i<end;i+=2){const ks=[i];if(i+1<end)ks.push(i+1);out.push({ks,cap:ks.map(k=>P[k].cap).join(' e ')})}if(fimC)out.push({ks:[P.length-1],cap:'Contracapa'});return out}
+const gkey=gr=>String(gr.ks[0]);
+function estado(gr){const k=gkey(gr);if((G.r.alt||{})[k])return 'c';if((G.r.aprov||{})[k])return 'a';return ''}
+function irPg(i){const GR=grupos();if(i<0||i>=GR.length)return;G.pg=i;G.altEd=false;const w=$('.lb-w');if(w){const P=paginas();lbAlbum(GR[i],P)}renderAlbum()}
+function lbAlbum(gr,P){let w=$('.lb-w');if(!w){w=document.createElement('div');w.className='lb-w';document.body.appendChild(w);document.body.style.overflow='hidden'}
+  w.innerHTML=`<div class="hd"><span>${esc(gr.cap)}</span><span style="flex:1"></span><button class="btn sm" data-a="lbx">${ic('x')}</button></div><div class="st"><div class="spread ${gr.ks.length>1?'two':''}" style="height:100%;align-items:center">${gr.ks.map(k=>`<img src="${esc(P[k].u)}" alt="${esc(P[k].cap)}" style="max-height:100%">`).join('')}</div><button class="nav p" data-a="lbp">${ic('l',26)}</button><button class="nav n" data-a="lbn">${ic('r',26)}</button></div><div class="ft"></div>`;w.onclick=clique}
+function renderAlbum(){const P=paginas(),GR=grupos();if(!GR.length){$('#app').innerHTML=topo()+`<div class="wrap"><div class="banner">As páginas do álbum ainda estão sendo enviadas. Volte mais tarde.</div></div>`;liga();return}
+  if(G.pg>=GR.length)G.pg=0;const gr=GR[G.pg],st=estado(gr),k=gkey(gr),ro=somenteVer();
+  const nA=GR.filter(x=>estado(x)==='a').length,nC=GR.filter(x=>estado(x)==='c').length;
+  $('#app').innerHTML=topo(`<span class="count">${nA} de ${GR.length} aprovadas${nC?` · ${nC} com alteração`:''}</span>`)+`<div class="wrap">${aviso()}<div class="alb">
+   <div class="stage"><div class="spread ${gr.ks.length>1?'two':''}">${gr.ks.map(i=>`<img src="${esc(P[i].u)}" alt="${esc(P[i].cap)}" data-a="zoom">`).join('')}</div>
+    <button class="nav p" data-a="pp" ${G.pg?'':'disabled'} aria-label="Anterior">${ic('l',26)}</button><button class="nav n" data-a="pn" ${G.pg<GR.length-1?'':'disabled'} aria-label="Próxima">${ic('r',26)}</button></div>
+   <div class="pinfo"><b>${esc(gr.cap)}</b><span class="muted">(${G.pg+1} de ${GR.length})</span>${st==='a'?`<span class="pst a">${ic('check',13)} Aprovada</span>`:st==='c'?`<span class="pst c">${ic('edit',13)} Alteração pedida</span>`:''}</div>
+   ${ro?((G.r.alt||{})[k]?`<div class="alt"><div class="banner warn"><b>Alteração pedida:</b> ${esc(G.r.alt[k])}</div></div>`:''):`<div class="pinfo"><button class="btn ok" data-a="aprovar">${ic('check')} ${st==='a'?'Aprovada':'Aprovar'}</button><button class="btn warn" data-a="alterar">${ic('edit')} ${st==='c'?'Editar alteração':'Pedir alteração'}</button></div>
+   ${G.altEd?`<div class="alt"><textarea class="inp" id="altx" placeholder="Descreva o que deseja mudar nesta página (trocar foto, posição, texto…)">${esc((G.r.alt||{})[k]||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end">${st==='c'?`<button class="btn" data-a="altdel">Tirar alteração</button>`:''}<button class="btn pri" data-a="altok">Salvar alteração</button></div></div>`:(st==='c'?`<div class="alt"><div class="banner warn">${esc(G.r.alt[k])}</div></div>`:'')}`}
+   <div class="thumbs">${GR.map((x,i)=>{const s=estado(x);return `<button class="${i===G.pg?'on':''}" data-pg="${i}" aria-label="${esc(x.cap)}"><img loading="lazy" src="${esc(P[x.ks[0]].t||P[x.ks[0]].u)}" alt="">${s?`<span class="s" style="background:${s==='a'?'var(--ok)':'var(--warn)'}"></span>`:''}<small>${esc(x.cap.replace(/Página /g,'p. '))}</small></button>`}).join('')}</div>
+  </div></div>${ro?'':`<button class="btn pri fab" data-a="fima">${ic('check')} Finalizar aprovação (${nA+nC} de ${GR.length})</button>`}`;
+  liga();if(!G._top){G._top=1}else{const st=$('.stage');if(st&&st.getBoundingClientRect().top<70)window.scrollTo({top:0,behavior:'smooth'})}const th=$('.thumbs .on');if(th)th.scrollIntoView({block:'nearest',inline:'center'})}
+/* ===== ações ===== */
+function liga(){$('#app').onclick=clique}
+function modal(h){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="sheet">${h}</div>`;o.onclick=e=>{if(e.target===o||e.target.closest('[data-a="mx"]'))o.remove();else clique(e)};document.body.appendChild(o);return o}
+function clique(e){const t=e.target.closest('[data-a],[data-o],[data-s],[data-f],[data-v],[data-pg]');if(!t)return;const d=t.dataset;
+  if(d.s!==undefined){e.stopPropagation();toggle(+d.s,'sel');render();return}if(d.f!==undefined){e.stopPropagation();toggle(+d.f,'fav');render();return}
+  if(d.o!==undefined){lightbox(+d.o);return}if(d.v){G.view=d.v;G.lim=120;render();return}if(d.pg!==undefined){irPg(+d.pg);return}
+  const a=d.a;
+  if(a==='mais'){G.lim+=120;render();return}
+  if(a==='lbx'){fecharLb();return}if(a==='lbp'){passo(-1);return}if(a==='lbn'){passo(1);return}
+  if(a==='lbs'){toggle(G.lb,'sel');lightbox(G.lb);return}if(a==='lbf'){toggle(G.lb,'fav');lightbox(G.lb);return}
+  if(a==='instr'){modal(`<h2 class="display">Instruções</h2>${G.g.descricao?`<div class="pre">${esc(G.g.descricao)}</div>`:''}${G.g.instrucoes?`<div class="pre">${esc(G.g.instrucoes)}</div>`:''}<div><button class="btn pri" data-a="mx">Entendi</button></div>`);return}
+  if(a==='pp'){irPg(G.pg-1);return}if(a==='pn'){irPg(G.pg+1);return}if(a==='zoom'){const GR=grupos();lbAlbum(GR[G.pg],paginas());return}
+  if(a==='aprovar'){const gr=grupos()[G.pg],k=gkey(gr);const ap={...(G.r.aprov||{}),[k]:true},al={...(G.r.alt||{})};delete al[k];salvar({aprov:ap,alt:al});const GR=grupos();if(G.pg<GR.length-1){G.pg++;G.altEd=false}toast('Página aprovada');renderAlbum();return}
+  if(a==='alterar'){G.altEd=!G.altEd;renderAlbum();if(G.altEd)setTimeout(()=>{const x=$('#altx');if(x)x.focus()},30);return}
+  if(a==='altok'){const v=($('#altx').value||'').trim();if(!v){toast('Escreva o que deseja alterar.');return}const k=gkey(grupos()[G.pg]);const al={...(G.r.alt||{}),[k]:v},ap={...(G.r.aprov||{})};delete ap[k];salvar({alt:al,aprov:ap});G.altEd=false;toast('Alteração salva');renderAlbum();return}
+  if(a==='altdel'){const k=gkey(grupos()[G.pg]);const al={...(G.r.alt||{})};delete al[k];salvar({alt:al});G.altEd=false;renderAlbum();return}
+  if(a==='fima'){const GR=grupos();const falta=GR.filter(x=>!estado(x));const nC=GR.filter(x=>estado(x)==='c').length;
+    if(falta.length){modal(`<h2 class="display">Faltam páginas</h2><p style="margin:0">Ainda faltam <b>${falta.length}</b> página(s) para você aprovar ou pedir alteração: ${esc(falta.slice(0,12).map(x=>x.cap).join(', '))}${falta.length>12?'…':''}.</p><div><button class="btn pri" data-a="mx">Voltar ao álbum</button></div>`);return}
+    modal(`<h2 class="display">Finalizar aprovação</h2><p style="margin:0">${nC?`Você pediu alteração em <b>${nC}</b> página(s). Vamos fazer os ajustes e te enviar de novo.`:'Todas as páginas foram aprovadas. Seu álbum vai para impressão.'}</p><label style="font-weight:600;font-size:14px">Algum recado? (opcional)</label><textarea class="inp" id="obs" style="min-height:80px">${esc(G.r.obs||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-a="mx">Voltar</button><button class="btn pri" data-a="okfim">Enviar aprovação</button></div>`);return}
+  if(a==='fim'){const ns=(G.r.sel||[]).length,lim=+G.g.limite||0;if(!ns){toast('Selecione as fotos antes de finalizar.');return}const ex=lim&&ns>lim?ns-lim:0;
+    modal(`<h2 class="display">Finalizar seleção</h2><p style="margin:0">Você selecionou <b>${ns}</b> foto${ns===1?'':'s'}${lim?` de ${lim} do pacote`:''}.${ex?` São <b>${ex}</b> foto(s) extra${G.g.mostrarPreco&&+G.g.precoExtra?` (${brl(ex*G.g.precoExtra)})`:''}.`:''}${lim&&ns<lim?` Ainda pode escolher mais ${lim-ns}.`:''}</p><p class="muted" style="margin:0">Depois de finalizar, não dá para mudar a seleção por aqui.</p><label style="font-weight:600;font-size:14px">Algum recado? (opcional)</label><textarea class="inp" id="obs" style="min-height:80px">${esc(G.r.obs||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-a="mx">Continuar escolhendo</button><button class="btn pri" data-a="okfim">Finalizar</button></div>`);return}
+  if(a==='fimv'){salvar({ok:hoje()},true);toast('Obrigado!');render();return}
+  if(a==='okfim'){const o=$('#obs');salvar({obs:o?o.value.trim():'',ok:hoje()},true).then(()=>{document.querySelectorAll('.ov').forEach(x=>x.remove());toast('Enviado! Obrigado.');G.pg=0;render()});return}
+}
+boot();
+</script>
+</body>
+</html>

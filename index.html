@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261029192720';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261030084248';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1852,7 +1852,7 @@ VIEWS.prova=()=>{
      </div>
      ${p.descricao?`<div><div style="font-weight:600;font-size:12px;margin-bottom:4px">Descrição</div><div class="txtbox">${esc(p.descricao)}</div></div>`:''}
      ${p.instrucoes?`<div><div style="font-weight:600;font-size:12px;margin-bottom:4px">Instruções</div><div class="txtbox">${esc(p.instrucoes)}</div></div>`:''}
-     <div><div style="font-weight:600;font-size:12px;margin-bottom:4px">Link direto</div>${p.link?`<div class="txtbox mono" style="font-size:12px;overflow-wrap:anywhere">${esc(p.link)}</div>`:`<span class="muted" style="font-size:12px">Cole o link da galeria do cliente em Editar.</span>`}</div>
+     <div><div style="font-weight:600;font-size:12px;margin-bottom:4px">Link direto</div>${window.__HOSTED&&p.galeria?`<div class="txtbox mono" style="font-size:12px;overflow-wrap:anywhere">${esc(pvLink(p))}</div>`:p.link?`<div class="txtbox mono" style="font-size:12px;overflow-wrap:anywhere">${esc(p.link)}</div>`:`<span class="muted" style="font-size:12px">Cole o link da galeria do cliente em Editar.</span>`}</div>
    </div></section>`;
   // clientes
   const dr=T.draft||cli.map(c=>({...c}));
@@ -1871,7 +1871,7 @@ VIEWS.prova=()=>{
      <td><div class="acts" style="position:relative"><button class="btn sm" style="background:var(--ok);border-color:var(--ok);color:#fff;padding:4px 8px" title="Ações" data-clmenu="${k}">${ic('gear',14)} ▾</button></div></td></tr>`}).join('')||'<tr><td colspan="8" class="muted">Nenhum cliente nesta prova.</td></tr>'}
    </tbody></table></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="search" id="pv-addcl" list="dl-pvcl" placeholder="Adicionar cliente: digite o nome…" style="flex:1 1 260px"><datalist id="dl-pvcl">${S.data.contatos.map(r=>`<option value="${esc(refLabel('contatos',r))}">`).join('')}</datalist><button class="btn sm" data-claddbtn>${ic('plus',13)} Adicionar</button><span style="margin-left:auto"></span>${T.draft?`<button class="btn" data-clundo>Desfazer</button><button class="btn pri" data-clsave>Salvar</button>`:''}</div>
-   <div class="banner" style="border-style:solid;border-color:var(--line);background:var(--surface-2)"><span><b>Sobre a coluna Prazo:</b></span></div>
+   ${pvRespHtml(p)}<div class="banner" style="border-style:solid;border-color:var(--line);background:var(--surface-2)"><span><b>Sobre a coluna Prazo:</b></span></div>
    <table class="tbl leg-table"><thead><tr><th>Prazo</th><th>Significado</th></tr></thead><tbody>
      <tr><td>Apenas uma data</td><td>Mostra a data prazo para este cliente.</td></tr>
      <tr><td><span style="color:var(--warn)">${ic('pause',14)}</span> + uma data</td><td>A galeria está pausada, pois o prazo para seleção / aprovação expirou.</td></tr>
@@ -3207,7 +3207,7 @@ document.addEventListener('click',async e=>{
   if(d.signsend){sendSign(d.signsend,t);return}
   if(d.signverify){t.disabled=true;await verifySign([d.signverify]);openSign(d.signverify);return}
   if(d.signcheck!==undefined){const l=pendSign();if(!l.length){toast('Nenhum contrato aguardando assinatura.');return}t.disabled=true;await verifySign(l.map(x=>x.id));t.disabled=false;return}
-  if(d.copytxt){try{await navigator.clipboard.writeText(d.copytxt);toast('Link copiado')}catch(err){toast('Selecione o link e copie com Ctrl+C')}return}
+  if(d.copytxt){try{await navigator.clipboard.writeText(d.copytxt);toast('Copiado')}catch(err){toast('Selecione o link e copie com Ctrl+C')}return}
   if(d.cstatus){await patch('pedidos',d.pid,{contratoStatus:d.cstatus});$$('[data-cstatus]').forEach(b=>b.classList.toggle('on',b.dataset.cstatus===d.cstatus));toast('Contrato: '+d.cstatus);return}
   if(d.copy!==undefined){const txt=$('#contractTxt').textContent;try{await navigator.clipboard.writeText(txt);toast('Contrato copiado')}catch(err){const r=document.createRange();r.selectNodeContents($('#contractTxt'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Texto selecionado. Use Ctrl+C para copiar.')}return}
   if(d.iadd!==undefined){$('#itemRows').insertAdjacentHTML('beforeend',itemRow({qtd:1}));updItemsTotal();return}
@@ -4209,11 +4209,7 @@ O prazo para {acao} é até o dia {prazo}.
 *1º Acesse o link a seguir:*
 {link}
 
-*2º Crie uma senha para você.*
-
-*3º Utilize a seguinte senha para acessar sua galeria:* {senha}
-
-*4º Dica Importante:* Faça um cadastro no sistema e anote em um lugar seguro o *login e senha* para os próximos acessos.
+*2º Utilize a seguinte senha para acessar sua galeria:* {senha}
 
 Qualquer dúvida me chame.
 
@@ -4225,8 +4221,8 @@ Senha: {senha}
 Prazo: {prazo}`;
 function pvVars(p,c){const ct=S.data.contatos.find(x=>x.id===c.c)||{};const album=p.tipo==='Álbum';
   return {nome:(SCHEMAS.contatos.labelOf(ct)||'').split(' ')[0],prova:p.nome||'',liberada:album?'Seu álbum está pronto para aprovação.':p.tipo==='Visualização'?'Suas fotos estão disponíveis para visualização.':'Está liberada a seleção para a escolha das fotos.',
-    acao:album?'Aprovação de álbum':'seleção das fotos',prazo:c.prazo?fdate(c.prazo):'—',link:p.link||'(link da galeria)',senha:p.senha||'—'}}
-const pvFill=(t,V)=>String(t||'').replace(/\{(\w+)\}/g,(m,k)=>k in V?V[k]:m).replace(/\n*\*3º[^\n]*—\n?/,'\n');
+    acao:album?'Aprovação de álbum':'seleção das fotos',prazo:c.prazo?fdate(c.prazo):'—',link:(window.__HOSTED&&p.galeria)?pvLink(p,c.c):(p.link||'(link da galeria)'),senha:p.privado!==false&&p.senha?p.senha:'—'}}
+const pvFill=(t,V)=>String(t||'').replace(/\{(\w+)\}/g,(m,k)=>k in V?V[k]:m).replace(/\n*\*[23]º[^\n]*senha[^\n]*—\n?/i,'\n');
 function pvAssunto(p){return (p.tipo==='Álbum'?'Aprovação de álbum':p.tipo==='Visualização'?'Suas fotos':'Seleção de fotos')+' - '+(p.nome||'')}
 function pvCli(){const P=S.ui.pv;const p=S.data.provas.find(x=>x.id===P.id);return {P,p,dr:P.draft||pvClientes(p).map(c=>({...c}))}}
 async function pvCliSalvar(dr,msg){const {P,p}=pvCli();P.draft=null;await pvSave(p.id,{clientes:dr,atividade:logAct(p,msg),status:dr.length&&dr.every(c=>c.ok)?'Concluída':(p.status==='Concluída'?'Ativa':p.status)});render()}
@@ -4268,6 +4264,49 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   if(d.pvwago!==undefined){const k=d.pvwago;let tel=String($(`[data-pvwatel="${k}"]`).value||'').replace(/\D/g,'');if(tel.length<10){toast('Informe o celular com DDD.',true);return}if(!tel.startsWith('55'))tel='55'+tel;
     window.open('https://wa.me/'+tel+'?text='+encodeURIComponent($(`[data-pvwatxt="${k}"]`).value),'_blank','noopener');const {p,dr}=pvCli();const c=dr[+k];if(c){c.convite=today();await pvSave(p.id,{clientes:dr,atividade:logAct(p,'Link de acesso enviado por WhatsApp para '+contatoNome(c.c))})}return}
 },true);
+
+/* ===== Galeria do cliente (galeria.html no GitHub Pages + Firestore) ===== */
+const GAL_BASE='https://emelchioretto-web.github.io/grupo-e-crm/galeria.html';
+const pvLink=(p,cid)=>GAL_BASE+'#'+p.galeria+(cid?'.'+cid:'');
+async function pvSha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+const pvTok=()=>{const a=new Uint8Array(15);crypto.getRandomValues(a);return [...a].map(x=>'abcdefghijkmnpqrstuvwxyz23456789'[x%32]).join('')};
+async function pvPublicar(id){if(!window.__HOSTED||!window.__CRM_HOST)return;const fs=window.__CRM_HOST.fs;let p=S.data.provas.find(x=>x.id===id);if(!p)return;
+  if(!p.galeria){const t=pvTok();await patch('provas',p.id,{galeria:t});p={...p,galeria:t}}
+  const im=x=>x&&x.a?{u:blobUrl(x.a),n:x.n||'',w:x.w||0,h:x.h||0,...(x.l?{l:x.l}:{})}:null;
+  const E=cfg().estudio||{};let wa=String(E.celular||E.fone||'').replace(/\D/g,'');if(wa&&wa.length<=11)wa='55'+wa;
+  const cl={};pvClientes(p).forEach(c=>{if(c.c)cl[c.c]={nome:contatoNome(c.c)||'Cliente',prazo:c.prazo||''}});
+  const doc={ativo:!p.galeriaPausada,nome:p.nome||'',tipo:p.tipo||'Seleção de fotos',paginasModo:p.paginasModo||'Simples',privado:p.privado!==false&&!!p.senha,senhaH:p.privado!==false&&p.senha?await pvSha(String(p.senha).trim().toLowerCase()):'',
+    descricao:p.descricao||'',instrucoes:p.instrucoes||'',legenda:pvLeg(p),limite:+p.limite||0,limiteModo:p.limiteModo||'Apenas alertar',mostrarPreco:!!p.mostrarPreco,precoExtra:+p.precoExtra||0,
+    download:!!p.download,favoritos:p.favoritos!==false,somenteVer:!!p.somenteVer,prazo:p.termino||'',clientes:cl,empresa:{nome:E.nome||'',wa},
+    imgs:p.tipo==='Álbum'?[]:(p.imgs||[]).map(im).filter(Boolean),capa:p.tipo==='Álbum'?im(p.capa):null,contracapa:p.tipo==='Álbum'?im(p.contracapa):null,paginas:p.tipo==='Álbum'?(p.paginas||[]).map(im).filter(Boolean):[],atualizadoEm:new Date().toISOString()};
+  await fs.doc('galerias/'+p.galeria).set(doc);return p.galeria}
+const _pvPub={};function pvPublicarDepois(id){clearTimeout(_pvPub[id]);_pvPub[id]=setTimeout(()=>pvPublicar(id).catch(e=>console.warn('galeria',e)),1500)}
+const _savePv=save;save=async function(col,rec){const id=await _savePv(col,rec);if(col==='provas'&&window.__HOSTED)pvPublicarDepois(typeof id==='string'?id:rec.id);return id};
+/* respostas dos clientes -> prova */
+let _pvRespOn=false;
+function pvRespostas(){if(_pvRespOn||!window.__HOSTED||!window.__CRM_HOST)return;_pvRespOn=true;const fs=window.__CRM_HOST.fs;if(!fs.collectionGroup)return;
+  fs.collectionGroup('respostas').onSnapshot(snap=>{S.pvResp=S.pvResp||{};snap.docs.forEach(d=>{const t=d.ref.parent.parent.id;(S.pvResp[t]=S.pvResp[t]||{})[d.id]=d.data()});schedule();if(S.dono)pvAplicarRespostas()},e=>{_pvRespOn=false;console.warn('respostas',e)})}
+async function pvAplicarRespostas(){for(const p of S.data.provas.filter(x=>x.galeria&&S.pvResp&&S.pvResp[x.galeria])){const R=S.pvResp[p.galeria];const old=p.respostas||{};let mud=false;const novos=[];
+    const cl=pvClientes(p).map(c=>({...c}));const resp={...old};
+    for(const cid in R){const r=R[cid];if(old[cid]&&old[cid].em===r.em)continue;mud=true;resp[cid]={sel:r.sel||[],fav:r.fav||[],aprov:r.aprov||{},alt:r.alt||{},obs:r.obs||'',ok:r.ok||'',em:r.em||''};
+      const c=cl.find(x=>x.c===cid);if(!c)continue;const album=p.tipo==='Álbum';
+      c.vis=+r.vis||c.vis||0;if(r.ult)c.ult=r.ult;c.sel=album?Object.keys(r.aprov||{}).length:(r.sel||[]).length;c.fav=album?Object.keys(r.alt||{}).length:(r.fav||[]).length;
+      if(r.ok&&!c.ok){c.ok=r.ok;novos.push(c)}c.alt=album&&Object.keys(r.alt||{}).length>0}
+    if(!mud)continue;const tudo=cl.length&&cl.every(c=>c.ok);
+    await _savePv('provas',{...p,clientes:cl,respostas:resp,status:tudo?'Concluída':p.status,atividade:novos.length?logAct(p,novos.map(c=>contatoNome(c.c)+(p.tipo==='Álbum'?' finalizou a aprovação do álbum':' finalizou a seleção')).join('; ')):p.atividade});
+    for(const c of novos){const r=resp[c.c]||{};const album=p.tipo==='Álbum';const nA=Object.keys(r.alt||{}).length;
+      const txt=`${contatoNome(c.c)} ${album?'finalizou a aprovação do álbum':'finalizou a seleção'} "${p.nome}".\n\n${album?`Páginas aprovadas: ${Object.keys(r.aprov||{}).length}\nPáginas com alteração: ${nA}`:`Fotos selecionadas: ${(r.sel||[]).length}${p.limite?' de '+p.limite:''}`}${r.obs?'\n\nRecado: '+r.obs:''}\n\nAbra a prova no CRM para ver os detalhes.`;
+      toast(contatoNome(c.c)+(album?' finalizou a aprovação do álbum':' finalizou a seleção'));
+      try{const E=cfg().estudio||{};if(E.email)await gmEnviar({para:E.email,assunto:(album?'Álbum aprovado: ':'Seleção concluída: ')+p.nome,texto:txt})}catch(e){}}}}
+setTimeout(function pvRespTenta(){if(window.__HOSTED&&S.loaded&&S.loaded.has&&S.loaded.has('provas'))pvRespostas();else setTimeout(pvRespTenta,4000)},6000);
+function pvRespHtml(p){const R=p.respostas||{};const album=p.tipo==='Álbum';const L=pvClientes(p).filter(c=>R[c.c]);
+  const lk=p.galeria&&window.__HOSTED?`<div class="panel" style="padding:12px;display:grid;gap:8px"><b style="font-size:14px">Galeria do cliente</b><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="search mono" readonly value="${esc(pvLink(p))}" onclick="this.select()" style="flex:1 1 280px;font-size:12px"><button class="btn sm" data-copytxt="${esc(pvLink(p))}">Copiar</button><a class="btn sm" href="${esc(pvLink(p,(pvClientes(p)[0]||{}).c||''))}" target="_blank" rel="noopener">Abrir como cliente</a><button class="btn sm" data-pvpub="${p.id}">${ic('refresh',13)} Atualizar galeria</button></div><span class="muted" style="font-size:12px">Cada cliente recebe o próprio link pelo "Enviar link de acesso". A galeria atualiza sozinha quando você salva a prova ou envia imagens.</span></div>`:(window.__HOSTED?`<div><button class="btn sm pri" data-pvpub="${p.id}">${ic('upload',13)} Criar galeria do cliente</button></div>`:'');
+  return lk+L.map(c=>{const r=R[c.c];const nm=esc(contatoNome(c.c));
+    if(album){const al=Object.entries(r.alt||{});const P=[p.capa?'Capa':null,...(p.paginas||[]).map((_,i)=>'Página '+(i+1)),p.contracapa?'Contracapa':null].filter(Boolean);
+      return `<div class="panel" style="padding:12px;display:grid;gap:6px"><b>${nm}</b><span class="muted" style="font-size:12.5px">${Object.keys(r.aprov||{}).length} aprovada(s) · ${al.length} com alteração${r.ok?' · finalizou em '+fdate(r.ok):''}</span>${al.map(([k,v])=>`<div style="font-size:13px"><b>${esc(P[+k]||'Página '+(+k+1))}:</b> ${esc(v)}</div>`).join('')}${r.obs?`<div style="font-size:13px"><b>Recado:</b> ${esc(r.obs)}</div>`:''}</div>`}
+    const sel=r.sel||[],fav=r.fav||[];const nomes=sel.map(n=>n.replace(/\.[a-z0-9]+$/i,'')).join(', ');
+    return `<div class="panel" style="padding:12px;display:grid;gap:6px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${nm}</b><span class="muted" style="font-size:12.5px">${sel.length} selecionada(s)${p.limite?' de '+p.limite:''} · ${fav.length} favorita(s)${r.ok?' · finalizou em '+fdate(r.ok):''}</span><span class="sp" style="flex:1"></span>${sel.length?`<button class="btn sm" data-copytxt="${esc(nomes)}" title="Cole no filtro do Lightroom">${ic('copy',13)} Copiar nomes</button>`:''}</div>${sel.length?`<div class="mono" style="font-size:12px;max-height:90px;overflow:auto;color:var(--muted)">${esc(nomes)}</div>`:''}${r.obs?`<div style="font-size:13px"><b>Recado:</b> ${esc(r.obs)}</div>`:''}</div>`}).join('')}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-pvpub]');if(!t)return;t.disabled=true;try{await pvPublicar(t.dataset.pvpub);toast('Galeria do cliente atualizada')}catch(err){toast('Não consegui publicar a galeria: '+((err&&err.message)||err),true)}t.disabled=false;render()});
 /* ===== Anexar contratos em lote (PDFs → pedidos) ===== */
 const LOTE_STOP=new Set('contrato contratos assinado assinada pdf de da do das dos e a o com para alterado aditivo cas casamento aniversario aniver niver anos festa evento i ii iii iv copia'.split(' '));
 function loteToks(s){return normTxt(s).replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w.length>1&&!LOTE_STOP.has(w)&&!/^(19|20)\d\d$/.test(w))}
