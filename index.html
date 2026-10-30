@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261030091724';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261030093116';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1803,15 +1803,15 @@ async function uploadToProva(id,files,section){
 }
 function upProg(){const el=$('#upProg');if(!el||!S.up)return;const u=S.up;el.hidden=false;el.innerHTML=`<b>Enviando ${u.done} de ${u.total}…</b><div class="track" style="height:8px;--c:var(--accent)"><i style="width:${Math.round(u.done/u.total*100)}%"></i></div><span class="muted">As imagens são reduzidas para no máximo ${S.data.provas.find(x=>x.id===u.id)?.tipo==='Álbum'?'2600 px':(cfg().provas.redim?cfg().provas.maxW+' × '+cfg().provas.maxH+' px':'1800 px')} antes de subir. Não feche a página.${u.err.length?' · '+u.err.length+' com erro':''}</span>`}
 async function pvDeleteImgs(id,section,which){
-  const p=S.data.provas.find(x=>x.id===id);const A=await getAssets();
+  const p=S.data.provas.find(x=>x.id===id);if(!p)return;const A=await getAssets();
   let list=section==='imgs'?(p.imgs||[]):section==='paginas'?(p.paginas||[]):[p[section]].filter(Boolean);
   const del=which==='all'?list:list.filter(x=>x.a===which);
-  if(A)for(const x of del){try{await A.delete(x.a)}catch(e){}}
   const keep=list.filter(x=>!del.includes(x));const ch={};
   if(section==='imgs')ch.imgs=keep;else if(section==='paginas')ch.paginas=keep;else ch[section]=null;
   if(del.some(x=>x.a===p.capaImg))ch.capaImg=(keep[0]&&keep[0].a)||'';
-  ch.atividade=logAct(p,`${del.length} arquivo(s) excluído(s)`);
+  ch.atividade=logAct(p,`${del.length} arquivo(s) excluído(s)`);ch.imagens=pvImgs({...p,...ch}).length;
   await pvSave(id,ch);toast(del.length+' arquivo(s) excluído(s)');
+  if(A){let i=0;const w=async()=>{while(i<del.length){const x=del[i++];try{await A.delete(x.a)}catch(e){}}};await Promise.all([w(),w(),w(),w()])}
 }
 function dropZone(section,txt){return `<label class="drop" data-drop="${section}">${ic('upload',44)}<span><b style="color:var(--fg)">${txt||'Arraste e solte as imagens aqui ou clique para selecionar'}</b><br>JPG, PNG ou GIF. Pode soltar também os arquivos <span class="mono">.xmp</span> do Lightroom junto, se as fotos forem RAW.</span><input type="file" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.xmp,image/*" data-upfile="${section}" hidden></label>`}
 function imgRows(id,list,section){
@@ -3066,7 +3066,7 @@ document.addEventListener('click',async e=>{
   if(d.lbxclose!==undefined){LBX=null;drawLbx();return}
   if(d.lbxgo){LBX.i=Math.max(0,Math.min(LBX.list.length-1,LBX.i+ +d.lbxgo));drawLbx();return}
   if(d.pvdel){const sec=d.sec;armDelete(t,()=>pvDeleteImgs(S.ui.pv.id,sec,d.pvdel));return}
-  if(d.pvdelall){const sec=d.pvdelall;armDelete(t,()=>pvDeleteImgs(S.ui.pv.id,sec,'all'));return}
+  if(d.pvdelall){const sec=d.pvdelall;const p=S.data.provas.find(x=>x.id===S.ui.pv.id);const n=sec==='imgs'?(p.imgs||[]).length:sec==='paginas'?(p.paginas||[]).length:1;if(!confirm(`Excluir ${n==1?'este arquivo':'todos os '+n+' arquivos'} desta prova? Não dá para desfazer.`))return;t.disabled=true;t.textContent='Excluindo…';pvDeleteImgs(S.ui.pv.id,sec,'all');return}
   if(d.pclone){const p=S.data.provas.find(x=>x.id===d.pclone);if(p){const {id,num,imgs,capa,contracapa,paginas,capaImg,clientes,atividade,mensagens,notasLista,criadoEm,...rest}=p;try{const nid=await save('provas',{...rest,nome:p.nome+' (cópia)',status:'Ativa',ativada:today(),atividade:[{t:'Prova clonada de #'+p.num,em:new Date().toISOString()}]});toast('Prova clonada');openProva(nid,'imagens')}catch(err){failWrite(err)}}return}
   if(d.pdel){armDelete(t,async()=>{const p=S.data.provas.find(x=>x.id===d.pdel);const A=await getAssets();if(A)for(const x of pvImgs(p)){try{await A.delete(x.a)}catch(e){}}try{await removeRec('provas',p.id);toast('Prova excluída');go('provas')}catch(err){failWrite(err)}});return}
   if(d.clact){const P=S.ui.pv;const p=S.data.provas.find(x=>x.id===P.id);const dr=P.draft||pvClientes(p).map(c=>({...c}));const k=+d.k;
