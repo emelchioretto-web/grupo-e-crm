@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261031090114';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261031154913';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2664,7 +2664,6 @@ async function submitForm(){
     if(col==='pedidos'&&rec.id){const old={...rec};setTimeout(()=>pedPosSalvar(old,rec.id),700)}
     if((col==='pedidos'||col==='agenda')&&Array.isArray(out.participantes)){const novos=out.participantes.filter(n=>!(rec.participantes||[]).includes(n));if(novos.length){setTimeout(()=>openAvisar(col,id,novos),250);emAoAgendar(col,id,novos)}}
     if(col==='provas'&&!rec.id)openProva(id,'imagens');
-    if(col==='agenda'&&gcCfg().auto&&S.dono)setTimeout(()=>gcSync(true,id),1500);
   }catch(e){failWrite(e);btn.disabled=false;btn.textContent='Salvar'}
 }
 
@@ -4183,9 +4182,9 @@ async function gcPublicar(ev,mcp){const D=gcDados(ev);const sig=gcSig(D);let g=e
     catch(e){if(!/not.?found|404|deleted/i.test(String(e&&e.message||'')))throw e}}
   const r=await mcp.callTool(GC,'create_event',{...gcBase(D),attendees:D.pessoas.map(x=>({email:x.email,displayName:x.nome}))},{cache:false});const id=gcIdDe(r);
   await patch('agenda',ev.id,{gcal:{id,cal,sig,emails,em:now()}});return 'criado'}
-async function gcSync(silent,soId){if(GC_RUN)return;GC_RUN=true;S.gcErro='';let n={criado:0,atualizado:0,removido:0},er=0;
+async function gcSync(silent,soId,soPub){if(GC_RUN)return;GC_RUN=true;S.gcErro='';let n={criado:0,atualizado:0,removido:0},er=0;
   try{const mcp=await getMcp();if(!mcp)throw new Error('Conectores indisponíveis neste acesso. Abra o CRM no claude.ai.');
-    const L=soId?(S.data.agenda||[]).filter(e=>e.id===soId):gcAlvos();
+    const L=soId?(S.data.agenda||[]).filter(e=>e.id===soId):gcAlvos().filter(e=>!soPub||(e.gcal&&e.gcal.id));
     for(const ev of L){try{const r=await gcPublicar(ev,mcp);if(r)n[r]++}catch(e){er++;S.gcErro=mcpErrMsg(e,'Google Calendar');if(/conect|permit|not_granted|indispon|server/i.test(S.gcErro))break}await sleep(400)}}
   catch(e){er++;S.gcErro=(e&&e.message)||String(e)}
   GC_RUN=false;const tot=n.criado+n.atualizado+n.removido;if(!silent||tot||er)toast(er?`Agenda Google: ${tot} ok, ${er} com erro — ${S.gcErro}`:tot?`Agenda Google da equipe: ${n.criado} novo${n.criado===1?'':'s'}, ${n.atualizado} atualizado${n.atualizado===1?'':'s'}, ${n.removido} removido${n.removido===1?'':'s'}`:'Agenda Google já estava em dia',!!er);if(S.ui.view==='config')render()}
@@ -4204,7 +4203,10 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
   if(t.dataset.gcconv!==undefined){const on=t.dataset.gcconv==='1';if(on&&!confirm('A partir de agora os participantes de cada evento recebem convite por e-mail e o evento na agenda deles. Confirmar?'))return;cfgSet('gcal',{...gcCfg(),convidar:on});render();return}
   if(t.dataset.gcauto!==undefined){const on=t.dataset.gcauto==='1';cfgSet('gcal',{...gcCfg(),auto:on,desde:on&&!gcCfg().desde?today():gcCfg().desde});render();if(on)gcSync(false);return}
   t.disabled=true;t.textContent='Publicando…';gcSync(false)});
-(function gcAuto(){const tick=()=>{try{if(!S.dono||S.mode!=='db'||!S.loaded||!S.loaded.has('agenda'))return;if(!gcCfg().auto)return;gcSync(true)}catch(e){}};setTimeout(tick,40000);setInterval(tick,20*60*1000)})();
+(function gcAuto(){const tick=()=>{try{if(!S.dono||S.mode!=='db'||!S.loaded||!S.loaded.has('agenda'))return;if(gcCfg().auto)gcSync(true);else gcSync(true,null,true)}catch(e){}};setTimeout(tick,40000);setInterval(tick,5*60*1000)})();
+/* mudou um compromisso que já está na Google Agenda (inclusive pelos dados de operação vindos do pedido): atualiza lá também */
+const GC_FILA=new Set();let GC_T=null;function gcFila(id){GC_FILA.add(id);clearTimeout(GC_T);GC_T=setTimeout(async function vai(){if(GC_RUN){GC_T=setTimeout(vai,4000);return}const ids=[...GC_FILA];GC_FILA.clear();for(const i of ids){try{await gcSync(true,i)}catch(e){}}},3000)}
+const _saveGc=save;save=async function(col,rec){const id=await _saveGc(col,rec);try{if(col==='agenda'&&S.dono&&S.mode==='db'){const k=typeof id==='string'?id:rec.id;const ev=(S.data.agenda||[]).find(x=>x.id===k)||rec;if(gcCfg().auto||(ev&&ev.gcal&&ev.gcal.id))gcFila(k)}}catch(e){}return id};
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-gccals]');if(!t)return;t.disabled=true;
   try{const mcp=await getMcp();if(!mcp)throw new Error('Conectores indisponíveis neste acesso.');const r=await mcp.callTool(GC,'list_calendars',{},{cache:false});const p=parsePayload(r)||{};S.gcCals=(p.calendars||p.items||[]).map(c=>({id:c.id,summary:c.summary||c.summaryOverride||c.id}));toast(S.gcCals.length+' agendas encontradas');
     const g=S.gcCals.find(c=>/grupo\s*e/i.test(c.summary||''));if(g&&(gcCfg().agenda||'primary')==='primary'){cfgSet('gcal',{...gcCfg(),agenda:g.id,agendaNome:g.summary});toast('Usando a agenda "'+g.summary+'"')}}
