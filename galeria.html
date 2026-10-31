@@ -94,6 +94,21 @@ svg.i{width:18px;height:18px;flex:none}
 .pre{white-space:pre-wrap;font-size:14.5px}
 .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:13px 22px;font-size:15px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:80px;z-index:90;background:#1b2120;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:90vw}
+.tag{background:var(--accent);color:var(--accent-fg);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;max-height:46vh;overflow:auto}
+.pick button{padding:0;border:3px solid transparent;border-radius:8px;background:var(--stage);aspect-ratio:4/3;overflow:hidden}
+.pick button.on{border-color:var(--accent)}
+.pick img{width:100%;height:100%;object-fit:cover;display:block}
+.venda img,.venda .tile,.venda .lb-w{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}
+.venda .tile::after,.venda .st::after{content:"";position:absolute;inset:0;z-index:1}
+.venda .tile .acts,.venda .tile .buy,.venda .st .nav{z-index:2}
+body.esconde #app,body.esconde .lb-w{filter:blur(28px)}
+@media print{body{display:none!important}}
+.buy{position:absolute;right:6px;bottom:6px;z-index:2;border:0;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font-weight:700;font-size:12.5px;padding:6px 10px}
+.buy.on{background:var(--accent);color:var(--accent-fg)}
+.opc{display:grid;gap:8px}.opc .ln{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.qty{display:inline-flex;align-items:center;gap:6px}.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-weight:700}
+.pixqr{display:grid;place-items:center;background:#fff;border-radius:12px;padding:10px}.pixqr img{width:220px;height:220px;image-rendering:pixelated}
 .center{min-height:80vh;display:grid;place-items:center;text-align:center;padding:24px}
 </style>
 </head>
@@ -126,6 +141,7 @@ async function boot(){
   G.g=d.data();document.title=(G.g.nome||'Galeria')+' · Grupo E';
   const cls=Object.keys(G.g.clientes||{});if(!G.cid&&cls.length===1)G.cid=cls[0];
   if(G.g.privado&&G.g.senhaH&&LS.get('gal-'+TOKEN)!==G.g.senhaH)return gate();
+  if(G.g.tipo==='Venda de fotos')return entrarVenda();
   if(!G.cid||!(G.g.clientes||{})[G.cid])return quem();
   entrar()}
 function fim(t,m){const w=(G.g&&G.g.empresa&&G.g.empresa.wa)||'';$('#app').innerHTML=`<div class="center"><div style="max-width:420px;display:grid;gap:10px"><h1 class="display" style="margin:0">${esc(t)}</h1><p class="muted" style="margin:0">${esc(m)}</p>${w?`<div><a class="btn ok" href="https://wa.me/${w}" target="_blank" rel="noopener">${ic('wa')} Falar no WhatsApp</a></div>`:''}</div></div>`}
@@ -151,28 +167,36 @@ function aviso(){if(G.r.ok&&G.g.tipo==='Álbum'&&Object.keys(G.r.alt||{}).length
   if(G.r.ok)return `<div class="banner ok"><b>${G.g.tipo==='Álbum'?'Álbum aprovado':'Seleção concluída'} em ${fdate(G.r.ok)}.</b> Obrigado! Se precisar mudar algo, fale com a gente pelo WhatsApp.</div>`;
   if(pausada())return `<div class="banner warn"><b>O prazo terminou em ${fdate(prazo())}.</b> A galeria está pausada. Fale com a gente pelo WhatsApp para liberar.</div>`;return ''}
 function render(){if(G.g.tipo==='Álbum')return renderAlbum();renderFotos()}
+const preco=()=>G.g.mostrarPreco&&+G.g.precoExtra?+G.g.precoExtra:0;
+function extras(){const lim=+G.g.limite||0,ns=(G.r.sel||[]).length;return lim&&ns>lim?ns-lim:0}
+const nomeF=n=>String(n||'').replace(/\.[a-z0-9]+$/i,'');
+const imgPorNome=n=>(G.g.imgs||[]).find(x=>x.n===n);
 /* ===== seleção / visualização ===== */
 function lista(){const I=G.g.imgs||[];const S=new Set(G.r.sel||[]),F=new Set(G.r.fav||[]);
   if(G.view==='sel')return I.filter(x=>S.has(x.n));if(G.view==='fav')return I.filter(x=>F.has(x.n));if(G.view.startsWith('l:'))return I.filter(x=>x.l===G.view.slice(2));return I}
 function renderFotos(){const g=G.g,sel=!somenteVer()&&g.tipo!=='Visualização',ns=(G.r.sel||[]).length,lim=+g.limite||0;const L=lista();const S=new Set(G.r.sel||[]),F=new Set(G.r.fav||[]);
   const leg=g.legenda||{};const cores=[...new Set((g.imgs||[]).map(x=>x.l).filter(Boolean))];
-  const cnt=g.tipo==='Visualização'?'':`<span class="count ${lim&&ns>lim?'over':''}">${ns}${lim?' / '+lim:''} selecionada${ns===1?'':'s'}</span>`;
+  const ex=extras();const cnt=g.tipo==='Visualização'?'':`<span class="count ${ex?'over':''}">${ns}${lim?' / '+lim:''} selecionada${ns===1?'':'s'}${ex?` · ${ex} extra${ex>1?'s':''}${preco()?' = '+brl(ex*preco()):''}`:''}</span>`;
   $('#app').innerHTML=topo(cnt)+`<div class="wrap">${aviso()}
    <div class="bar"><div class="seg"><button data-v="todas" class="${G.view==='todas'?'on':''}">Todas (${(g.imgs||[]).length})</button>${g.tipo!=='Visualização'?`<button data-v="sel" class="${G.view==='sel'?'on':''}">Selecionadas (${ns})</button>`:''}${g.favoritos!==false?`<button data-v="fav" class="${G.view==='fav'?'on':''}">Favoritas (${(G.r.fav||[]).length})</button>`:''}</div>
    ${cores.length?`<div class="seg">${cores.map(c=>`<button data-v="l:${c}" class="${G.view==='l:'+c?'on':''}"><span class="dot" style="background:${LBLC[c]||'#888'}"></span> ${esc(leg[c]||c)}</button>`).join('')}</div>`:''}
    ${lim&&g.mostrarPreco&&+g.precoExtra?`<span class="muted" style="font-size:13px">Pacote com ${lim} fotos · foto extra ${brl(g.precoExtra)}</span>`:''}</div>
-   <div class="grid">${L.slice(0,G.lim).map(x=>{const k=(g.imgs||[]).indexOf(x);return `<div class="tile ${S.has(x.n)?'s':''} ${x.h>x.w?'v':''}" data-o="${k}"><img loading="lazy" src="${esc(x.t||x.u)}" alt="${esc(x.n)}">${x.l?`<span class="lb"><span class="dot" style="background:${LBLC[x.l]||'#888'};width:12px;height:12px;border:2px solid #fff"></span></span>`:''}<span class="nm">${esc(x.n)}</span><span class="acts">${g.favoritos!==false&&!G.r.ok?`<button class="cb fav ${F.has(x.n)?'on':''}" data-f="${k}" aria-label="Favorita">${ic('heart',16)}</button>`:''}${sel?`<button class="cb sel ${S.has(x.n)?'on':''}" data-s="${k}" aria-label="Selecionar">${ic('check',18)}</button>`:''}</span></div>`}).join('')||'<p class="muted">Nenhuma foto aqui.</p>'}</div>
+   ${G.view==='sel'&&sel&&lim?(ns>lim?`<div class="banner warn"><b>Hora de peneirar:</b> você tem <b>${ns}</b> fotos e o pacote é de <b>${lim}</b>. Desmarque <b>${ns-lim}</b> para ficar no pacote${preco()?`, ou mantenha e pague <b>${brl(ex*preco())}</b> a mais (${ex} × ${brl(preco())})`:''}.</div>`:ns===lim?`<div class="banner ok"><b>Perfeito:</b> você está com as ${lim} fotos do pacote.</div>`:`<div class="banner">Você está com <b>${ns}</b> de ${lim} fotos. Ainda pode escolher mais <b>${lim-ns}</b>.</div>`):''}
+   <div class="grid">${L.slice(0,G.lim).map(x=>{const k=(g.imgs||[]).indexOf(x);return `<div class="tile ${S.has(x.n)?'s':''} ${x.h>x.w?'v':''}" data-o="${k}"><img loading="lazy" src="${esc(x.t||x.u)}" alt="${esc(x.n)}">${G.r.capa===x.n||G.r.caixa===x.n?`<span style="position:absolute;right:6px;top:6px;display:flex;gap:4px">${G.r.capa===x.n?'<span class="tag">Capa</span>':''}${G.r.caixa===x.n?'<span class="tag">Caixa</span>':''}</span>`:''}${x.l?`<span class="lb"><span class="dot" style="background:${LBLC[x.l]||'#888'};width:12px;height:12px;border:2px solid #fff"></span></span>`:''}<span class="nm">${esc(x.n)}</span><span class="acts">${g.favoritos!==false&&!G.r.ok?`<button class="cb fav ${F.has(x.n)?'on':''}" data-f="${k}" aria-label="Favorita">${ic('heart',16)}</button>`:''}${sel?`<button class="cb sel ${S.has(x.n)?'on':''}" data-s="${k}" aria-label="Selecionar">${ic('check',18)}</button>`:''}</span></div>`}).join('')||'<p class="muted">Nenhuma foto aqui.</p>'}</div>
    ${L.length>G.lim?`<div class="more"><button class="btn" data-a="mais">Mostrar mais fotos (${L.length-G.lim})</button></div>`:''}</div>
    ${sel?`<button class="btn pri fab" data-a="fim">${ic('check')} Finalizar seleção (${ns})</button>`:''}${g.tipo==='Visualização'&&!G.r.ok&&!pausada()?`<button class="btn pri fab" data-a="fimv">${ic('check')} Já vi as fotos</button>`:''}`;
   liga()}
 function toggle(k,campo){const x=(G.g.imgs||[])[k];if(!x)return;const L=[...(G.r[campo]||[])];const i=L.indexOf(x.n);
-  if(i>=0)L.splice(i,1);else{if(campo==='sel'){const lim=+G.g.limite||0;if(lim&&L.length>=lim){if(/Bloquear/i.test(G.g.limiteModo||'')){toast(`Você já escolheu as ${lim} fotos do pacote.`);return}if(L.length===lim)toast(`Passou das ${lim} fotos do pacote${G.g.mostrarPreco&&+G.g.precoExtra?': cada foto extra custa '+brl(G.g.precoExtra):''}.`)}}L.push(x.n)}
-  salvar({[campo]:L})}
+  if(i>=0)L.splice(i,1);else{if(campo==='sel'){const lim=+G.g.limite||0;if(lim&&L.length>=lim){if(/Bloquear/i.test(G.g.limiteModo||'')){toast(`Você já escolheu as ${lim} fotos do pacote.`);return}}}L.push(x.n)}
+  salvar({[campo]:L});
+  if(campo==='sel'&&i<0){const lim=+G.g.limite||0;if(lim&&(L.length===lim||L.length===lim+1)&&!G['avisou'+L.length]){G['avisou'+L.length]=1;setTimeout(()=>avisoLimite(L.length,lim),60)}}}
+function avisoLimite(n,lim){if(n===lim)modal(`<h2 class="display">Você chegou às ${lim} fotos do pacote 🎉</h2><p style="margin:0">Pode continuar escolhendo à vontade. No final, abra a pasta <b>Selecionadas</b> e vá desmarcando até chegar nas ${lim} — é como uma peneira.</p>${preco()?`<p style="margin:0">Se preferir ficar com mais fotos, cada foto extra custa <b>${brl(preco())}</b> e o valor aparece somado lá em cima.</p>`:''}<div style="text-align:right"><button class="btn pri" data-a="mx">Continuar escolhendo</button></div>`);
+  else modal(`<h2 class="display">Você passou do pacote</h2><p style="margin:0">Agora são <b>${n}</b> fotos para um pacote de <b>${lim}</b>.${preco()?` Cada foto extra custa <b>${brl(preco())}</b>: até agora, <b>${brl((n-lim)*preco())}</b> a mais.`:''}</p><p style="margin:0">Pode seguir escolhendo. Antes de finalizar, use a pasta <b>Selecionadas</b> para desmarcar as que não quiser.</p><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-a="mx">Continuar escolhendo</button><button class="btn pri" data-a="versel">Abrir Selecionadas</button></div>`)}
 function lightbox(k){G.lb=k;const g=G.g,x=(g.imgs||[])[k];if(!x){fecharLb();return}const S=new Set(G.r.sel||[]),F=new Set(G.r.fav||[]);const sel=!somenteVer()&&g.tipo!=='Visualização';
   let w=$('.lb-w');if(!w){w=document.createElement('div');w.className='lb-w';document.body.appendChild(w);document.body.style.overflow='hidden'}
   w.innerHTML=`<div class="hd"><span>${k+1} de ${(g.imgs||[]).length} · ${esc(x.n)}</span><span style="flex:1"></span>${g.download?`<a class="btn sm" href="${esc(x.u)}" target="_blank" rel="noopener" download>${ic('dl',15)} Baixar</a>`:''}<button class="btn sm" data-a="lbx" aria-label="Fechar">${ic('x')}</button></div>
    <div class="st"><img src="${esc(x.u)}" alt="${esc(x.n)}" oncontextmenu="${g.download?'':'return false'}"><button class="nav p" data-a="lbp" aria-label="Anterior">${ic('l',26)}</button><button class="nav n" data-a="lbn" aria-label="Próxima">${ic('r',26)}</button></div>
-   <div class="ft">${g.favoritos!==false&&!G.r.ok?`<button class="btn fav ${F.has(x.n)?'on':''}" data-a="lbf">${ic('heart')} ${F.has(x.n)?'Favorita':'Favoritar'}</button>`:''}${sel?`<button class="btn sel ${S.has(x.n)?'on':''}" data-a="lbs">${ic('check')} ${S.has(x.n)?'Selecionada':'Selecionar'}</button>`:''}</div>`;
+   <div class="ft">${g.favoritos!==false&&!G.r.ok?`<button class="btn fav ${F.has(x.n)?'on':''}" data-a="lbf">${ic('heart')} ${F.has(x.n)?'Favorita':'Favoritar'}</button>`:''}${sel?`<button class="btn sel ${S.has(x.n)?'on':''}" data-a="lbs">${ic('check')} ${S.has(x.n)?'Selecionada':'Selecionar'}</button>`:''}${sel&&S.has(x.n)&&g.pedeCapa?`<button class="btn ${G.r.capa===x.n?'on sel':''}" data-a="lbcapa">${G.r.capa===x.n?'✓ Capa do álbum':'Usar na capa do álbum'}</button>`:''}${sel&&S.has(x.n)&&g.pedeCaixa?`<button class="btn ${G.r.caixa===x.n?'on sel':''}" data-a="lbcaixa">${G.r.caixa===x.n?'✓ Foto da caixa':'Usar na caixa'}</button>`:''}</div>`;
   w.onclick=clique;let sx=0;w.ontouchstart=e=>{sx=e.touches[0].clientX};w.ontouchend=e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)passo(dx<0?1:-1)}}
 function passo(d){if(G.g.tipo==='Álbum'){irPg(G.pg+d);return}const L=lista();const I=G.g.imgs||[];const pos=L.indexOf(I[G.lb]);const nx=L[pos+d];if(nx)lightbox(I.indexOf(nx))}
 function fecharLb(){const w=$('.lb-w');if(w)w.remove();document.body.style.overflow='';G.lb=-1;render()}
@@ -213,10 +237,16 @@ const INSTR_PAD={'Álbum':`• Passe por todas as páginas usando as setas ou as
 • Qualquer dúvida, use o botão "Ajuda" para falar com a gente no WhatsApp.`,
  'Seleção de fotos':`• Clique no ✓ para selecionar uma foto e no ♥ para marcar como favorita.
 • Clique na foto para ver em tela cheia e use as setas para passar.
-• Use os filtros "Selecionadas" e "Favoritas" para revisar suas escolhas.
-• O contador lá em cima mostra quantas você escolheu do pacote.
+• Pode escolher mais fotos do que o pacote: depois abra a pasta "Selecionadas" e vá desmarcando até chegar na quantidade contratada (como uma peneira).
+• O contador lá em cima mostra quantas você escolheu e, se passar do pacote, o valor das fotos extras.
+• Antes de enviar, você escolhe a foto da capa do álbum e a da caixa.
 • Quando terminar, clique em "Finalizar seleção". Depois de finalizar, não dá para mudar por aqui.
 • Qualquer dúvida, use o botão "Ajuda" para falar com a gente no WhatsApp.`,
+ 'Venda de fotos':`• Toque numa foto e escolha: foto digital (chega em alta no seu e-mail) e/ou impressa, no tamanho e na quantidade que quiser.
+• O total vai somando lá em cima. Em "Minha compra" você revisa o que escolheu.
+• Clique em "Finalizar compra", informe nome, e-mail e WhatsApp e pague por Pix (QR Code ou copia e cola) ou cartão.
+• Depois de pagar, clique em "Já paguei". Assim que o pagamento for confirmado, as fotos chegam no seu e-mail.
+• As fotos da galeria têm marca d'água; as que você compra chegam sem marca.`,
  'Visualização':`• Clique na foto para ver em tela cheia e use as setas para passar.
 • Qualquer dúvida, use o botão "Ajuda" para falar com a gente no WhatsApp.`};
 function infoModal(){const g=G.g;const ins=g.instrucoes||INSTR_PAD[g.tipo]||INSTR_PAD['Visualização'];
@@ -238,11 +268,98 @@ function clique(e){const t=e.target.closest('[data-a],[data-o],[data-s],[data-f]
   if(a==='fima'){const GR=grupos();const falta=GR.filter(x=>!estado(x));const nC=GR.filter(x=>estado(x)==='c').length;
     if(falta.length){modal(`<h2 class="display">Faltam páginas</h2><p style="margin:0">Ainda faltam <b>${falta.length}</b> página(s) para você aprovar ou pedir alteração: ${esc(falta.slice(0,12).map(x=>x.cap).join(', '))}${falta.length>12?'…':''}.</p><div><button class="btn pri" data-a="mx">Voltar ao álbum</button></div>`);return}
     modal(`<h2 class="display">${nC?'Enviar para alterações':'Finalizar aprovação'}</h2><p style="margin:0">${nC?`Você pediu alteração em <b>${nC}</b> lâmina(s). O álbum <b>ainda não está aprovado</b>: vamos fazer os ajustes e te enviar de novo para aprovar.`:'Todas as páginas foram aprovadas. Seu álbum vai para impressão.'}</p><label style="font-weight:600;font-size:14px">Algum recado? (opcional)</label><textarea class="inp" id="obs" style="min-height:80px">${esc(G.r.obs||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-a="mx">Voltar</button><button class="btn ${nC?'warn':'pri'}" data-a="okfim">${nC?'Enviar alterações':'Aprovar o álbum'}</button></div>`);return}
-  if(a==='fim'){const ns=(G.r.sel||[]).length,lim=+G.g.limite||0;if(!ns){toast('Selecione as fotos antes de finalizar.');return}const ex=lim&&ns>lim?ns-lim:0;
-    modal(`<h2 class="display">Finalizar seleção</h2><p style="margin:0">Você selecionou <b>${ns}</b> foto${ns===1?'':'s'}${lim?` de ${lim} do pacote`:''}.${ex?` São <b>${ex}</b> foto(s) extra${G.g.mostrarPreco&&+G.g.precoExtra?` (${brl(ex*G.g.precoExtra)})`:''}.`:''}${lim&&ns<lim?` Ainda pode escolher mais ${lim-ns}.`:''}</p><p class="muted" style="margin:0">Depois de finalizar, não dá para mudar a seleção por aqui.</p><label style="font-weight:600;font-size:14px">Algum recado? (opcional)</label><textarea class="inp" id="obs" style="min-height:80px">${esc(G.r.obs||'')}</textarea><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-a="mx">Continuar escolhendo</button><button class="btn pri" data-a="okfim">Finalizar</button></div>`);return}
+  if(a==='versel'){document.querySelectorAll('.ov').forEach(x=>x.remove());G.view='sel';G.lim=120;render();window.scrollTo({top:0});return}
+  if(a==='lbcapa'||a==='lbcaixa'){const x=(G.g.imgs||[])[G.lb];const f=a==='lbcapa'?'capa':'caixa';salvar({[f]:G.r[f]===x.n?'':x.n});lightbox(G.lb);return}
+  if(a==='fim'){const ns=(G.r.sel||[]).length,lim=+G.g.limite||0;if(!ns){toast('Selecione as fotos antes de finalizar.');return}
+    if(lim&&ns<lim){modal(`<h2 class="display">Ainda faltam fotos</h2><p style="margin:0">Você escolheu <b>${ns}</b> de <b>${lim}</b> fotos do pacote. Pode escolher mais <b>${lim-ns}</b>.</p><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-a="fimpasso">Finalizar assim mesmo</button><button class="btn pri" data-a="mx">Escolher mais</button></div>`);return}
+    fimPasso();return}
+  if(a==='fimpasso'){fimPasso();return}
+  if(a==='pk'){const f=t.dataset.pkf;salvar({[f]:t.dataset.pkn});document.querySelectorAll('.ov').forEach(x=>x.remove());fimPasso();return}
+  if(a==='pktroca'){const f=t.dataset.pkf;G['_'+f+'Ok']=false;salvar({[f]:''});document.querySelectorAll('.ov').forEach(x=>x.remove());fimPasso();return}
   if(a==='fimv'){salvar({ok:hoje()},true);toast('Obrigado!');render();return}
+  if(a==='fimconf'){document.querySelectorAll('.ov').forEach(x=>x.remove());fimConfirma();return}
   if(a==='okfim'){const o=$('#obs');const temAlt=G.g.tipo==='Álbum'&&Object.keys(G.r.alt||{}).length;salvar({obs:o?o.value.trim():'',ok:hoje()},true).then(()=>{document.querySelectorAll('.ov').forEach(x=>x.remove());toast(temAlt?'Alterações enviadas! Obrigado.':'Enviado! Obrigado.');G.pg=0;render()});return}
 }
+function escolha(f,titulo,txt){const S=(G.r.sel||[]).map(imgPorNome).filter(Boolean);
+  modal(`<h2 class="display">${titulo}</h2><p style="margin:0">${txt}</p><div class="pick">${S.map(x=>`<button data-a="pk" data-pkf="${f}" data-pkn="${esc(x.n)}" class="${G.r[f]===x.n?'on':''}" title="${esc(x.n)}"><img loading="lazy" src="${esc(x.t||x.u)}" alt="${esc(x.n)}"></button>`).join('')}</div><div style="text-align:right"><button class="btn" data-a="mx">Voltar</button></div>`)}
+function fimPasso(){const g=G.g;const sel=new Set(G.r.sel||[]);
+  if(g.pedeCapa&&!(G.r.capa&&sel.has(G.r.capa)))return escolha('capa','Escolha a foto da capa do álbum','Toque na foto que vai na <b>capa do álbum</b>. Ela precisa estar entre as suas selecionadas.');
+  if(g.pedeCaixa&&!(G.r.caixa&&sel.has(G.r.caixa)))return escolha('caixa','Escolha a foto da caixa','Agora toque na foto que vai na <b>caixa</b>. Pode ser a mesma da capa, se quiser.');
+  fimConfirma()}
+function fimConfirma(){const g=G.g,ns=(G.r.sel||[]).length,lim=+g.limite||0,ex=extras();const im=n=>{const x=imgPorNome(n);return x?`<img src="${esc(x.t||x.u)}" alt="" style="width:90px;height:68px;object-fit:cover;border-radius:6px;display:block">`:''};
+  modal(`<h2 class="display">Enviar fotos para a montagem</h2>
+   <div class="banner" style="margin:0"><b>${ns}</b> foto${ns===1?'':'s'} selecionada${ns===1?'':'s'}${lim?` · pacote de ${lim}`:''}${ex?`<br><b>${ex}</b> foto${ex>1?'s':''} extra${ex>1?'s':''}${preco()?` × ${brl(preco())} = <b>${brl(ex*preco())}</b> a pagar a mais`:''}`:''}</div>
+   ${g.pedeCapa||g.pedeCaixa?`<div style="display:flex;gap:14px;flex-wrap:wrap">${g.pedeCapa?`<div style="display:grid;gap:4px"><b style="font-size:13px">Capa do álbum</b>${im(G.r.capa)}<button class="btn sm" data-a="pktroca" data-pkf="capa">Trocar</button></div>`:''}${g.pedeCaixa?`<div style="display:grid;gap:4px"><b style="font-size:13px">Caixa</b>${im(G.r.caixa)}<button class="btn sm" data-a="pktroca" data-pkf="caixa">Trocar</button></div>`:''}</div>`:''}
+   <p style="margin:0"><b>Atenção:</b> depois de enviar, as fotos vão para a montagem do álbum e não dá para mudar a seleção por aqui.</p>
+   <label style="font-weight:600;font-size:14px">Algum recado? (opcional)</label><textarea class="inp" id="obs" style="min-height:70px">${esc(G.r.obs||'')}</textarea>
+   <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-a="mx">Voltar e revisar</button><button class="btn pri" data-a="okfim">Enviar para a montagem</button></div>`)}
+/* ===== Venda de fotos ===== */
+const VK='carrinho-'+TOKEN;let CART={};try{CART=JSON.parse(LS.get(VK)||'{}')||{}}catch(e){CART={}}
+const salvaCart=()=>LS.set(VK,JSON.stringify(CART));
+const Vcfg=()=>G.g.venda||{precoDigital:0,tamanhos:[]};
+function itemValor(n){const c=CART[n];if(!c)return 0;const V=Vcfg();let v=c.dig?(+V.precoDigital||0):0;for(const t in (c.imp||{})){const tz=(V.tamanhos||[]).find(x=>x.nome===t);if(tz)v+=(+tz.preco||0)*(+c.imp[t]||0)}return v}
+function cartLimpo(){for(const n in CART){const c=CART[n];const q=Object.values(c.imp||{}).reduce((a,b)=>a+(+b||0),0);if(!c.dig&&!q)delete CART[n]}salvaCart()}
+const cartN=()=>Object.keys(CART).length,cartTot=()=>Object.keys(CART).reduce((a,n)=>a+itemValor(n),0);
+function protege(){document.body.classList.add('venda');
+  document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('dragstart',e=>e.preventDefault());
+  document.addEventListener('keydown',e=>{const k=(e.key||'').toLowerCase();if(k==='printscreen'||((e.ctrlKey||e.metaKey)&&['s','p','u','c'].includes(k))||((e.ctrlKey||e.metaKey)&&e.shiftKey&&['s','i','3','4','5'].includes(k))){e.preventDefault();document.body.classList.add('esconde');setTimeout(()=>document.body.classList.remove('esconde'),1500);try{navigator.clipboard.writeText('')}catch(_){}}});
+  window.addEventListener('blur',()=>document.body.classList.add('esconde'));window.addEventListener('focus',()=>document.body.classList.remove('esconde'));
+  document.addEventListener('visibilitychange',()=>document.body.classList.toggle('esconde',document.hidden))}
+async function entrarVenda(){protege();G.view='todas';renderVenda();const cid=LS.get('compra-'+TOKEN);if(cid)acompanha(cid)}
+function renderVenda(){const g=G.g,I=g.imgs||[];const leg=g.legenda||{};const cores=[...new Set(I.map(x=>x.l).filter(Boolean))];
+  const L=G.view==='cart'?I.filter(x=>CART[x.n]):G.view.startsWith('l:')?I.filter(x=>x.l===G.view.slice(2)):I;const n=cartN(),tot=cartTot();
+  $('#app').innerHTML=topo(`<span class="count">${n} foto${n===1?'':'s'} · ${brl(tot)}</span>`)+`<div class="wrap">${G.compra?compraBanner():''}
+   <div class="bar"><div class="seg"><button data-v="todas" class="${G.view==='todas'?'on':''}">Todas (${I.length})</button><button data-v="cart" class="${G.view==='cart'?'on':''}">Minha compra (${n})</button></div>
+   ${cores.length?`<div class="seg">${cores.map(c=>`<button data-v="l:${c}" class="${G.view==='l:'+c?'on':''}"><span class="dot" style="background:${LBLC[c]||'#888'}"></span> ${esc(leg[c]||c)}</button>`).join('')}</div>`:''}
+   <span class="muted" style="font-size:13px">${Vcfg().precoDigital?'Digital '+brl(Vcfg().precoDigital):''}${(Vcfg().tamanhos||[]).length?' · Impressa a partir de '+brl(Math.min(...Vcfg().tamanhos.map(t=>+t.preco||0))):''}</span></div>
+   <div class="grid">${L.slice(0,G.lim).map(x=>{const k=I.indexOf(x);const v=itemValor(x.n);return `<div class="tile ${CART[x.n]?'s':''}" data-vo="${k}"><img loading="lazy" draggable="false" src="${esc(x.u)}" alt=""><span class="nm">${esc(x.n)}</span><button class="buy ${CART[x.n]?'on':''}" data-vo="${k}">${CART[x.n]?'✓ '+brl(v):'Comprar'}</button></div>`}).join('')||'<p class="muted">Nenhuma foto aqui.</p>'}</div>
+   ${L.length>G.lim?`<div class="more"><button class="btn" data-a="mais">Mostrar mais fotos (${L.length-G.lim})</button></div>`:''}</div>
+   ${n?`<button class="btn pri fab" data-a="vfim">${ic('check')} Finalizar compra · ${brl(tot)}</button>`:''}`;
+  $('#app').onclick=cliqueVenda}
+function opcoes(k){const x=(G.g.imgs||[])[k];if(!x)return;const V=Vcfg();const c=CART[x.n]||{dig:false,imp:{}};
+  const o=modal(`<div style="display:grid;gap:10px"><div style="position:relative;background:var(--stage);border-radius:10px;overflow:hidden;display:grid;place-items:center"><img draggable="false" src="${esc(x.u)}" alt="" style="max-height:46vh;max-width:100%;object-fit:contain;-webkit-user-drag:none;user-select:none;pointer-events:none"><div style="position:absolute;inset:0"></div></div>
+   <b>${esc(x.n)}</b><div class="opc">${V.precoDigital?`<label class="ln"><span><input type="checkbox" id="vdig" ${c.dig?'checked':''}> Foto digital (em alta, por e-mail)</span><b>${brl(V.precoDigital)}</b></label>`:''}
+   ${(V.tamanhos||[]).map((t,i)=>`<div class="ln"><span>Impressa ${esc(t.nome)} <span class="muted">· ${brl(t.preco)}</span></span><span class="qty"><button data-vq="${i}" data-d="-1">−</button><b id="vq${i}">${+(c.imp||{})[t.nome]||0}</b><button data-vq="${i}" data-d="1">+</button></span></div>`).join('')}</div>
+   <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap"><button class="btn" data-a="vprev" data-k="${k}">${ic('l',15)}</button><span><b id="vtot"></b></span><button class="btn" data-a="vnext" data-k="${k}">${ic('r',15)}</button></div>
+   <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn pri" data-a="mx">Pronto</button></div></div>`);
+  const q={};(V.tamanhos||[]).forEach((t,i)=>q[i]=+(c.imp||{})[t.nome]||0);
+  const atual=()=>{const dig=!!(o.querySelector('#vdig')||{}).checked;const imp={};(V.tamanhos||[]).forEach((t,i)=>{if(q[i])imp[t.nome]=q[i]});CART[x.n]={dig,imp};cartLimpo();const vv=itemValor(x.n);const vt=o.querySelector('#vtot');if(vt)vt.textContent=vv?brl(vv)+' nesta foto':'';renderVenda()};
+  o.addEventListener('change',e=>{if(e.target.id==='vdig')atual()});
+  o.addEventListener('click',e=>{const b=e.target.closest('[data-vq]');if(b){e.stopPropagation();const i=+b.dataset.vq;q[i]=Math.max(0,q[i]+(+b.dataset.d));o.querySelector('#vq'+i).textContent=q[i];atual();return}
+    const nv=e.target.closest('[data-a="vprev"],[data-a="vnext"]');if(nv){e.stopPropagation();o.remove();const I=G.g.imgs||[];const kk=+nv.dataset.k+(nv.dataset.a==='vnext'?1:-1);if(I[kk])opcoes(kk)}},true);
+  if(!CART[x.n]&&V.precoDigital&&!(V.tamanhos||[]).length){const cb=o.querySelector('#vdig');if(cb){cb.checked=true;atual()}}else atual()}
+function compraBanner(){const c=G.compra;if(!c)return '';if(c.status==='pago')return `<div class="banner ok"><b>Pagamento confirmado!</b> As fotos digitais foram enviadas para ${esc(c.email||'o seu e-mail')}. Obrigado!</div>`;
+  if(c.status==='cancelado')return '';return `<div class="banner warn"><b>Compra de ${brl(c.total||0)} aguardando pagamento.</b> ${c.status==='pago_informado'?'Você informou o pagamento: estamos conferindo.':''} <button class="btn sm" data-a="vpag">Ver formas de pagamento</button></div>`}
+async function acompanha(id){try{const d=await db.doc(`galerias/${TOKEN}/compras/${id}`).get();if(d.exists){G.compra={...d.data(),id};if(G.g.tipo==='Venda de fotos')renderVenda()}}catch(e){}
+  if(!G.compra||G.compra.status!=='pago')setTimeout(()=>acompanha(id),30000)}
+let QRP=null;function qrLib(){if(window.qrcode)return Promise.resolve();if(QRP)return QRP;QRP=new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';sc.onload=ok;sc.onerror=no;document.head.appendChild(sc)});return QRP}
+function pixCRC(s){let c=0xFFFF;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,'0')}
+const pixLimpa=(t,n)=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9 .\-]/g,'').toUpperCase().slice(0,n).trim();
+function pixCodigo(chave,nome,cidade,valor,txid){const f=(id,v)=>id+String(v.length).padStart(2,'0')+v;const ma=f('00','br.gov.bcb.pix')+f('01',String(chave).trim());
+  let p=f('00','01')+f('26',ma)+f('52','0000')+f('53','986')+(valor?f('54',(+valor).toFixed(2)):'')+f('58','BR')+f('59',pixLimpa(nome,25)||'RECEBEDOR')+f('60',pixLimpa(cidade,15)||'CIDADE')+f('62',f('05',(String(txid||'***').replace(/[^A-Za-z0-9]/g,'').slice(0,25))||'***'))+'6304';return p+pixCRC(p)}
+async function telaPagamento(){const c=G.compra;if(!c)return;const V=Vcfg();const cod=V.pixChave?pixCodigo(V.pixChave,V.pixNome,V.pixCidade,c.total,c.id):'';
+  const o=modal(`<h2 class="display">Pagamento · ${brl(c.total||0)}</h2>
+   ${cod?`<div style="display:grid;gap:8px"><b>Pix</b><div class="pixqr" id="pxq"><span class="muted">Gerando QR Code…</span></div><label style="font-size:13px;font-weight:600">Pix copia e cola</label><textarea class="inp" readonly style="font:12px monospace;min-height:70px" onclick="this.select()">${esc(cod)}</textarea><button class="btn" data-a="vcopia">${ic('check',15)} Copiar código Pix</button></div>`:''}
+   ${V.linkCartao?`<div style="display:grid;gap:6px"><b>Cartão de crédito ou débito</b><a class="btn pri" style="justify-content:center" href="${esc(V.linkCartao)}" target="_blank" rel="noopener">Pagar com cartão</a><span class="muted" style="font-size:12px">Informe o valor de ${brl(c.total||0)} se o link pedir.</span></div>`:''}
+   ${!cod&&!V.linkCartao?'<p>Fale com a gente pelo WhatsApp para combinar o pagamento.</p>':''}
+   <p class="muted" style="margin:0;font-size:13px">Assim que o pagamento for confirmado, as fotos digitais chegam no seu e-mail (${esc(c.email||'')}).</p>
+   <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-a="mx">Fechar</button>${c.status==='aguardando'?`<button class="btn ok" data-a="vjapaguei">Já paguei</button>`:''}</div>`);
+  o.addEventListener('click',async e=>{const b=e.target.closest('[data-a="vcopia"]');if(b){try{await navigator.clipboard.writeText(cod);toast('Código Pix copiado')}catch(_){toast('Selecione o código e copie')}}
+    const j=e.target.closest('[data-a="vjapaguei"]');if(j){j.disabled=true;try{await db.doc(`galerias/${TOKEN}/compras/${c.id}`).set({status:'pago_informado',informadoEm:new Date().toISOString()},{merge:true});G.compra.status='pago_informado';toast('Obrigado! Vamos conferir e enviar as fotos.');o.remove();renderVenda()}catch(err){toast('Não consegui avisar agora. Tente de novo.');j.disabled=false}}},true);
+  if(cod){try{await qrLib();const q=qrcode(0,'M');q.addData(cod);q.make();const el=o.querySelector('#pxq');if(el)el.innerHTML=`<img alt="QR Code Pix" src="${q.createDataURL(6,8)}">`}catch(e){const el=o.querySelector('#pxq');if(el)el.innerHTML='<span class="muted">Use o código copia e cola abaixo.</span>'}}}
+function cliqueVenda(e){const t=e.target.closest('[data-vo],[data-v],[data-a]');if(!t)return;const d=t.dataset;
+  if(d.vo!==undefined){opcoes(+d.vo);return}if(d.v){G.view=d.v;G.lim=120;renderVenda();return}
+  if(d.a==='mais'){G.lim+=120;renderVenda();return}if(d.a==='instr'){infoModal();return}if(d.a==='vpag'){telaPagamento();return}
+  if(d.a==='vfim'){const n=cartN(),tot=cartTot();if(!n)return;const L=Object.keys(CART);
+    const o=modal(`<h2 class="display">Finalizar compra</h2><div class="banner" style="margin:0"><b>${n}</b> foto${n===1?'':'s'} · total <b>${brl(tot)}</b></div>
+     <div style="max-height:22vh;overflow:auto;font-size:13px">${L.map(nm=>{const c=CART[nm];return `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid var(--line)"><span>${esc(nm)} · ${[c.dig?'digital':'',...Object.entries(c.imp||{}).map(([t,q])=>q+'× '+t)].filter(Boolean).join(', ')}</span><b>${brl(itemValor(nm))}</b></div>`}).join('')}</div>
+     <form id="vf" style="display:grid;gap:8px"><input class="inp" id="vn" placeholder="Seu nome" required autocomplete="name"><input class="inp" id="ve" type="email" placeholder="Seu e-mail (as fotos chegam aqui)" required autocomplete="email"><input class="inp" id="vw" type="tel" placeholder="WhatsApp com DDD" required autocomplete="tel"><textarea class="inp" id="vo" placeholder="Recado (opcional): endereço para entrega das impressas, etc." style="min-height:60px"></textarea>
+     <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" data-a="mx">Voltar</button><button class="btn pri">Ir para o pagamento</button></div></form>`);
+    o.querySelector('#vf').onsubmit=async ev=>{ev.preventDefault();const id=Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+      const itens=L.map(nm=>({n:nm,dig:!!CART[nm].dig,imp:CART[nm].imp||{}}));const doc={status:'aguardando',nome:o.querySelector('#vn').value.trim(),email:o.querySelector('#ve').value.trim(),fone:o.querySelector('#vw').value.trim(),obs:o.querySelector('#vo').value.trim(),itens,total:Math.round(tot*100)/100,em:new Date().toISOString()};
+      try{await db.doc(`galerias/${TOKEN}/compras/${id}`).set(doc);LS.set('compra-'+TOKEN,id);G.compra={...doc,id};CART={};salvaCart();o.remove();renderVenda();telaPagamento();setTimeout(()=>acompanha(id),30000)}catch(err){toast('Não consegui registrar a compra. Verifique a internet e tente de novo.')}};return}
+}
+
 boot();
 </script>
 </body>

@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261030103535';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261030202941';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -955,7 +955,7 @@ const SCHEMAS={
     tabs:['Geral','Configurações','Textos para o cliente'],
     fields:[
       {k:'nome',l:'Nome da prova',req:1,full:1,ph:'Casamento Franciele e Ademar',tab:0},
-      {k:'tipo',l:'Tipo',t:'select',o:['Seleção de fotos','Visualização','Álbum'],req:1,tab:0},
+      {k:'tipo',l:'Tipo',t:'select',o:['Seleção de fotos','Visualização','Álbum','Venda de fotos'],req:1,tab:0},
       {k:'status',l:'Status',t:'select',o:Object.keys(PROVA_COR),tab:0},
       {k:'contatoId',l:'Cliente principal',t:'ref',ref:'contatos',tab:0},
       {k:'pedidoId',l:'Pedido',t:'ref',ref:'pedidos',tab:0},{k:'projetoId',l:'Projeto',t:'ref',ref:'projetos',tab:0},
@@ -1215,7 +1215,7 @@ function render(){try{quemTopo()}catch(e){}if(S.semAcesso){document.body.innerHT
   const a=document.activeElement,aid=a&&a.id,sel=a&&a.selectionStart;
   renderNav();renderAlerts();renderFoot();
   const v=S.ui.view,el=$('#view');
-  const fn=VIEWS[v]||VIEWS.inicio;
+  const fn=(typeof modOffView==='function'&&modOffView(v))?VIEWS.modoff:(VIEWS[v]||VIEWS.inicio);
   el.innerHTML=fn();
   if(aid&&aid.startsWith('q-')){const n=document.getElementById(aid);if(n){n.focus();try{n.setSelectionRange(sel,sel)}catch(e){}}}
   if(v==='funil')wireKanban();
@@ -1261,7 +1261,8 @@ const NAV=[
   {v:'relprod',l:'Faturamento por produto',sub:1},
   {v:'relcontatos',l:'Por cliente / fornecedor',sub:1},
   {v:'config',l:'Configurações',i:'gear'},
-  {v:'backup',l:'Backup e exportação',sub:1}
+  {v:'backup',l:'Backup e exportação',sub:1},
+  {v:'importar',l:'Importar de outro sistema',sub:1}
 ];
 let NAV_OPEN={};try{NAV_OPEN=JSON.parse(localStorage.getItem('grupoe-navopen')||'{}')||{}}catch(e){}
 const navSave=()=>{try{localStorage.setItem('grupoe-navopen',JSON.stringify(NAV_OPEN))}catch(e){}};
@@ -1275,7 +1276,7 @@ function renderNav(){
   const isOn=n=>S.ui.view===n.v||(S.ui.view==='contato'&&n.v==='contatos')||((S.ui.view==='prova'||S.ui.view==='provaview')&&n.v==='provas');
   /* agrupa cada item principal com seus subitens */
   const out=[];let par=null;
-  NAV.forEach(n=>{if(n.g){par=null;out.push(n);return}if(n.sub&&par){par.kids.push(n);return}par={...n,kids:[]};out.push(par)});
+  (typeof navFiltrado==='function'?navFiltrado():NAV).forEach(n=>{if(n.g){par=null;out.push(n);return}if(n.sub&&par){par.kids.push(n);return}par={...n,kids:[]};out.push(par)});
   const link=(n,c)=>`<a href="#${n.v}" data-nav="${n.v}" class="${n.sub?'sub ':''}${isOn(n)?'on':''}">${n.i?ic(n.i):''}<span>${n.l}</span>${c?`<span class="count${n.alt?' alt':''}">${c}</span>`:''}</a>`;
   $('#nav').innerHTML=out.map(n=>{
     if(n.g)return `<div class="grp">${n.g}</div>`;
@@ -1289,7 +1290,7 @@ function renderAlerts(){
   const venc=S.data.lancamentos.filter(l=>!l.pago&&l.vencimento&&l.vencimento<t).length;
   const hoje=agendaAll().filter(e=>e.data===t).length;
   const tar=S.data.tarefas.filter(x=>!x.feita&&x.data&&x.data<=t).length;
-  $('#alerts').innerHTML=[['Hoje',hoje,'--info','agenda'],['Tarefas',tar,'--warn','tarefas'],['Vencidas',venc,'--danger','financeiro']].map(([l,n,c,v])=>`<button class="alert" data-nav="${v}">${l}<b style="background:var(${n?c:'--faint'})">${n}</b></button>`).join('');
+  $('#alerts').innerHTML=[['Hoje',hoje,'--info','agenda'],['Tarefas',tar,'--warn','tarefas'],['Vencidas',venc,'--danger','financeiro']].filter(x=>!(typeof modOffView==='function'&&modOffView(x[3]))).map(([l,n,c,v])=>`<button class="alert" data-nav="${v}">${l}<b style="background:var(${n?c:'--faint'})">${n}</b></button>`).join('');
 }
 function renderFoot(){
   const total=COLS.reduce((s,c)=>s+S.data[c].length,0);
@@ -1793,9 +1794,9 @@ async function uploadToProva(id,files,section){
     await pvSave(id,ch)})};
   const worker=async()=>{while(i<imgs.length){const f=imgs[i++];
     try{const base=f.name.replace(/\.[^.]+$/,'').toLowerCase();let lb=xmps[base]?labelFromXmpText(xmps[base]):await labelFromJpeg(f);
-      const r0=await resizeImage(f,max,box,wm);let r,wait=800;
-      for(let a=0;a<5;a++){try{r=await A.upload(r0.blob,{type:'image/jpeg'});break}catch(e){if(e&&(e.code==='rate_limited'||e.code==='store_unavailable')&&a<4){await sleep(wait);wait*=2}else throw e}}
-      const o={a:r.id,n:f.name,s:r.sizeBytes,w:r0.w,h:r0.h};if(cfg().provas.usarLR!==false){if(lb.k)o.l=lb.k;else if(lb.raw)o.lr=lb.raw;if(lb.r>0)o.r=lb.r}got.push(o);
+      const up=async bl=>{let r,wait=800;for(let a=0;a<5;a++){try{r=await A.upload(bl,{type:'image/jpeg'});break}catch(e){if(e&&(e.code==='rate_limited'||e.code==='store_unavailable')&&a<4){await sleep(wait);wait*=2}else throw e}}return r};
+      let o;if(p0.tipo==='Venda de fotos'){const vv=await vendaVersoes(f);const r=await up(vv.prev.blob),rf=await up(vv.fin.blob);o={a:r.id,f:rf.id,n:f.name,s:(r.sizeBytes||0)+(rf.sizeBytes||0),w:vv.prev.w,h:vv.prev.h}}
+      else{const r0=await resizeImage(f,max,box,wm);const r=await up(r0.blob);o={a:r.id,n:f.name,s:r.sizeBytes,w:r0.w,h:r0.h}}if(cfg().provas.usarLR!==false){if(lb.k)o.l=lb.k;else if(lb.raw)o.lr=lb.raw;if(lb.r>0)o.r=lb.r}got.push(o);
     }catch(e){S.up.err.push(f.name+(e&&e.code==='quota_or_state'?' (espaço de armazenamento cheio)':e&&e.code==='too_large'?' (arquivo grande demais)':''));if(e&&e.code==='quota_or_state'){i=imgs.length}}
     S.up.done++;upProg();if(got.length-lastFlush>=25){lastFlush=got.length;flush(false)}}};
   await Promise.all([worker(),worker(),worker()]);flush(true);await writing;
@@ -1812,7 +1813,7 @@ async function pvDeleteImgs(id,section,which){
   if(del.some(x=>x.a===p.capaImg))ch.capaImg=(keep[0]&&keep[0].a)||'';
   ch.atividade=logAct(p,`${del.length} arquivo(s) excluído(s)`);ch.imagens=pvImgs({...p,...ch}).length;
   await pvSave(id,ch);toast(del.length+' arquivo(s) excluído(s)');
-  if(A){let i=0;const w=async()=>{while(i<del.length){const x=del[i++];try{await A.delete(x.a)}catch(e){}}};await Promise.all([w(),w(),w(),w()])}
+  if(A){let i=0;const w=async()=>{while(i<del.length){const x=del[i++];try{await A.delete(x.a)}catch(e){}if(x.f){try{await A.delete(x.f)}catch(e){}}}};await Promise.all([w(),w(),w(),w()])}
 }
 function dropZone(section,txt){return `<label class="drop" data-drop="${section}">${ic('upload',44)}<span><b style="color:var(--fg)">${txt||'Arraste e solte as imagens aqui ou clique para selecionar'}</b><br>JPG, PNG ou GIF. Pode soltar também os arquivos <span class="mono">.xmp</span> do Lightroom junto, se as fotos forem RAW.</span><input type="file" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.xmp,image/*" data-upfile="${section}" hidden></label>`}
 function imgRows(id,list,section){
@@ -1901,8 +1902,8 @@ VIEWS.prova=()=>{
   const notasTab=`<div style="display:flex;gap:8px"><input class="search" id="q-pvn" placeholder="Buscar" value="${esc(T.q||'')}" data-pvq></div><textarea id="pv-nota" class="search" style="min-height:70px" placeholder="Nova nota interna sobre esta prova"></textarea><div><button class="btn pri" data-pvnota="notasLista">${ic('plus',14)} Nova nota</button></div>${tl(p.notasLista||[],'--warn','Nenhuma nota a ser mostrada')}`;
   const msgTab=`<textarea id="pv-nota" class="search" style="min-height:90px" placeholder="Mensagem para o cliente (fica registrada aqui; envie pelo WhatsApp ou e-mail)">${esc(msgConvite(cli[0]||{c:p.contatoId}))}</textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" data-pvnota="mensagens">${ic('plus',14)} Registrar mensagem</button></div>${tl(p.mensagens||[],'--info','Nenhuma mensagem registrada')}`;
   const atvTab=`<input class="search" id="q-pva" placeholder="Buscar" value="${esc(T.q||'')}" data-pvq>${tl(p.atividade||[],'--info','Nenhuma atividade ainda')}`;
-  const TABS=[['clientes','Clientes'],['imagens',album?'Imagens do álbum':'Imagens'],['notas','Notas'],['mensagens','Mensagens'],['atividade','Atividade']];
-  const body={clientes:clientesTab,imagens:imagensTab,notas:notasTab,mensagens:msgTab,atividade:atvTab}[T.tab];
+  const venda=p.tipo==='Venda de fotos';const nV=venda?(S.compras||[]).filter(c=>c._tok===p.galeria&&c.status!=='cancelado').length:0;const TABS=[['clientes','Clientes'],['imagens',album?'Imagens do álbum':'Imagens'],...(venda?[['vendas','Vendas'+(nV?' ('+nV+')':'')]]:[]),['notas','Notas'],['mensagens','Mensagens'],['atividade','Atividade']];
+  const body={clientes:clientesTab,imagens:imagensTab,vendas:venda?`<div style="display:grid;gap:10px">${vendaTab(p)}</div>`:'',notas:notasTab,mensagens:msgTab,atividade:atvTab}[T.tab];
   return loadingOr(`<div class="phead"><div><h2>Detalhes da prova</h2><div class="crumb">Início / <button class="clink" data-nav="provas">Provas</button> / #${p.num||''} / <b>Detalhes</b></div></div><div class="actions"><button class="btn" data-nav="provas">${ic('back',15)} Voltar</button></div></div>
    <div class="ct-grid">${left}<section class="panel"><div class="body" style="display:grid;gap:14px"><div class="tabs">${TABS.map(([k,l])=>`<button type="button" data-pvtab="${k}" class="${T.tab===k?'on':''}">${l}</button>`).join('')}</div>${body}</div></section></div>`);
 };
@@ -1988,8 +1989,8 @@ function tipoAg2(p){const c=nrm(p.categoria),t=nrm(p.titulo),has=k=>TIPOS[k]?k:n
   if(/toten|totem|cabine|spinner|grua|story|combo|hashtag/.test(c)||(!c&&/cabine|totem|toten|spinner|grua|ring light|360|hashtag/.test(t)))return has('Toten/Cabine/Hashtag')||Object.keys(TIPOS)[0];
   if(/sessao|ensaio|gestante/.test(c))return has('Sessão')||has('Evento');if(/curso/.test(c))return has('Curso')||has('Evento');return has('Evento')||Object.keys(TIPOS)[0]}
 let _pedEv={src:null,list:[],t:null};
-function pedEvents(){if(_pedEv.src===S.data.pedidos&&_pedEv.t===TIPOS)return _pedEv.list;const l=[];S.data.pedidos.forEach(p=>{if(!p.dataEvento||p.contratoStatus==='Cancelado')return;l.push({id:p.id,_ped:1,data:p.dataEvento,hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',titulo:p.titulo,tipo:TIPOS[p.tipoAgenda]?p.tipoAgenda:tipoAg2(p),local:pedLocal(p),contatoId:p.contatoId,responsavel:p.responsavel||'',participantes:p.participantes||[]})});_pedEv={src:S.data.pedidos,list:l,t:TIPOS};return l}
-function agendaAll(){const cob=new Set();S.data.agenda.forEach(a=>{if(a.pedidoId&&a.origem==='Alboom')cob.add(a.pedidoId)});return S.data.agenda.concat(pedEvents().filter(e=>!cob.has(e.id)))}
+function pedEvents(){if(_pedEv.src===S.data.pedidos&&_pedEv.t===TIPOS)return _pedEv.list;const l=[];S.data.pedidos.forEach(p=>{if(!p.dataEvento||p.contratoStatus==='Cancelado'||pedStatus(p)==='Cancelado')return;l.push({id:p.id,_ped:1,data:p.dataEvento,hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',titulo:p.titulo,tipo:TIPOS[p.tipoAgenda]?p.tipoAgenda:tipoAg2(p),local:pedLocal(p),contatoId:p.contatoId,responsavel:p.responsavel||'',participantes:p.participantes||[]})});_pedEv={src:S.data.pedidos,list:l,t:TIPOS};return l}
+function agendaAll(){const cob=new Set();S.data.agenda.forEach(a=>{if(a.pedidoId&&a.origem==='Alboom')cob.add(a.pedidoId)});const canc=new Set(S.data.pedidos.filter(p=>pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado').map(p=>p.id));return S.data.agenda.filter(a=>!a.cancelado&&!(a.pedidoId&&canc.has(a.pedidoId))).concat(pedEvents().filter(e=>!cob.has(e.id)))}
 function calItems(from,to){
   const C=S.ui.cal,out=[],inR=d=>d&&d>=from&&d<=to;
   if(C.src.eventos)agendaAll().forEach(e=>{if(inR(e.data)&&C.tipos[e.tipo]!==false&&(!C.resp||(e.participantes||[]).includes(C.resp)||(e._ped?e.responsavel===C.resp:(e.responsavel||'')===C.resp||!e.responsavel)))out.push({d:e.data,h:e.hora||'',t:e.titulo,c:TIPOS[e.tipo]||'--idle',col:e._ped?'pedidos':'agenda',id:e.id})});
@@ -2398,6 +2399,7 @@ const CFG_DEF={
   provas:{redim:true,maxW:1500,maxH:1000,usarLR:true,mostrarEstrelas:true,ordenar:'Crescente',favMeta:'Estrelas',favEstrelas:5,mostrarEtiquetas:true,
     legenda:{Red:'Ensaio Fotografico',Yellow:'Making dos Noivos',Green:'Cerimonia',Blue:'Fotos Protocolares',Purple:'Recepção'},marca:{a:'',pos:8,margem:10},lembretes:[120,90,60,45,30,25,20,15,10,7,5,3]},
   agenda:{cats:AG_CATS_DEF,semana:'Domingo'},
+  venda:{ativo:true,precoDigital:25,tamanhos:[{nome:'10x15',preco:15},{nome:'15x21',preco:25},{nome:'20x30',preco:45}],pixChave:'',pixNome:'',pixCidade:'',linkCartao:'',marcaTexto:'PROVA',marcaOpac:35,maxPrev:1600,maxFinal:3000,msgEntrega:'Olá {nome}! Obrigado pela compra. Aqui estão as suas fotos em alta (baixe e guarde no seu celular ou computador):\n\n{links}\n\nAs fotos impressas serão entregues conforme combinado.'},
   financeiro:{lembrete:true,dias:15},
   orcForms:[],
   indispForm:{},
@@ -2443,17 +2445,25 @@ function printProjeto(id){const p=S.data.projetos.find(x=>x.id===id);if(!p)retur
    ${o.notas&&p.notas?`<h2>Notas</h2><p style="white-space:pre-wrap">${esc(p.notas)}</p>`:''}`;
   setTimeout(()=>window.print(),50)}
 S.ui.cfg={tab:'estudio',fx:0};
-const CFG_TABS=[['estudio','Informações do estúdio'],['agenda','Agenda'],['equip','Equipamentos'],['funil','Funil de vendas'],['oport','Origem e acompanhamento'],['categorias','Categorias de propostas'],['termos','Termos e condições'],['contratos','Modelos de contrato'],['fin','Financeiro'],['pedtar','Tarefas dos pedidos'],['equipe','Usuários e freelancers'],['assinatura','Assinatura de e-mail'],['provas','Galerias de provas'],['fluxos','Fluxos de trabalho'],['projetos','Projetos (impressão)'],['perfil','Perfil']];
+const CFG_TABS=[['estudio','Informações do estúdio'],['modulos','Módulos'],['agenda','Agenda'],['equip','Equipamentos'],['funil','Funil de vendas'],['oport','Origem e acompanhamento'],['categorias','Categorias de propostas'],['termos','Termos e condições'],['contratos','Modelos de contrato'],['fin','Financeiro'],['pedtar','Tarefas dos pedidos'],['equipe','Usuários e freelancers'],['assinatura','Assinatura de e-mail'],['provas','Galerias de provas'],['venda','Venda de fotos'],['fluxos','Fluxos de trabalho'],['projetos','Projetos (impressão)'],['perfil','Perfil']];
 const yn=(path,v)=>`<div class="seg"><button data-cfgv="${path}" data-val="1" class="${v?'on':''}">Sim</button><button data-cfgv="${path}" data-val="0" class="${!v?'on':''}">Não</button></div>`;
 const crow=(l,inner)=>`<div class="field"><label>${l}</label>${inner}</div>`;
 VIEWS.config=()=>{
-  const C=cfg(),T=S.ui.cfg;let body='';
+  const C=cfg(),T=S.ui.cfg;if(typeof modOffTab==='function'&&modOffTab(T.tab))T.tab='modulos';let body='';
   if(T.tab==='estudio'){const e=C.estudio;const fi=(k,l,full)=>`<div class="field ${full?'full':''}"><label>${l}</label><input data-cfgt="estudio.${k}" value="${esc(e[k]||'')}"></div>`;
     body=`<div class="form-grid">${fi('nome','Nome do estúdio',1)}${fi('razao','Razão social')}${fi('cnpj','CNPJ')}${fi('celular','Celular / WhatsApp')}${fi('fone','Telefone')}<h4 class="full" style="margin:10px 0 0">Elton Melchioretto Fotografia e Filmagem</h4>${fi('email','E-mail')}${fi('site','Site')}${fi('facebook','Facebook')}${fi('instagram','Instagram')}<h4 class="full" style="margin:10px 0 0">Prime 360 Foto Cabine</h4>${fi('email2','E-mail')}${fi('site2','Site')}${fi('facebook2','Facebook')}${fi('instagram2','Instagram')}${fi('celular2','Celular / WhatsApp')}<h4 class="full" style="margin:10px 0 0">Endereço</h4>${fi('endereco','Endereço',1)}${fi('bairro','Bairro')}${fi('cidade','Cidade')}${fi('uf','Estado')}${fi('cep','CEP')}</div><p class="muted" style="font-size:12px">Estes dados aparecem nos contratos, nas fichas e na impressão de projetos.</p>`}
   if(T.tab==='equipe'){const eq=C.equipe;const pay=n=>{const c=contatosDaPessoa(n);if(!c.length)return 0;const pm=+(S.ui.eqPer??12);const de=pm?addDays(today(),-Math.round(pm*30.44)):'0000';return S.data.lancamentos.filter(l=>l.tipo==='pagar'&&l.pago&&c.includes(l.contatoId)&&(l.dataPagamento||l.vencimento)>=de).reduce((s,l)=>s+(+l.valor||0),0)};
     const ev=n=>eventosDaPessoa(n,3650).length;
     const eqF=S.ui.eqAtivo||'ativos';const nA=eq.filter(m=>m.ativo!==false).length,nI=eq.length-nA;const vis=m=>eqF==='todos'||(eqF==='ativos'?m.ativo!==false:m.ativo===false);
     body=`<p class="muted" style="margin:0 0 8px;font-size:12.5px">${window.__HOSTED?'Quem é <b>Administrador</b> e tem e-mail aqui consegue entrar no CRM (pelo Google ou pelo link que chega no e-mail). Os outros não entram.':'Para um <b>Administrador</b> entrar no CRM: abra o menu Compartilhar desta página, convide o e-mail da conta Claude dele e escolha <b>Pode editar</b>. Quem não é administrador não vê os dados.'} O histórico registra o nome de quem fez cada alteração. ${window.__HOSTED?'Lembretes, backup, agenda Google e importação de fichas saem pela conta Google da empresa sempre que alguém está com o CRM aberto.':'Lembretes, backup, agenda Google e importação de fichas rodam só quando o Elton está com o CRM aberto, porque usam as contas dele.'}${S.eu?` Você está como: <b>${esc(usuarioAtual())}</b>.`:''}</p><div class="seg" style="justify-self:start;margin-bottom:8px"><button data-eqfil="ativos" class="${eqF==='ativos'?'on':''}">Ativos (${nA})</button><button data-eqfil="inativos" class="${eqF==='inativos'?'on':''}">Inativos (${nI})</button><button data-eqfil="todos" class="${eqF==='todos'?'on':''}">Todos (${eq.length})</button></div><div class="eqh"><span>Nome</span><span>Tipo</span><span>Trabalha para</span><span>Celular</span><span>E-mail</span><span class="r">Eventos</span><span class="r">Pago <select class="search" style="padding:1px 4px;font-size:11.5px;width:auto;display:inline-block" data-eqper>${[[1,'1 mês'],[6,'6m'],[12,'12m'],[0,'tudo']].map(([v,l])=>`<option value="${v}" ${+(S.ui.eqPer??12)===v?'selected':''}>${l}</option>`).join('')}</select></span><span>Ativo</span><span></span></div><div class="eqlist">${eq.map((m,i)=>!vis(m)?'':`<div class="eqc"><input class="search eq-n" data-eq="${i}.nome" value="${esc(m.nome)}" placeholder="Nome"><select class="search eq-t" data-eq="${i}.tipo">${[['Administrador','Adm'],['Usuário','Usuário'],['Freelance','Freela']].map(([o,l])=>`<option value="${o}" ${m.tipo===o?'selected':''}>${l}</option>`).join('')}</select><div class="eq-a">${EQ_AREAS.map(a=>{const on=eqAreas(m).includes(a);return `<button type="button" class="chip-tg ${on?'on':''}" data-eqarea="${i}|${esc(a)}" aria-pressed="${on}" title="${esc(a)}">${on?ic('check',11):''}${esc({'Elton Melchioretto':'Elton','Prime 360':'Prime'}[a]||a)}</button>`}).join('')}</div><input class="search eq-c" data-eq="${i}.celular" value="${esc(m.celular||'')}" placeholder="Celular"><input class="search eq-e" type="email" data-eq="${i}.email" value="${esc(m.email||'')}" placeholder="e-mail"><span class="eq-v r num"><button class="clink" data-agpessoa="${esc(m.nome)}" title="Ver e enviar a agenda desta pessoa">${ev(m.nome)||'0'} ${ic('cal',13)}</button></span><span class="eq-p r">${(v=>v?`<button class="clink num" data-eqpag="${esc(m.nome)}" title="Ver os trabalhos pagos">${brl(v).replace(/,\d\d$/,'')}</button>`:'<span class="muted">—</span>')(pay(m.nome))}</span><label class="eq-o"><input type="checkbox" data-eq="${i}.ativo" ${m.ativo!==false?'checked':''}><span class="lbl-m"> ativo</span></label><span class="eq-x"><button class="icon-btn" title="Dados de pagamento, PIX e outras informações" data-eqobs="${i}">${ic('doc',15)}${m.obs?'<span style="position:relative;top:-6px;left:-4px;width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block"></span>':''}</button><button class="icon-btn del" title="Remover" data-eqdel="${i}">${ic('trash',15)}</button></span></div>`).join('')}</div><button class="btn sm" data-eqadd>${ic('plus',14)} Adicionar pessoa</button><p class="muted" style="font-size:12px">Os nomes aparecem como opção de responsável nos pedidos, projetos e tarefas, e no filtro da agenda. "Pago em 12 meses" soma os pagamentos do financeiro feitos ao contato com o mesmo nome.</p>`}
+  if(T.tab==='venda'){const V=C.venda;body=`<p class="muted" style="margin:0 0 8px;font-size:13px">Para vender fotos, crie uma prova do tipo <b>Venda de fotos</b>. O cliente vê as fotos com marca d'água, escolhe digital e/ou impressas, o valor vai somando e no final aparecem o QR Code Pix e o link do cartão. Quando você confirma o pagamento, as fotos sem marca vão sozinhas para o e-mail do comprador.</p>
+   <h4>Preços</h4><div class="fgrid">${crow('Foto digital (download) R$',`<input type="number" step="0.01" min="0" data-cfgn="venda.precoDigital" value="${esc(V.precoDigital??'')}">`)}</div>
+   <div class="field full"><label>Fotos impressas (tamanho e preço)</label><div style="display:grid;gap:6px">${(V.tamanhos||[]).map((t,i)=>`<div style="display:flex;gap:6px;align-items:center"><input class="search" style="flex:1 1 160px" data-vtam="${i}.nome" value="${esc(t.nome)}" placeholder="15x21"><span class="muted">R$</span><input class="search num" type="number" step="0.01" min="0" style="width:110px" data-vtam="${i}.preco" value="${esc(t.preco)}"><button class="icon-btn del" data-vtamdel="${i}" title="Remover">${ic('trash',14)}</button></div>`).join('')}<div><button class="btn sm" data-vtamadd>${ic('plus',13)} Adicionar tamanho</button></div></div></div>
+   <h4>Pagamento</h4><div class="fgrid">${crow('Chave Pix',`<input data-cfgt="venda.pixChave" value="${esc(V.pixChave||'')}" placeholder="CNPJ, e-mail, celular ou chave aleatória">`)}${crow('Nome do recebedor (Pix)',`<input data-cfgt="venda.pixNome" value="${esc(V.pixNome||'')}" maxlength="25" placeholder="ELTON MELCHIORETTO">`)}${crow('Cidade (Pix)',`<input data-cfgt="venda.pixCidade" value="${esc(V.pixCidade||'')}" maxlength="15" placeholder="GUARAMIRIM">`)}${crow('Link de pagamento (cartão de crédito e débito)',`<input data-cfgt="venda.linkCartao" value="${esc(V.linkCartao||'')}" placeholder="https://… (Mercado Pago, InfinitePay, PagSeguro…)">`)}</div>
+   <p class="muted" style="font-size:12px;margin:0">O QR Code Pix é gerado com o valor exato da compra. O link do cartão é o do seu banco ou maquininha.</p>
+   <h4>Marca d'água e proteção</h4><div class="fgrid">${crow('Texto da marca d\'água (usado se não houver imagem de marca em Galerias de provas)',`<input data-cfgt="venda.marcaTexto" value="${esc(V.marcaTexto||'')}">`)}${crow('Opacidade da marca (%)',`<input type="number" min="5" max="90" data-cfgn="venda.marcaOpac" value="${esc(V.marcaOpac??35)}">`)}${crow('Tamanho da foto de prévia (px)',`<input type="number" min="600" max="2400" data-cfgn="venda.maxPrev" value="${esc(V.maxPrev??1600)}">`)}${crow('Tamanho da foto entregue (px)',`<input type="number" min="1000" max="6000" data-cfgn="venda.maxFinal" value="${esc(V.maxFinal??3000)}">`)}</div>
+   <p class="muted" style="font-size:12px;margin:0">Na galeria de venda o cliente vê só a prévia com marca d'água: o botão direito, arrastar e salvar ficam bloqueados. A foto sem marca só é enviada depois do pagamento confirmado.</p>
+   <h4>Entrega</h4><div class="field full"><label>Mensagem enviada com as fotos ({nome}, {links}, {total})</label><textarea data-cfgt="venda.msgEntrega" style="min-height:120px">${esc(V.msgEntrega||'')}</textarea></div>`}
   if(T.tab==='assinatura')body=`<div class="field full"><label>Assinatura adicionada às mensagens</label><textarea data-cfgt="assinatura" style="min-height:260px;font-family:inherit">${esc(C.assinatura)}</textarea></div><div><button class="btn sm" data-copy="${esc(C.assinatura)}">${ic('copy',14)} Copiar assinatura</button></div><p class="muted" style="font-size:12px">A assinatura entra no final de todos os e-mails que o CRM envia pelo seu Gmail (lembretes de vencimento, recibos, provas e agenda dos freelancers) e nas mensagens montadas para o WhatsApp. Os modelos e regras ficam no menu E-mails.</p>`;
   if(T.tab==='provas'){const P=C.provas,L=P.legenda;const pos=[0,1,2,3,4,5,6,7,8].map(i=>`<button class="wm ${+P.marca.pos===i?'on':''}" data-wmpos="${i}" aria-label="Posição ${i+1}"></button>`).join('');
     body=`<h4>Configurações da prova</h4><div class="form-grid">${crow('Redimensionar imagens antes de enviar',yn('provas.redim',P.redim))}<div></div>${crow('Largura máxima (px)',`<input type="number" data-cfgn="provas.maxW" value="${P.maxW}">`)}${crow('Altura máxima (px)',`<input type="number" data-cfgn="provas.maxH" value="${P.maxH}">`)}</div>
@@ -2491,7 +2501,8 @@ VIEWS.config=()=>{
     const ped=S.data.pedidos.filter(p=>(p.vendedor||'Elton Melchioretto')===u);const tile=(l,v,c,ic2,nav)=>`<button class="panel kpi" data-nav="${nav}" style="text-align:left;cursor:pointer;border-left:4px solid var(${c})"><div class="body"><div class="v">${ic(ic2,24)}<span>${v}</span></div><div class="l">${l}</div></div></button>`;
     body=`<div class="toolbar"><select class="search" style="flex:0 1 260px" data-cfguser>${pes.map(n=>`<option ${n===u?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
      <div class="fin-kpis">${tile('Oportunidades (todas)',S.data.oportunidades.length,'--ok','chat','oportunidades')}${tile('Propostas',S.data.oportunidades.filter(o=>['Proposta enviada','Negociação'].includes(o.etapa)||/propost|decidindo|orçamento|orcamento/i.test(o.etapaAlboom||'')).length,'--warn','doc','funil')}${tile('Pedidos de '+u.split(' ')[0],ped.length,'--danger','cart','pedidos')}${tile('Contratos assinados',ped.filter(p=>p.contratoStatus==='Assinado').length,'--info','doc','pedidos')}${tile('Projetos',S.data.projetos.length,'--accent','img','projetos')}${tile('Provas',S.data.provas.length,'--info','grid','provas')}</div>`}
-  return loadingOr(`${head('Configurações','Configurações')}<div class="cfg-wrap"><nav class="panel cfg-nav">${CFG_TABS.map(([k,l])=>`<button class="${T.tab===k?'on':''}" data-cfgtab="${k}">${l}</button>`).join('')}</nav><section class="panel"><header><h3>${CFG_TABS.find(x=>x[0]===T.tab)[1]}</h3></header><div class="body" style="display:grid;gap:14px">${body}</div></section></div>`);
+  if(T.tab==='modulos')body=modulosHTML();
+  return loadingOr(`${head('Configurações','Configurações')}<div class="cfg-wrap"><nav class="panel cfg-nav">${CFG_TABS.filter(([k])=>!(typeof modOffTab==='function'&&modOffTab(k))).map(([k,l])=>`<button class="${T.tab===k?'on':''}" data-cfgtab="${k}">${l}</button>`).join('')}</nav><section class="panel"><header><h3>${CFG_TABS.find(x=>x[0]===T.tab)[1]}</h3></header><div class="body" style="display:grid;gap:14px">${body}</div></section></div>`);
 };
 
 async function oppEntrou(o,etapa){const e=(cfg().funil||{})[etapa];if(!e)return;const ts=String(e.tarefas||'').split('\n').map(x=>x.trim()).filter(Boolean);const prazo=addDays(today(),+e.dias||0);for(const t of ts)await save('tarefas',{titulo:t+' · '+o.titulo,data:prazo,feita:false,oportunidadeId:o.id});return prazo}
@@ -3209,7 +3220,7 @@ document.addEventListener('click',async e=>{
   if(d.signverify){t.disabled=true;await verifySign([d.signverify]);openSign(d.signverify);return}
   if(d.signcheck!==undefined){const l=pendSign();if(!l.length){toast('Nenhum contrato aguardando assinatura.');return}t.disabled=true;await verifySign(l.map(x=>x.id));t.disabled=false;return}
   if(d.copytxt){try{await navigator.clipboard.writeText(d.copytxt);toast('Copiado')}catch(err){toast('Selecione o link e copie com Ctrl+C')}return}
-  if(d.cstatus){await patch('pedidos',d.pid,{contratoStatus:d.cstatus});$$('[data-cstatus]').forEach(b=>b.classList.toggle('on',b.dataset.cstatus===d.cstatus));toast('Contrato: '+d.cstatus);return}
+  if(d.cstatus){const _pa=S.data.pedidos.find(x=>x.id===d.pid)||{};const _ca=_pa.contratoStatus==='Cancelado'||pedStatus(_pa)==='Cancelado';await patch('pedidos',d.pid,{contratoStatus:d.cstatus});{const _pn=S.data.pedidos.find(x=>x.id===d.pid)||{..._pa,contratoStatus:d.cstatus};const _cn=d.cstatus==='Cancelado'||pedStatus(_pn)==='Cancelado';if(_ca!==_cn)pedAgendaCancelar(_pn,_cn)}$$('[data-cstatus]').forEach(b=>b.classList.toggle('on',b.dataset.cstatus===d.cstatus));toast('Contrato: '+d.cstatus);return}
   if(d.copy!==undefined){const txt=$('#contractTxt').textContent;try{await navigator.clipboard.writeText(txt);toast('Contrato copiado')}catch(err){const r=document.createRange();r.selectNodeContents($('#contractTxt'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Texto selecionado. Use Ctrl+C para copiar.')}return}
   if(d.iadd!==undefined){$('#itemRows').insertAdjacentHTML('beforeend',itemRow({qtd:1}));updItemsTotal();return}
   if(d.cadd!==undefined){$('#custoRows').insertAdjacentHTML('beforeend',custoRow({}));return}
@@ -3426,7 +3437,7 @@ VIEWS.backup=()=>{const B=bkCfg();const prox=B.auto?(B.ultimo?new Date(Date.pars
     <button class="btn pri" data-bkdrive ${BK_RUN?'disabled':''}>${ic('upload',15)} ${S.bkMsg?esc(S.bkMsg):'Fazer backup agora no Drive'}</button>
     <button class="btn" data-bkxlsx>${ic('down',15)} Baixar backup completo (Excel)</button>
     <button class="btn" data-bkjson>${ic('down',15)} Baixar backup completo (JSON)</button>
-    ${window.__HOSTED?(S.dono?`<button class="btn" onclick="window.crmMigrar&&window.crmMigrar()">${ic('upload',15)} Continuar / conferir importação</button>`:'')+`<button class="btn" onclick="importarPedidoArquivo()">${ic('upload',15)} Trazer pedido do Alboom</button><button class="btn" data-loteabrir>${ic('upload',15)} Anexar contratos em lote</button>`:`<button class="btn" data-bkmigra>${ic('down',15)} ${S.migMsg?esc(S.migMsg):'Exportar para o app novo'}</button>`}
+    ${window.__HOSTED?(S.dono?`<button class="btn" onclick="window.crmMigrar&&window.crmMigrar()">${ic('upload',15)} Continuar / conferir importação</button>`:'')+`<button class="btn" onclick="importarPedidoArquivo()">${ic('upload',15)} Trazer pedido do Alboom</button><button class="btn" data-loteabrir>${ic('upload',15)} Anexar contratos em lote</button><button class="btn" data-impabrir>${ic('upload',15)} Importar planilhas de outro sistema</button>`:`<button class="btn" data-bkmigra>${ic('down',15)} ${S.migMsg?esc(S.migMsg):'Exportar para o app novo'}</button>`}
    </div>
    <p class="muted" style="margin:0;font-size:12.5px">Os arquivos enviados (PDFs das propostas, fotos das provas) não vão dentro do backup: os originais continuam nas suas pastas. Guarde também os backups baixados junto com os seus outros backups.</p>
   </div></section>
@@ -4130,7 +4141,7 @@ function gcBase(D){return {calendarId:gcCfg().agenda||'primary',summary:D.titulo
 function gcMontar(sch,D,id){return id?{eventId:id,calendarId:gcCfg().agenda||'primary',notificationLevel:gcNotif()}:{...gcBase(D),attendees:D.pessoas.map(x=>({email:x.email,displayName:x.nome}))}}
 function gcIdDe(r){const p=parsePayload(r)||{};const ev=p.event||p.data||p;return ev.id||ev.eventId||ev.event_id||(typeof p==='string'&&(p.match(/"id"\s*:\s*"([^"]+)"/)||[])[1])||''}
 const gcGeral=()=>{const a=gcCfg().agenda||'primary';return a!=='primary'};
-function gcAlvos(){const t=today(),D=gcCfg().desde||t;return (S.data.agenda||[]).filter(e=>e.data&&e.data>=t&&e.data>=D&&(gcGeral()||(e.participantes||[]).length||(e.gcal&&e.gcal.id)))}
+function gcAlvos(){const t=today(),D=gcCfg().desde||t;const canc=new Set(S.data.pedidos.filter(p=>pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado').map(p=>p.id));return (S.data.agenda||[]).filter(e=>!e.cancelado&&!(e.pedidoId&&canc.has(e.pedidoId))&&e.data&&e.data>=t&&e.data>=D&&(gcGeral()||(e.participantes||[]).length||(e.gcal&&e.gcal.id)))}
 async function gcPublicar(ev,mcp){const D=gcDados(ev);const sig=gcSig(D);let g=ev.gcal||{};const cal=gcCfg().agenda||'primary';const now=()=>new Date().toISOString();
   if(g.id&&(g.cal||'primary')!==cal){try{await mcp.callTool(GC,'delete_event',{eventId:g.id,calendarId:g.cal||'primary',notificationLevel:gcNotif()},{cache:false})}catch(e){}g={}}
   if(!D.pessoas.length&&!gcGeral()){if(g.id){try{await mcp.callTool(GC,'delete_event',{eventId:g.id,calendarId:g.cal||cal,notificationLevel:gcNotif()},{cache:false})}catch(e){}await patch('agenda',ev.id,{gcal:{id:'',sig:'',emails:[],em:now()}});return 'removido'}return null}
@@ -4292,7 +4303,7 @@ async function pvPublicar(id){if(!window.__HOSTED||!window.__CRM_HOST)return;con
   const doc={ativo:!p.galeriaPausada,nome:p.nome||'',tipo:p.tipo||'Seleção de fotos',paginasModo:p.paginasModo||'Simples',privado:p.privado!==false&&!!p.senha,senhaH:p.privado!==false&&p.senha?await pvSha(String(p.senha).trim().toLowerCase()):'',
     descricao:p.descricao||'',instrucoes:p.instrucoes||'',legenda:pvLeg(p),limite:+p.limite||0,limiteModo:p.limiteModo||'Apenas alertar',mostrarPreco:!!p.mostrarPreco,precoExtra:+p.precoExtra||0,
     download:!!p.download,favoritos:p.favoritos!==false,pedeCapa:p.tipo==='Seleção de fotos'&&p.pedeCapa!==false,pedeCaixa:p.tipo==='Seleção de fotos'&&p.pedeCaixa!==false,somenteVer:!!p.somenteVer,prazo:p.termino||'',clientes:cl,empresa:{nome:E.nome||'',wa},
-    imgs:p.tipo==='Álbum'?[]:(p.imgs||[]).map(im).filter(Boolean),capa:p.tipo==='Álbum'?im(p.capa):null,contracapa:p.tipo==='Álbum'?im(p.contracapa):null,paginas:p.tipo==='Álbum'?(p.paginas||[]).map(im).filter(Boolean):[],atualizadoEm:new Date().toISOString()};
+    imgs:p.tipo==='Álbum'?[]:(p.imgs||[]).map(im).filter(Boolean),venda:p.tipo==='Venda de fotos'?(()=>{const V=cfg().venda;return {precoDigital:+V.precoDigital||0,tamanhos:(V.tamanhos||[]).filter(t=>t.nome),pixChave:V.pixChave||'',pixNome:V.pixNome||'',pixCidade:V.pixCidade||'',linkCartao:V.linkCartao||''}})():null,capa:p.tipo==='Álbum'?im(p.capa):null,contracapa:p.tipo==='Álbum'?im(p.contracapa):null,paginas:p.tipo==='Álbum'?(p.paginas||[]).map(im).filter(Boolean):[],atualizadoEm:new Date().toISOString()};
   await fs.doc('galerias/'+p.galeria).set(doc);return p.galeria}
 const _pvPub={};function pvPublicarDepois(id){clearTimeout(_pvPub[id]);_pvPub[id]=setTimeout(()=>pvPublicar(id).catch(e=>console.warn('galeria',e)),1500)}
 const _savePv=save;save=async function(col,rec){const id=await _savePv(col,rec);if(col==='provas'&&window.__HOSTED)pvPublicarDepois(typeof id==='string'?id:rec.id);return id};
@@ -4321,7 +4332,7 @@ function pvRespHtml(p){const R=p.respostas||{};const album=p.tipo==='Álbum';con
     if(album){const al=Object.entries(r.alt||{});const P=[p.capa?'Capa':null,...(p.paginas||[]).map((_,i)=>'Página '+(i+1)),p.contracapa?'Contracapa':null].filter(Boolean);
       return `<div class="panel" style="padding:12px;display:grid;gap:6px"><b>${nm}</b><span class="muted" style="font-size:12.5px">${Object.keys(r.aprov||{}).length} aprovada(s) · ${al.length} com alteração${r.ok?(al.length?' · <b style="color:var(--danger)">enviou para alterações em '+fdate(r.ok)+'</b> (depois de ajustar, use engrenagem › Reiniciar)':' · <b style="color:var(--ok)">aprovou em '+fdate(r.ok)+'</b>'):''}</span>${al.map(([k,v])=>`<div style="font-size:13px"><b>${esc(P[+k]||'Página '+(+k+1))}:</b> ${esc(v)}</div>`).join('')}${r.obs?`<div style="font-size:13px"><b>Recado:</b> ${esc(r.obs)}</div>`:''}</div>`}
     const sel=r.sel||[],fav=r.fav||[];const nomes=sel.map(n=>n.replace(/\.[a-z0-9]+$/i,'')).join(', ');
-    return `<div class="panel" style="padding:12px;display:grid;gap:6px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${nm}</b><span class="muted" style="font-size:12.5px">${sel.length} selecionada(s)${p.limite?' de '+p.limite:''} · ${fav.length} favorita(s)${r.ok?' · finalizou em '+fdate(r.ok):''}</span><span class="sp" style="flex:1"></span>${sel.length?`<button class="btn sm" data-copytxt="${esc(nomes)}" title="Cole no filtro do Lightroom">${ic('copy',13)} Copiar nomes</button>`:''}</div>${p.limite&&sel.length>p.limite?`<div style="font-size:13px;color:var(--warn)"><b>${sel.length-p.limite} foto(s) extra(s)</b>${p.mostrarPreco&&+p.precoExtra?' = <b>'+brl((sel.length-p.limite)*p.precoExtra)+'</b> a cobrar':''}</div>`:''}${r.capa||r.caixa?`<div style="font-size:13px">${r.capa?'<b>Capa do álbum:</b> '+esc(r.capa):''}${r.capa&&r.caixa?' · ':''}${r.caixa?'<b>Caixa:</b> '+esc(r.caixa):''}</div>`:''}${sel.length?`<div class="mono" style="font-size:12px;max-height:90px;overflow:auto;color:var(--muted)">${esc(nomes)}</div>`:''}${r.obs?`<div style="font-size:13px"><b>Recado:</b> ${esc(r.obs)}</div>`:''}</div>`}).join('')}
+    return `<div class="panel" style="padding:12px;display:grid;gap:6px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${nm}</b><span class="muted" style="font-size:12.5px">${sel.length} selecionada(s)${p.limite?' de '+p.limite:''} · ${fav.length} favorita(s)${r.ok?' · finalizou em '+fdate(r.ok):''}</span><span class="sp" style="flex:1"></span>${sel.length?(()=>{const b=sel.map(n=>n.replace(/\.[a-z0-9]+$/i,'')+'.');return `<button class="btn sm" data-copytxt="${esc(b.join(' , ')+' ,')}" title="Cole no filtro de texto da Biblioteca do Lightroom">${ic('copy',13)} Lightroom</button><button class="btn sm" data-copytxt="${esc(b.join(' OR '))}" title="Cole na busca da pasta no Windows Explorer ou no Finder do Mac">${ic('copy',13)} Windows / Mac</button><button class="btn sm" data-copytxt="${esc(sel.join('\n'))}" title="Um nome por linha">${ic('copy',13)} Texto</button><button class="btn sm" data-pvlistasel="${esc(c.c)}">${ic('list',13)} Lista completa</button>`})():''}</div>${p.limite&&sel.length>p.limite?`<div style="font-size:13px;color:var(--warn)"><b>${sel.length-p.limite} foto(s) extra(s)</b>${p.mostrarPreco&&+p.precoExtra?' = <b>'+brl((sel.length-p.limite)*p.precoExtra)+'</b> a cobrar':''}</div>`:''}${r.capa||r.caixa?`<div style="font-size:13px">${r.capa?'<b>Capa do álbum:</b> '+esc(r.capa):''}${r.capa&&r.caixa?' · ':''}${r.caixa?'<b>Caixa:</b> '+esc(r.caixa):''}</div>`:''}${sel.length?`<div class="mono" style="font-size:12px;max-height:90px;overflow:auto;color:var(--muted)">${esc(nomes)}</div>`:''}${r.obs?`<div style="font-size:13px"><b>Recado:</b> ${esc(r.obs)}</div>`:''}</div>`}).join('')}
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-pvpub]');if(!t)return;t.disabled=true;try{await pvPublicar(t.dataset.pvpub);toast('Galeria do cliente atualizada')}catch(err){toast('Não consegui publicar a galeria: '+((err&&err.message)||err),true)}t.disabled=false;render()});
 
 /* lembrete de prazo de prova (por cliente da prova) */
@@ -4359,6 +4370,292 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   const de=$('#pvcde').value,para=$('#pvcpara').value;const alvo=x=>de==='*'||(de==='-'?!x.l:x.l===de);const n=(p.imgs||[]).filter(alvo).length;if(!n){toast('Nenhuma foto com essa cor.',true);return}
   const nome=v=>v?(LBL.find(z=>z[0]===v)||[])[1]:'sem cor';if(!confirm(`Mudar ${n} foto(s) para ${nome(para)}?`))return;
   const imgs=(p.imgs||[]).map(x=>{if(!alvo(x))return x;const y={...x};if(para)y.l=para;else delete y.l;delete y.lr;return y});await pvSave(p.id,{imgs,atividade:logAct(p,`${n} foto(s) mudadas para ${nome(para)}`)});toast(`${n} foto(s) agora estão em ${nome(para)}`)});
+
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-pvlistasel]');if(!t)return;pvListaSel(S.ui.pv.id,t.dataset.pvlistasel)});
+
+/* pedido cancelado: some da agenda (CRM e Google) para todos os participantes; reativado volta */
+async function pedAgendaCancelar(p,cancelar){const L=(S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&!!a.cancelado!==cancelar);if(!L.length){if(cancelar)toast('Pedido cancelado: o evento saiu da agenda.');return}
+  let mcp=null;if(cancelar&&L.some(a=>a.gcal&&a.gcal.id)){try{mcp=await getMcp()}catch(e){}}let g=0;
+  for(const a of L){const ch={cancelado:cancelar};
+    if(cancelar&&a.gcal&&a.gcal.id&&mcp){try{await mcp.callTool(GC,'delete_event',{eventId:a.gcal.id,calendarId:a.gcal.cal||'primary',notificationLevel:(a.gcal.emails||[]).length?'ALL':gcNotif()},{cache:false});g++}catch(e){}ch.gcal={id:'',sig:'',emails:[],em:new Date().toISOString()}}
+    try{await patch('agenda',a.id,ch)}catch(e){}}
+  toast(cancelar?`Pedido cancelado: ${L.length} compromisso(s) saíram da agenda${g?' e da agenda Google dos participantes':''}.`:`Pedido reativado: ${L.length} compromisso(s) voltaram para a agenda.`);
+  if(!cancelar&&typeof gcSync==='function')setTimeout(()=>{try{gcSync(true)}catch(e){}},1500)}
+/* ===== Ajuda: "Quero saber mais" em cada tela ===== */
+const AJUDA={
+ inicio:{t:'Início',p:'Resumo do dia: o que vence, o que tem na agenda e o que precisa da sua atenção.',s:[
+  'Veja no topo os contadores Hoje, Tarefas e Vencidas. Clique em cada um para abrir a lista.',
+  'Em Próximos compromissos estão os eventos dos próximos dias. Clique para abrir o evento ou o pedido.',
+  'Os cartões mostram projetos com entrega na semana, provas aguardando o cliente, oportunidades abertas e contas a receber e a pagar.',
+  'Use Disponibilidade de equipamentos para saber se ainda dá para vender uma data.',
+  'Excel, no canto, exporta o que está na tela.'],d:['Abra o Início toda manhã: é o seu checklist do dia.']},
+ contatos:{t:'Contatos',p:'Cadastro de clientes, fornecedores, freelancers e parceiros. Tudo no sistema se liga a um contato.',s:[
+  'Clique em + Novo contato e preencha nome, celular e e-mail. Para empresa, marque Pessoa jurídica e informe o CNPJ.',
+  'Use a busca para achar por nome, e-mail, telefone ou CPF/CNPJ.',
+  'Clique no nome para abrir a ficha: pedidos, oportunidades, provas, contas a receber e a pagar e o histórico.',
+  'Nos quadros coloridos da ficha você vê tudo daquele cliente e cria um pedido ou oportunidade direto dali.',
+  'Os botões de e-mail e WhatsApp já abrem a mensagem para o contato.',
+  'Em Duplicados, o CRM mostra cadastros repetidos e junta os dois sem perder nada.'],d:['Cadastro completo (CPF, endereço) preenche o contrato sozinho.']},
+ contato:null,dupcont:null,
+ oportunidades:{t:'Oportunidades',p:'Os orçamentos em negociação, antes de virar pedido.',s:[
+  'Clique em + Nova oportunidade, escolha o contato e preencha evento, data, valor e origem (Instagram, indicação…).',
+  'Mude a Etapa conforme a conversa avança: Lead › Contato feito › Proposta enviada › Negociação.',
+  'Preencha Próxima ação com a data do próximo contato: ela aparece em Tarefas do dia.',
+  'Quando fechar, use Converter em pedido: os dados passam para o pedido sem digitar de novo.',
+  'Se perder, marque Perdida e o motivo: isso alimenta os relatórios.'],d:['O Funil de vendas mostra as oportunidades em colunas: arraste para mudar de etapa.']},
+ funil:null,opp:null,relopp:null,
+ propostas:{t:'Propostas',p:'Orçamentos montados com produtos e enviados ao cliente.',s:[
+  'Clique em + Nova proposta, escolha o contato e adicione os produtos.',
+  'Ajuste quantidade, valor e desconto. O total é calculado sozinho.',
+  'Envie por e-mail ou WhatsApp pelos botões da proposta.',
+  'Quando o cliente aceitar, gere o pedido a partir da proposta.'],d:['Propostas com a data do evento passada são marcadas como recusadas sozinhas.']},
+ produtos:{t:'Produtos',p:'Catálogo do que você vende, com preço e custos.',s:[
+  'Clique em + Novo produto. Preencha nome, código, preço e a descrição que vai no contrato e na proposta.',
+  'Em Custos, cadastre o que esse produto gera de despesa (técnico, impressão, comissão, imposto), com fornecedor e dias para pagar.',
+  'Na aba Equipamento, marque qual equipamento ele usa: isso controla a disponibilidade de datas.',
+  'Ao vender, os custos entram no pedido e podem ir direto para Contas a pagar.'],d:['Custo bem cadastrado = margem certa em cada pedido.']},
+ pedidos:{t:'Pedidos e contratos',p:'Tudo que foi vendido: itens, pagamentos, custos, contrato, agenda e provas.',s:[
+  'Clique em + Novo pedido, escolha o cliente, a data e o local do evento e adicione os itens.',
+  'Em Pagamentos, defina a forma e as parcelas: elas vão para Contas a receber.',
+  'Abra o pedido e use os quadros coloridos: Itens, Pagamentos, Custos, Contratos, Projetos, Provas e Agendamentos.',
+  'Em Custos, clique em Adicionar ou Recriar dos produtos: os custos vão para Contas a pagar.',
+  'Clique em Contrato para gerar o texto pelo modelo, revisar e Salvar no pedido.',
+  'Use Assinatura digital para mandar o contrato pelo DocuSeal. A situação muda sozinha para Aguardando assinatura e depois Assinado.',
+  'Nas observações entram os Dados de operação para a equipe. Marque os participantes e o contato do operador se preenche sozinho.',
+  'Se mudar o total, o CRM oferece ajustar as parcelas. Se cancelar, o evento sai da agenda e ele oferece apagar as contas em aberto.'],d:['Clique no cabeçalho da lista para ordenar.','Anexos guarda contrato assinado, comprovantes e layout.']},
+ pedido:null,fichas:{t:'Fichas de contratação',p:'Fichas que o cliente preenche pelo formulário, com os dados para o contrato.',s:[
+  'As fichas novas aparecem com o número no menu.',
+  'Abra a ficha e confira os dados que o cliente mandou.',
+  'Use Importar para levar os dados para o cadastro do contato e do pedido, ou Ignorar se não for usar.',
+  'Depois, Abrir contato e Abrir pedido levam direto para eles. Copiar link envia o formulário para outro cliente.'],d:[]},
+ projetos:{t:'Projetos',p:'A produção depois do evento: edição, álbum, entrega.',s:[
+  'Cada pedido pode ter um projeto. Crie pelo pedido (quadro Projetos) ou por + Novo projeto.',
+  'Escolha o fluxo de trabalho (ex.: Álbum - Casamento): as etapas e prazos entram sozinhos.',
+  'Avance a etapa conforme o trabalho anda e defina o responsável.',
+  'O prazo de entrega aparece na agenda e no Início.'],d:['Imprima o projeto para a equipe com o botão de impressão.']},
+ tarefas:{t:'Tarefas',p:'O que precisa ser feito, com data e responsável.',s:[
+  'Clique em + Nova tarefa, escreva o que fazer, a data e quem faz.',
+  'Marque como feita quando terminar.',
+  'Tarefas atrasadas aparecem em vermelho e no contador do topo.'],d:[]},
+ provas:{t:'Provas (galerias do cliente)',p:'Galerias onde o cliente escolhe as fotos ou aprova o álbum, pelo link, sem login.',s:[
+  'Clique em + Nova prova (ou Nova Prova dentro do pedido, que já liga ao cliente). Escolha o tipo: Seleção de fotos, Álbum ou Visualização.',
+  'Em Configurações da prova: limite de fotos do pacote, preço da foto extra, senha, download, favoritos e se o cliente escolhe a foto da capa e da caixa.',
+  'Na aba Imagens, arraste as fotos (ou as páginas do álbum). As cores do Lightroom viram pastas para o cliente.',
+  'Na aba Clientes, confira o prazo e use a engrenagem › Enviar link de acesso (e-mail) ou Link de acesso por WhatsApp.',
+  'O cliente escolhe as fotos, peneira em Selecionadas, escolhe capa e caixa e envia. Você recebe um e-mail e a prova fica Concluída.',
+  'Na engrenagem › Ver lista de seleção copie os nomes para o Lightroom ou para o Windows/Mac.',
+  'No álbum, o cliente aprova página por página ou pede alteração. Depois de ajustar, use Liberar nova aprovação.',
+  'Lembretes de prazo saem sozinhos 7, 3 e 1 dia antes (E-mails › Modelos e regras).',
+  'Para vender fotos, crie uma prova do tipo Venda de fotos. Preços, Pix, link do cartão e marca d\'água ficam em Configurações › Venda de fotos. As fotos sobem com marca d\'água para o cliente e sem marca guardadas para a entrega.',
+  'As compras aparecem na aba Vendas da prova. Confira o pagamento e clique em Confirmar pagamento e enviar fotos: as fotos digitais vão para o e-mail do comprador e a venda entra no financeiro.'],d:['Desbloquear deixa o cliente mexer de novo sem perder o que escolheu.','Zerar apaga as respostas: use para limpar testes.']},
+ prova:null,provaview:null,
+ agenda:{t:'Agenda',p:'Todos os eventos, entregas e compromissos num só calendário.',s:[
+  'Os eventos dos pedidos já aparecem sozinhos na data do evento.',
+  'Clique num dia para criar um compromisso, ou num evento para abrir.',
+  'Marque os participantes: eles recebem o aviso e o evento na agenda Google deles.',
+  'Use Preencher automático para montar os Dados de operação e Enviar ao operador pelo WhatsApp.',
+  'Filtre por tipo e por pessoa no topo. Troque entre mês e lista.',
+  'Pedido cancelado sai da agenda de todos sozinho.'],d:['Em Equipe, o número ao lado de cada pessoa abre a agenda dela para enviar.']},
+ financeiro:{t:'Financeiro',p:'Resumo do dinheiro: o que entra, o que sai e o saldo das contas.',s:[
+  'O painel mostra a receber, a pagar, vencidas e o saldo de cada conta bancária.',
+  'Contas a receber nasce das parcelas dos pedidos. Contas a pagar nasce dos custos dos pedidos e das despesas que você lança.',
+  'Para lançar algo avulso, use os botões Conta a pagar ou Conta a receber no topo: preencha valor, vencimento e categoria.',
+  'Ao receber ou pagar, clique em Pagar/Receber, escolha a conta bancária e a data. Depois pode Imprimir ou Enviar recibo.',
+  'Transações mostra o extrato de cada conta. Nova transação faz transferência, depósito ou retirada.',
+  'Cashback guarda as anotações de cashback dos fornecedores.'],d:['Os lembretes de vencimento saem sozinhos por e-mail 15 dias antes (cartão de crédito não recebe).']},
+ finar:null,finarp:null,finap:null,finapp:null,finporcli:null,finporforn:null,fintrans:null,contasbanc:null,cashback:null,
+ relatorios:{t:'Relatórios',p:'Números para decidir: vendas, resultados, fluxo de caixa e disponibilidade.',s:[
+  'Escolha o relatório no menu: Resultados de vendas, Fluxo de caixa, Vendas, Faturamento por produto, Por cliente/fornecedor.',
+  'Ajuste o período e os filtros no topo.',
+  'Clique nos números para ver os pedidos ou lançamentos que formam o valor.',
+  'Disponibilidade para vender mostra quantos eventos ainda cabem por dia, escolhendo os dias da semana.',
+  'Excel exporta o relatório como está na tela.'],d:[]},
+ relvendas:null,relcontatos:null,relresv:null,relfluxo:null,reldisp:null,relprod:null,
+ emails:{t:'E-mails',p:'Os e-mails automáticos do CRM: lembretes de vencimento, recibos, prazo de prova e agenda dos freelancers.',s:[
+  'Para enviar hoje mostra o que deve sair hoje. Clique em Ver para conferir e editar antes.',
+  'Marque Enviar sozinho para o CRM mandar a cada 30 minutos enquanto estiver aberto.',
+  'Em Modelos e regras mude os textos e os dias de cada tipo de e-mail.',
+  'Enviados mostra o histórico, com erro se algum não saiu.'],d:['Tudo sai pelo Gmail da empresa.']},
+ config:{t:'Configurações',p:'Dados da empresa, equipe, modelos e regras do sistema.',s:[
+  'Estúdio: dados das duas empresas, que entram nos contratos, recibos e e-mails.',
+  'Equipe: administradores, usuários e freelancers. Administrador com e-mail consegue entrar no CRM.',
+  'Contratos: modelos de contrato, assinatura digitalizada e marca d\'água.',
+  'Galerias de provas: legenda das cores, marca d\'água das fotos, lembretes e textos do convite.',
+  'Equipamentos, fluxos de trabalho, tarefas dos pedidos e agenda Google também ficam aqui.'],d:[]},
+ backup:{t:'Backup e exportação',p:'Cópias de segurança e ferramentas de importação.',s:[
+  'O backup automático salva tudo no Google Drive a cada hora, e uma planilha Excel por dia, com o CRM aberto.',
+  'Fazer backup agora força uma cópia na hora.',
+  'Baixar backup completo (Excel ou JSON) guarda uma cópia no seu computador.',
+  'Trazer pedido do Alboom importa um pedido pelo arquivo gerado.',
+  'Anexar contratos em lote liga os PDFs de contratos aos pedidos pelo número ou nome.'],d:['Não feche a aba durante um backup.']}
+};
+const AJUDA_DE={contato:'contatos',dupcont:'contatos',funil:'oportunidades',opp:'oportunidades',relopp:'oportunidades',pedido:'pedidos',prova:'provas',provaview:'provas',
+  finar:'financeiro',finarp:'financeiro',finap:'financeiro',finapp:'financeiro',finporcli:'financeiro',finporforn:'financeiro',fintrans:'financeiro',contasbanc:'financeiro',cashback:'financeiro',
+  relvendas:'relatorios',relcontatos:'relatorios',relresv:'relatorios',relfluxo:'relatorios',reldisp:'relatorios',relprod:'relatorios'};
+function ajudaDe(v){const k=AJUDA[v]?v:AJUDA_DE[v];return k&&AJUDA[k]?{k,...AJUDA[k]}:null}
+function ajudaAbrir(k){const A=AJUDA[k];if(!A)return;const lista=Object.keys(AJUDA).filter(x=>AJUDA[x]);
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:720px"><header><h3>${ic('info',18)} Como usar: ${esc(A.t)}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody" style="display:grid;gap:14px"><p style="margin:0;font-size:15px">${esc(A.p)}</p>
+   <ol class="ajuda-ol">${A.s.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
+   ${A.d&&A.d.length?`<div class="banner" style="margin:0;display:block"><b>Dicas</b><ul style="margin:6px 0 0;padding-left:18px">${A.d.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+   <div style="display:grid;gap:6px"><span class="muted" style="font-size:12px">Outros passo a passo</span><div style="display:flex;gap:6px;flex-wrap:wrap">${lista.filter(x=>x!==k).map(x=>`<button class="btn sm" data-ajuda="${x}">${esc(AJUDA[x].t)}</button>`).join('')}</div></div></div>
+  <footer><span class="sp"></span><button class="btn pri" data-close>Entendi</button></footer></div></div>`}
+function ajudaBotao(){const A=ajudaDe(S.ui.view);const ph=document.querySelector('#app .phead, .phead');if(!ph||!A||ph.querySelector('[data-ajuda]'))return;
+  let ac=ph.querySelector('.actions');if(!ac){ac=document.createElement('div');ac.className='actions';ph.appendChild(ac)}
+  ac.insertAdjacentHTML('afterbegin',`<button class="btn ajuda-btn" data-ajuda="${A.k}" title="Quero saber mais: passo a passo de como usar ${esc(A.t)}">${ic('info',15)} Quero saber mais</button>`)}
+const _renderAj=render;render=function(){const r=_renderAj.apply(this,arguments);try{ajudaBotao()}catch(e){}return r};
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-ajuda]');if(!t)return;e.preventDefault();ajudaAbrir(t.dataset.ajuda)});
+(function(){const st=document.createElement('style');st.textContent=`.ajuda-btn{border-color:var(--info);color:var(--info)}.ajuda-ol{margin:0;padding-left:0;list-style:none;counter-reset:aj;display:grid;gap:10px}.ajuda-ol li{counter-increment:aj;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;font-size:14.5px;line-height:1.5}.ajuda-ol li::before{content:counter(aj);width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px}`;document.head.appendChild(st)})();
+
+/* ===== Venda de fotos (CRM) ===== */
+document.addEventListener('change',e=>{const t=e.target;if(!(t.dataset&&t.dataset.vtam))return;const [i,k]=t.dataset.vtam.split('.');const L=[...(cfg().venda.tamanhos||[])].map(x=>({...x}));if(!L[+i])return;L[+i][k]=k==='preco'?(+t.value||0):t.value.trim();cfgPath('venda.tamanhos',L)});
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-vtamadd],[data-vtamdel]');if(!t)return;const L=[...(cfg().venda.tamanhos||[])];if(t.dataset.vtamdel!==undefined)L.splice(+t.dataset.vtamdel,1);else L.push({nome:'',preco:0});cfgPath('venda.tamanhos',L);render()});
+async function vendaMarca(bmp,w,h,cx){const V=cfg().venda,PC=cfg().provas;const op=Math.max(.05,Math.min(.9,(+V.marcaOpac||35)/100));cx.save();cx.globalAlpha=op;
+  let img=null;if(PC.marca&&PC.marca.a){try{const b=await (await fetch(blobUrl(PC.marca.a))).blob();img=await createImageBitmap(b)}catch(e){}}
+  if(img){const sc=Math.min((w*.6)/img.width,(h*.6)/img.height);const ww=img.width*sc,hh=img.height*sc;cx.drawImage(img,(w-ww)/2,(h-hh)/2,ww,hh);if(img.close)img.close()}
+  const tx=(V.marcaTexto||'').trim();if(tx){const fs=Math.round(Math.max(w,h)/16);cx.font=`700 ${fs}px Arial, sans-serif`;cx.fillStyle='#fff';cx.strokeStyle='rgba(0,0,0,.6)';cx.lineWidth=Math.max(1,fs/18);cx.translate(w/2,h/2);cx.rotate(-Math.PI/6);
+    const tw=cx.measureText(tx).width+fs*1.5;for(let y=-h;y<=h;y+=fs*2.6)for(let x=-w*1.2;x<=w*1.2;x+=tw){cx.strokeText(tx,x,y);cx.fillText(tx,x,y)}}
+  cx.restore()}
+async function vendaVersoes(file){const V=cfg().venda;let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'})}catch(e){bmp=await createImageBitmap(file)}
+  const mk=async(max,marca)=>{const sc=Math.min(1,max/Math.max(bmp.width,bmp.height));const w=Math.round(bmp.width*sc),h=Math.round(bmp.height*sc);const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');cx.drawImage(bmp,0,0,w,h);if(marca)await vendaMarca(bmp,w,h,cx);return {blob:await new Promise(r=>cv.toBlob(r,'image/jpeg',marca?.82:.92)),w,h}};
+  const prev=await mk(+V.maxPrev||1600,true),fin=await mk(+V.maxFinal||3000,false);if(bmp.close)bmp.close();return {prev,fin}}
+/* Pix copia e cola (BR Code estático com valor) */
+function pixCRC(s){let c=0xFFFF;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,'0')}
+const pixLimpa=(t,n)=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9 .\-]/g,'').toUpperCase().slice(0,n).trim();
+function pixCodigo(chave,nome,cidade,valor,txid){const f=(id,v)=>id+String(v.length).padStart(2,'0')+v;const ma=f('00','br.gov.bcb.pix')+f('01',String(chave).trim());
+  let p=f('00','01')+f('26',ma)+f('52','0000')+f('53','986')+(valor?f('54',(+valor).toFixed(2)):'')+f('58','BR')+f('59',pixLimpa(nome,25)||'RECEBEDOR')+f('60',pixLimpa(cidade,15)||'CIDADE')+f('62',f('05',(String(txid||'***').replace(/[^A-Za-z0-9]/g,'').slice(0,25))||'***'))+'6304';return p+pixCRC(p)}
+/* compras feitas na galeria -> CRM */
+let _cmpOn=false;
+function vendaCompras(){if(_cmpOn||!window.__HOSTED||!window.__CRM_HOST)return;const fs=window.__CRM_HOST.fs;if(!fs.collectionGroup)return;_cmpOn=true;
+  fs.collectionGroup('compras').onSnapshot(snap=>{const ant=S.compras||[];S.compras=snap.docs.map(d=>({...d.data(),id:d.id,_tok:d.ref.parent.parent.id,_ref:d.ref.path}));
+    const novos=S.compras.filter(c=>!ant.some(a=>a.id===c.id&&a.status===c.status)&&ant.length);novos.forEach(c=>{if(c.status==='aguardando')toast('Nova compra de fotos: '+(c.nome||'')+' · '+brl(c.total||0));if(c.status==='pago_informado')toast((c.nome||'Cliente')+' informou que pagou '+brl(c.total||0)+'. Confira e confirme.')});
+    if(S.dono)novos.filter(c=>c.status==='aguardando'||c.status==='pago_informado').forEach(c=>{try{const E=cfg().estudio||{};if(E.email)gmEnviar({para:E.email,assunto:(c.status==='pago_informado'?'Pagamento informado: ':'Nova compra de fotos: ')+(c.nome||'')+' · '+brl(c.total||0),texto:`${c.nome||''} (${c.email||''} · ${c.fone||''})\n${(c.itens||[]).length} item(ns) · total ${brl(c.total||0)}\n\nAbra a prova no CRM, aba Vendas, para confirmar o pagamento e liberar as fotos.`}).catch(()=>{})}catch(e){}});schedule()},e=>{_cmpOn=false;console.warn('compras',e)})}
+setTimeout(function cmpTenta(){if(window.__HOSTED&&S.loaded&&S.loaded.has&&S.loaded.has('provas'))vendaCompras();else setTimeout(cmpTenta,4000)},7000);
+const VST={aguardando:['Aguardando pagamento','--warn'],pago_informado:['Cliente diz que pagou','--info'],pago:['Pago · fotos enviadas','--ok'],cancelado:['Cancelado','--idle']};
+function vendaTab(p){const L=(S.compras||[]).filter(c=>c._tok===p.galeria).sort((a,b)=>String(b.em||'').localeCompare(String(a.em||'')));
+  if(!window.__HOSTED)return '<div class="empty"><span>As vendas aparecem no CRM publicado.</span></div>';
+  if(!L.length)return `<div class="empty"><b>Nenhuma compra ainda</b><span>Quando o cliente finalizar a compra na galeria, ela aparece aqui.</span></div>`;
+  const tot=L.filter(c=>c.status==='pago').reduce((a,c)=>a+(+c.total||0),0);
+  const V=cfg().venda;const calc=c=>Math.round((c.itens||[]).reduce((a,i)=>a+(i.dig?(+V.precoDigital||0):0)+Object.entries(i.imp||{}).reduce((b,[t,q])=>b+((V.tamanhos||[]).find(z=>z.nome===t)||{preco:0}).preco*(+q||0),0),0)*100)/100;
+  return `<div class="banner" style="margin:0"><span><b>${L.length}</b> compra(s) · recebido <b>${brl(tot)}</b></span></div>`+L.map(c=>`<section class="panel" style="padding:12px;display:grid;gap:6px">${Math.abs(calc(c)-(+c.total||0))>0.01?`<div class="banner" style="margin:0;border-color:var(--danger)"><span>${ic('alertT',14)} Pelos preços atuais esta compra daria <b>${brl(calc(c))}</b>, mas o cliente viu <b>${brl(c.total||0)}</b>. Confira antes de confirmar.</span></div>`:''}<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${esc(c.nome||'')}</b>${badge(VST[c.status]?VST[c.status][0]:c.status,VST[c.status]?VST[c.status][1]:'--idle')}<span class="muted" style="font-size:12px">${c.em?fdate(c.em.slice(0,10))+' '+c.em.slice(11,16):''} · ${esc(c.email||'')} · ${esc(c.fone||'')}</span><span class="sp" style="flex:1"></span><b class="num">${brl(c.total||0)}</b></div>
+    <div style="font-size:13px">${(c.itens||[]).map(i=>`${esc(i.n)}: ${i.dig?'digital':''}${i.dig&&Object.keys(i.imp||{}).length?' + ':''}${Object.entries(i.imp||{}).map(([t,q])=>q+'× '+esc(t)).join(', ')}`).join(' · ')}</div>${c.obs?`<div style="font-size:13px"><b>Recado:</b> ${esc(c.obs)}</div>`:''}${c.forma?`<div class="muted" style="font-size:12px">Forma escolhida: ${esc(c.forma)}</div>`:''}
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${c.status!=='pago'?`<button class="btn sm pri" data-vconf="${esc(c._ref)}">${ic('ok',13)} Confirmar pagamento e enviar fotos</button>`:`<button class="btn sm" data-vreenv="${esc(c._ref)}">${ic('mail',13)} Reenviar fotos</button>`}${waNum({celular:c.fone})?`<a class="btn sm" style="background:#25a85a;border-color:#25a85a;color:#fff" target="_blank" rel="noopener" href="https://wa.me/${waNum({celular:c.fone})}?text=${encodeURIComponent(c.status==='pago'?vendaMsg(p,c):'Olá '+(c.nome||'')+'! Recebemos o seu pedido de fotos de "'+p.nome+'", total '+brl(c.total||0)+'.')}">${ic('wa',13)} WhatsApp</a>`:''}${c.status!=='pago'&&c.status!=='cancelado'?`<button class="btn sm" data-vcanc="${esc(c._ref)}">Cancelar</button>`:''}</div></section>`).join('')}
+function vendaLinks(p,c){const I={};(p.imgs||[]).forEach(x=>I[x.n]=x);return (c.itens||[]).filter(i=>i.dig).map(i=>{const x=I[i.n];return x?(i.n+': '+blobUrl(x.f||x.a)):''}).filter(Boolean).join('\n')}
+function vendaMsg(p,c){const V=cfg().venda;const links=vendaLinks(p,c)||'(sem fotos digitais nesta compra)';return String(V.msgEntrega||'').replace(/\{nome\}/g,(c.nome||'').split(' ')[0]).replace(/\{links\}/g,links).replace(/\{total\}/g,brl(c.total||0))}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-vconf],[data-vreenv],[data-vcanc]');if(!t)return;const fs=window.__CRM_HOST&&window.__CRM_HOST.fs;if(!fs)return;const path=t.dataset.vconf||t.dataset.vreenv||t.dataset.vcanc;
+  const c=(S.compras||[]).find(x=>x._ref===path);const p=S.data.provas.find(x=>x.galeria===(c&&c._tok));if(!c||!p)return;
+  if(t.dataset.vcanc){if(!confirm('Cancelar esta compra?'))return;await fs.doc(path).set({status:'cancelado'},{merge:true});toast('Compra cancelada');return}
+  if(t.dataset.vconf&&!confirm(`Confirmar que ${c.nome||'o cliente'} pagou ${brl(c.total||0)}? As fotos digitais vão para ${c.email||'o e-mail dele'}.`))return;
+  t.disabled=true;try{if(c.email){await gmEnviar({para:c.email,assunto:'Suas fotos - '+p.nome,texto:emCorpo?emCorpo(vendaMsg(p,c)):vendaMsg(p,c)})}
+    await fs.doc(path).set({status:'pago',pagoEm:new Date().toISOString(),enviadoEm:new Date().toISOString()},{merge:true});
+    if(t.dataset.vconf){try{await save('lancamentos',{tipo:'receber',categoria:'Venda de fotos',descricao:'Venda de fotos - '+p.nome+' - '+(c.nome||''),valor:+c.total||0,vencimento:today(),pago:true,dataPagamento:today(),forma:c.forma||'',contatoId:p.contatoId||'',pedidoId:p.pedidoId||''})}catch(_){}}
+    toast(c.email?'Fotos enviadas para '+c.email:'Pagamento confirmado (sem e-mail: envie pelo WhatsApp)')}catch(err){toast('Não consegui enviar: '+((err&&err.message)||err),true)}t.disabled=false;render()});
+/* ===== Importar planilhas de outro sistema ===== */
+const IMP_TIPOS={
+ contatos:{l:'Contatos (clientes e fornecedores)',f:[['nome','Nome *',/^(nome|cliente|nome completo|razao social|contato|name)$/],['sobrenome','Sobrenome',/sobrenome|last ?name|lastname/],['email','E-mail',/e-?mail/],['celular','Celular / WhatsApp',/celular|whats|cel\b|mobile|cellular/],['fone','Telefone',/^(telefone|fone|tel|phone)/],['cpf','CPF / CNPJ',/cpf|cnpj|documento|doc2/],['rg','RG',/^rg$|identidade|doc1/],['empresa','Empresa',/empresa|company/],['endereco','Endereço',/endere|rua|address1|logradouro/],['bairro','Bairro',/bairro|address2/],['cidade','Cidade',/cidade|city/],['uf','Estado (UF)',/^(uf|estado|state)$/],['cep','CEP',/cep|zip/],['categoria','Tipo (Cliente, Fornecedor…)',/categoria|tipo|type/],['obs','Observações',/obs|nota|memo|anota/]]},
+ produtos:{l:'Produtos e serviços',f:[['nome','Nome do produto *',/produto|nome|servi|name/],['codigo','Código',/codigo|c[oó]d|sku|code/],['preco','Preço',/pre[cç]o|valor|price/],['descricao','Descrição',/descri/]]},
+ pedidos:{l:'Pedidos / contratos vendidos',f:[['num','Número do pedido',/^(n[º°o]?|numero|n[uú]mero do pedido|pedido|id|c[oó]digo)$/],['titulo','Nome do evento / pedido *',/titulo|t[ií]tulo|evento|nome|descri/],['cliente','Cliente (nome ou e-mail)',/cliente|contratante|customer/],['dataEvento','Data do evento',/data.*evento|evento.*data|event.?date|^data$/],['horaEvento','Hora do evento',/hora|hor[aá]rio/],['local','Local',/local|place/],['total','Valor total',/total|valor/],['status','Situação (cancelado…)',/status|situa/],['notas','Observações',/obs|nota|memo/]]},
+ financeiro:{l:'Financeiro (contas a receber e a pagar)',f:[['tipo','Receber ou pagar',/tipo|natureza|entrada|sa[ií]da|receita|despesa|type/],['descricao','Descrição *',/descri|hist[oó]rico|nome/],['valor','Valor *',/valor|amount|total/],['vencimento','Vencimento',/venc|due|data/],['pago','Pago? (sim/não)',/pago|quitad|baixad|status|cleared/],['dataPagamento','Data do pagamento',/pagamento|pago em|baixa|cleared.?date/],['cliente','Cliente / fornecedor',/cliente|fornecedor|favorecido|contato|customer/],['pedido','Número do pedido',/pedido|order/],['categoria','Categoria',/categoria|plano|conta cont/],['forma','Forma de pagamento',/forma|meio|payment/]]},
+ agenda:{l:'Agenda (eventos e compromissos)',f:[['titulo','Título *',/titulo|t[ií]tulo|evento|assunto|nome|summary/],['data','Data *',/^data|date|dia/],['hora','Hora de início',/^hora|in[ií]cio|start/],['horaFim','Hora de término',/fim|t[eé]rmino|end/],['local','Local',/local|lugar|location/],['cliente','Cliente',/cliente|contato/],['pedido','Número do pedido',/pedido|order/],['notas','Observações',/obs|nota|descri/]]}};
+const impN=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+function impTipo(H){const h=H.map(impN).join(' | ');const sc={contatos:0,produtos:0,pedidos:0,financeiro:0,agenda:0};
+  if(/e-?mail/.test(h))sc.contatos+=2;if(/cpf|cnpj|celular|cep|bairro/.test(h))sc.contatos+=3;if(/venc|pago|receber|pagar|despesa|receita/.test(h))sc.financeiro+=4;if(/valor/.test(h))sc.financeiro+=1;
+  if(/evento|pedido|contrato|total/.test(h))sc.pedidos+=3;if(/produto|preco|sku|codigo/.test(h))sc.produtos+=3;if(/hora|local|assunto|titulo/.test(h))sc.agenda+=2;if(/data/.test(h))sc.agenda+=1;
+  return Object.entries(sc).sort((a,b)=>b[1]-a[1])[0][0]}
+function impMapa(tipo,H){const m={};const usados=new Set();IMP_TIPOS[tipo].f.forEach(([k,,re])=>{const i=H.findIndex((h,j)=>!usados.has(j)&&re.test(impN(h)));if(i>=0){m[k]=i;usados.add(i)}});return m}
+function impData(v){if(v==null||v==='')return '';if(v instanceof Date&&!isNaN(v))return iso(v);if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*864e5));return d.toISOString().slice(0,10)}
+  const s=String(v).trim();let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);if(m){let y=m[3];if(y.length===2)y=(+y>50?'19':'20')+y;return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`}return ''}
+function impHora(v){if(v==null||v==='')return '';if(typeof v==='number'&&v<1){const t=Math.round(v*1440);return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}const m=String(v).match(/(\d{1,2})[:h](\d{2})/);return m?m[1].padStart(2,'0')+':'+m[2]:''}
+function impValor(v){if(typeof v==='number')return Math.round(v*100)/100;let s=String(v??'').replace(/[^\d,.\-]/g,'');if(!s)return 0;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const n=+s;return isNaN(n)?0:Math.round(n*100)/100}
+const impSim=v=>/^(s|sim|y|yes|1|true|pago|paga|quitad|baixad|ok|x)/i.test(impN(v));
+S.ui.imp={arqs:[],fase:'escolher',log:[]};
+function impContato(nome){const n=impN(nome);if(!n)return '';const C=S.data.contatos;const c=C.find(x=>impN(x.email)===n)||C.find(x=>impN(SCHEMAS.contatos.labelOf(x))===n)||C.find(x=>String(x.cpf||'').replace(/\D/g,'')&&String(x.cpf).replace(/\D/g,'')===String(nome).replace(/\D/g,''));return c?c.id:''}
+function impReg(a){const T=a.tipo,M=a.map,g=(r,k)=>M[k]!=null?r[M[k]]:'';const out=[];
+  for(const r of a.rows){if(!r||!r.some(x=>String(x??'').trim()))continue;let o=null;
+    if(T==='contatos'){const nome=String(g(r,'nome')||'').trim();if(!nome)continue;o={nome,sobrenome:g(r,'sobrenome'),email:String(g(r,'email')||'').trim().toLowerCase(),celular:g(r,'celular'),fone:g(r,'fone'),cpf:g(r,'cpf'),rg:g(r,'rg'),empresa:g(r,'empresa'),endereco:g(r,'endereco'),bairro:g(r,'bairro'),cidade:g(r,'cidade'),uf:g(r,'uf'),cep:g(r,'cep'),categoria:/fornec/i.test(g(r,'categoria'))?'Fornecedor':(g(r,'categoria')||'Cliente'),obs:g(r,'obs')};o.pj=String(o.cpf||'').replace(/\D/g,'').length===14}
+    if(T==='produtos'){const nome=String(g(r,'nome')||'').trim();if(!nome)continue;o={nome,codigo:g(r,'codigo'),preco:impValor(g(r,'preco')),descricao:g(r,'descricao')}}
+    if(T==='pedidos'){const titulo=String(g(r,'titulo')||'').trim();if(!titulo)continue;const tot=impValor(g(r,'total'));o={num:+String(g(r,'num')||'').replace(/\D/g,'')||undefined,titulo,_cli:g(r,'cliente'),dataEvento:impData(g(r,'dataEvento')),horaEvento:impHora(g(r,'horaEvento')),local:g(r,'local'),itens:[{produtoId:'',desc:titulo,qtd:1,valor:tot}],notas:g(r,'notas'),situacaoAlboom:/cancel/i.test(g(r,'status'))?'Cancelado':'Concluido'}}
+    if(T==='financeiro'){const descricao=String(g(r,'descricao')||'').trim();const valor=impValor(g(r,'valor'));if(!descricao&&!valor)continue;const tv=impN(g(r,'tipo'));const tipo=M.tipo!=null&&tv?(/pag|desp|said|debit|-/.test(tv)?'pagar':'receber'):(a.fin||'receber');
+      o={tipo,descricao:descricao||'(sem descrição)',valor:Math.abs(valor),vencimento:impData(g(r,'vencimento')),pago:M.pago!=null?impSim(g(r,'pago')):!!impData(g(r,'dataPagamento')),dataPagamento:impData(g(r,'dataPagamento')),_cli:g(r,'cliente'),_ped:String(g(r,'pedido')||'').replace(/\D/g,''),categoria:g(r,'categoria'),forma:g(r,'forma')};if(o.pago&&!o.dataPagamento)o.dataPagamento=o.vencimento}
+    if(T==='agenda'){const titulo=String(g(r,'titulo')||'').trim(),data=impData(g(r,'data'));if(!titulo||!data)continue;o={titulo,data,hora:impHora(g(r,'hora')),horaFim:impHora(g(r,'horaFim')),local:g(r,'local'),notas:g(r,'notas'),_cli:g(r,'cliente'),_ped:String(g(r,'pedido')||'').replace(/\D/g,''),tipo:Object.keys(TIPOS)[0]}}
+    if(o){for(const k in o)if(o[k]===''||o[k]==null)delete o[k];out.push(o)}}return out}
+function impJaExiste(T,o){const D=S.data;if(T==='contatos')return D.contatos.some(c=>(o.email&&impN(c.email)===impN(o.email))||(o.cpf&&String(c.cpf||'').replace(/\D/g,'')&&String(c.cpf).replace(/\D/g,'')===String(o.cpf).replace(/\D/g,''))||(!o.email&&!o.cpf&&impN(SCHEMAS.contatos.labelOf(c))===impN([o.nome,o.sobrenome].filter(Boolean).join(' '))));
+  if(T==='produtos')return D.produtos.some(p=>impN(p.nome)===impN(o.nome));if(T==='pedidos')return D.pedidos.some(p=>(o.num&&+p.num===o.num)||(impN(p.titulo)===impN(o.titulo)&&p.dataEvento===o.dataEvento));
+  if(T==='financeiro')return D.lancamentos.some(l=>l.tipo===o.tipo&&Math.abs((+l.valor||0)-o.valor)<0.01&&l.vencimento===o.vencimento&&impN(l.descricao)===impN(o.descricao));if(T==='agenda')return (D.agenda||[]).some(e=>impN(e.titulo)===impN(o.titulo)&&e.data===o.data);return false}
+const IMP_ORDEM=['contatos','produtos','pedidos','financeiro','agenda'];
+async function impLer(files){const X=await loadXlsx();const arqs=[];
+  for(const f of files){try{const wb=X.read(await f.arrayBuffer(),{type:'array',cellDates:true});wb.SheetNames.forEach(sn=>{const rows=X.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''});let hi=rows.findIndex(r=>r.filter(x=>String(x).trim()).length>=2);if(hi<0)return;const H=rows[hi].map(x=>String(x).trim());const body=rows.slice(hi+1).filter(r=>r.some(x=>String(x??'').trim()));if(!body.length)return;const tipo=impTipo(H);arqs.push({nome:f.name+(wb.SheetNames.length>1?' › '+sn:''),H,rows:body,tipo,map:impMapa(tipo,H),fin:'receber',on:true})})}catch(e){toast('Não consegui ler '+f.name+': '+((e&&e.message)||e),true)}}
+  S.ui.imp={arqs,fase:arqs.length?'mapear':'escolher',log:[]};render()}
+VIEWS.importar=()=>{const I=S.ui.imp;const guia=`<section class="panel"><header><h3>${ic('info',16)} Como trazer os dados do seu sistema antigo</h3></header><div class="body" style="display:grid;gap:8px;font-size:14px">
+  <ol class="ajuda-ol"><li><span>No sistema antigo, procure a opção <b>Exportar</b>, <b>Relatórios › Excel</b> ou <b>Backup</b> e baixe as listas em <b>Excel (.xlsx)</b> ou <b>CSV</b>: contatos/clientes, pedidos/contratos, financeiro (contas a receber e a pagar), agenda e produtos.</span></li>
+  <li><span>Não precisa arrumar as planilhas: a primeira linha com os nomes das colunas já basta. Se tiver várias abas no mesmo arquivo, cada aba é lida separada.</span></li>
+  <li><span>Clique em <b>Escolher planilhas</b> e selecione todas de uma vez.</span></li>
+  <li><span>O sistema descobre o que é cada planilha e liga cada coluna ao campo certo. <b>Confira</b> e troque onde estiver errado. Abaixo de cada uma aparecem as 3 primeiras linhas, para você ver se bateu.</span></li>
+  <li><span>Clique em <b>Ver prévia</b>: aparece quantos registros são novos e quantos já existem (esses não são importados de novo).</span></li>
+  <li><span>Clique em <b>Importar</b>. A ordem é automática: contatos, produtos, pedidos, financeiro e agenda, ligando pedido ao cliente, conta ao pedido e evento ao pedido pelo nome, e-mail ou número.</span></li></ol>
+  <div class="banner" style="margin:0;display:block"><b>Dicas</b><ul style="margin:6px 0 0;padding-left:18px"><li>Faça um backup antes (Configurações › Backup).</li><li>Para ligar contas e eventos aos pedidos, a planilha do financeiro e a da agenda precisam ter o <b>número do pedido</b> ou o <b>nome do cliente</b>.</li><li>Fotos, contratos em PDF e anexos não vêm em planilha: use <b>Anexar contratos em lote</b> e envie as fotos nas provas.</li><li>Importar a mesma planilha duas vezes não duplica: o que já existe é pulado.</li></ul></div></div></section>`;
+  let corpo='';
+  if(I.fase==='escolher'||!I.arqs.length)corpo=`<section class="panel"><div class="body" style="display:grid;gap:10px;justify-items:start"><label class="btn pri" for="impArq">${ic('upload',15)} Escolher planilhas (.xlsx, .xls, .csv)</label><input type="file" id="impArq" multiple accept=".xlsx,.xls,.csv,.ods" hidden><span class="muted" style="font-size:12px">Pode escolher vários arquivos de uma vez.</span></div></section>`;
+  else{const ops=H=>['<option value="">— não usar —</option>',...H.map((h,i)=>`<option value="${i}">${esc(h||'(coluna '+(i+1)+')')}</option>`)].join('');
+    corpo=I.arqs.map((a,ai)=>{const T=IMP_TIPOS[a.tipo];const prev=I.prev&&I.prev[ai];return `<section class="panel" style="${a.on?'':'opacity:.55'}"><header style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-impon="${ai}" ${a.on?'checked':''}> <b>${esc(a.nome)}</b></label><span class="muted" style="font-size:12px">${a.rows.length} linha(s)</span><span class="sp" style="flex:1"></span><span style="font-size:13px">É uma planilha de</span><select class="search" data-nativo data-imptipo="${ai}" style="width:auto">${Object.entries(IMP_TIPOS).map(([k,v])=>`<option value="${k}" ${a.tipo===k?'selected':''}>${v.l}</option>`).join('')}</select></header>
+     <div class="body" style="display:grid;gap:10px">${a.tipo==='financeiro'&&a.map.tipo==null?`<div style="font-size:13px">Sem coluna de tipo: estas contas são <select class="search" data-nativo data-impfin="${ai}" style="width:auto"><option value="receber" ${a.fin==='receber'?'selected':''}>a receber</option><option value="pagar" ${a.fin==='pagar'?'selected':''}>a pagar</option></select></div>`:''}
+      <div class="fgrid">${T.f.map(([k,l])=>`<div class="field" style="margin:0"><label>${l}</label><select class="search" data-nativo data-impmap="${ai}.${k}">${ops(a.H).replace(`value="${a.map[k]}"`,`value="${a.map[k]}" selected`)}</select></div>`).join('')}</div>
+      <div class="tbl-wrap" style="max-height:160px;overflow:auto"><table class="tbl" style="font-size:12px"><thead><tr>${a.H.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${a.rows.slice(0,3).map(r=>`<tr>${a.H.map((_,i)=>`<td>${esc(r[i] instanceof Date?fdate(iso(r[i])):r[i])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      ${prev?`<div class="banner" style="margin:0"><span><b>${prev.novos}</b> novo(s) para importar · ${prev.ja} já existe(m) · ${prev.inval} linha(s) sem os campos obrigatórios${prev.semLig?` · ${prev.semLig} sem cliente/pedido encontrado (entram sem ligação)`:''}</span></div>`:''}</div></section>`}).join('')+
+    `<section class="panel"><div class="body" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" data-impvolta>Escolher outras planilhas</button><span class="sp" style="flex:1"></span><button class="btn" data-impprev>${ic('eye',15)} Ver prévia</button>${I.prev?`<button class="btn pri" data-impgo ${I.rodando?'disabled':''}>${ic('upload',15)} ${I.rodando?'Importando… '+(I.feitos||0)+' de '+(I.total||0):'Importar '+I.prev.reduce((s,p)=>s+(p?p.novos:0),0)+' registro(s)'}</button>`:''}</div>${I.log.length?`<div class="body" style="padding-top:0;font-size:13px">${I.log.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`:''}</section>`}
+  return `${head('Importar planilhas','Configurações / Importar de outro sistema')}<div style="display:grid;gap:14px">${guia}${corpo}</div>`};
+function impPrevia(){const I=S.ui.imp;const lote={cli:new Set(),ped:new Set()};I.arqs.filter(x=>x.on).forEach(x=>{if(x.tipo==='contatos')impReg(x).forEach(o=>{[o.email,o.nome,[o.nome,o.sobrenome].filter(Boolean).join(' '),o.empresa].forEach(v=>{if(v)lote.cli.add(impN(v))})});if(x.tipo==='pedidos')impReg(x).forEach(o=>{if(o.num)lote.ped.add(String(o.num))})});I.prev=I.arqs.map(a=>{if(!a.on)return null;const R=impReg(a);const ok=R.filter(o=>!impJaExiste(a.tipo,o));const semLig=['pedidos','financeiro','agenda'].includes(a.tipo)?ok.filter(o=>(o._cli&&!impContato(o._cli)&&!lote.cli.has(impN(o._cli)))||(o._ped&&!S.data.pedidos.some(p=>String(p.num)===o._ped)&&!lote.ped.has(o._ped))).length:0;return {novos:ok.length,ja:R.length-ok.length,inval:a.rows.length-R.length,semLig}});render()}
+async function impRodar(){const I=S.ui.imp;if(I.rodando)return;if(!confirm('Importar agora? Recomendo fazer um backup antes.'))return;I.rodando=true;I.log=[];I.feitos=0;I.total=I.prev.reduce((s,p)=>s+(p?p.novos:0),0);render();
+  const hoje=today();for(const tipo of IMP_ORDEM){for(const a of I.arqs.filter(x=>x.on&&x.tipo===tipo)){const R=impReg(a).filter(o=>!impJaExiste(tipo,o));let n=0;
+    for(const o0 of R){const o={...o0,origem:'Planilha',importadoEm:hoje};const cli=o._cli,ped=o._ped;delete o._cli;delete o._ped;
+      if(cli){const id=impContato(cli);if(id)o.contatoId=id}if(ped){const p=S.data.pedidos.find(x=>String(x.num)===ped);if(p){o.pedidoId=p.id;if(!o.contatoId&&p.contatoId)o.contatoId=p.contatoId}}
+      const col=tipo==='financeiro'?'lancamentos':tipo;if(tipo==='pedidos'&&o.num)o.id='pd-'+o.num;try{const nid=await save(col,o);n++;if(nid&&typeof nid==='string'&&!S.data[col].some(x=>x.id===nid))S.data[col]=[...S.data[col],{...o,id:nid}]}catch(e){}I.feitos++;if(I.feitos%10===0)render()}
+    I.log.push(`${IMP_TIPOS[tipo].l}: ${n} importado(s) de "${a.nome}"`)}}
+  I.rodando=false;I.prev=null;render();toast('Importação concluída: '+I.feitos+' registro(s).')}
+document.addEventListener('change',e=>{const t=e.target;const I=S.ui.imp;if(t.id==='impArq'){impLer([...t.files]);return}
+  if(t.dataset.imptipo){const a=I.arqs[+t.dataset.imptipo];a.tipo=t.value;a.map=impMapa(a.tipo,a.H);I.prev=null;render();return}
+  if(t.dataset.impmap){const [ai,k]=t.dataset.impmap.split('.');const a=I.arqs[+ai];if(t.value==='')delete a.map[k];else a.map[k]=+t.value;I.prev=null;render();return}
+  if(t.dataset.impfin){I.arqs[+t.dataset.impfin].fin=t.value;I.prev=null;return}
+  if(t.dataset.impon){I.arqs[+t.dataset.impon].on=t.checked;I.prev=null;render()}});
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-impprev],[data-impgo],[data-impvolta],[data-impabrir]');if(!t)return;
+  if(t.matches('[data-impabrir]')){go('importar');return}if(t.matches('[data-impvolta]')){S.ui.imp={arqs:[],fase:'escolher',log:[]};render();return}if(t.matches('[data-impprev]')){impPrevia();return}if(t.matches('[data-impgo]'))impRodar()});
+AJUDA.importar={t:'Importar planilhas',p:'Traz contatos, pedidos, financeiro, agenda e produtos de outro sistema a partir de planilhas Excel ou CSV.',s:['No sistema antigo, exporte as listas em Excel ou CSV.','Aqui, clique em Escolher planilhas e selecione todas.','Confira o tipo de cada planilha e a ligação das colunas, olhando as 3 primeiras linhas.','Clique em Ver prévia para ver quantos registros são novos e quantos já existem.','Clique em Importar: contatos, produtos, pedidos, financeiro e agenda entram nessa ordem, já ligados entre si.'],d:['Faça um backup antes.','O que já existe não é importado de novo.']};
+/* ===== Módulos (ativar / desativar partes do sistema) ===== */
+const MODULOS=[
+  {k:'agenda',l:'Agenda e disponibilidade',d:'Agenda de eventos, sincronização com o Google Agenda, equipamentos e disponibilidade para vender.',v:['agenda','reldisp'],t:['agenda','equip']},
+  {k:'emails',l:'E-mails',d:'Caixa de e-mails dentro do CRM, ligada aos contatos.',v:['emails'],t:['assinatura']},
+  {k:'oportunidades',l:'Oportunidades e propostas',d:'Funil de vendas, oportunidades, propostas e relatórios de oportunidades.',v:['oportunidades','funil','propostas','relopp'],t:['funil','oport','categorias']},
+  {k:'pedidos',l:'Pedidos e contratos',d:'Produtos, pedidos, contratos com assinatura digital, fichas de contratação e relatórios de vendas.',v:['produtos','pedidos','fichas','relvendas','relprod','relresv'],t:['termos','contratos','pedtar']},
+  {k:'projetos',l:'Projetos e tarefas',d:'Projetos de produção (álbuns, impressão) e lista de tarefas.',v:['projetos','tarefas'],t:['projetos','fluxos']},
+  {k:'provas',l:'Provas e galerias',d:'Galerias para o cliente aprovar e escolher as fotos, com lista de seleção.',v:['provas','prova','provaview'],t:['provas']},
+  {k:'venda',l:'Venda de fotos',d:'Venda de fotos na galeria com marca d\'água, Pix e cartão. Precisa do módulo Provas.',v:[],t:['venda'],pre:'provas'},
+  {k:'financeiro',l:'Financeiro',d:'Contas a receber e a pagar, contas bancárias, transações, cashback e fluxo de caixa.',v:['financeiro','contasbanc','fintrans','cashback','finar','finarp','finporcli','finap','finapp','finporforn','relfluxo','relcontatos'],t:['fin']},
+  {k:'relatorios',l:'Relatórios',d:'Tela de relatórios gerais.',v:['relatorios']}
+];
+const MOD_FIXOS='Início, Contatos, Configurações, Backup e Importar planilhas';
+function modAtivo(k){const M=(S.cfg&&S.cfg.modulos)||{};if(M[k]===false)return false;const m=MODULOS.find(x=>x.k===k);if(m&&m.pre&&M[m.pre]===false)return false;return true}
+function modDaView(v){return MODULOS.find(m=>m.v.includes(v))}
+function modOffView(v){const m=modDaView(v);return !!(m&&!modAtivo(m.k))}
+function modOffTab(t){return MODULOS.some(m=>(m.t||[]).includes(t)&&!modAtivo(m.k))}
+function navFiltrado(){const L=NAV.filter(n=>!n.v||!modOffView(n.v));
+  /* tira subitens cujo item principal sumiu */
+  const vis=new Set(L);const res=[];let paiVis=true;
+  NAV.forEach(n=>{if(n.g){res.push(n);paiVis=true;return}if(!n.sub){paiVis=vis.has(n);if(paiVis)res.push(n);return}if(paiVis&&vis.has(n))res.push(n)});
+  /* subgrupos e grupos vazios */
+  const r2=res.filter((n,i)=>!(n.sg&&!(res[i+1]&&res[i+1].sub===2)));
+  return r2.filter((n,i)=>!(n.g&&!(r2[i+1]&&!r2[i+1].g)))}
+VIEWS.modoff=()=>{const m=modDaView(S.ui.view)||{l:'Este módulo'};return `${head(m.l,'Módulo desativado')}<section class="panel" style="padding:28px;text-align:center"><h3 style="margin:0 0 6px">${esc(m.l)} está desativado</h3><p class="muted" style="margin:0 0 14px">Este módulo não faz parte do plano ativo. Os dados continuam guardados e voltam a aparecer quando ele for ativado.</p><button class="btn primary" data-cfgir="modulos">Ver módulos</button></section>`};
+function modulosHTML(){const M=(S.cfg&&S.cfg.modulos)||{};const on=MODULOS.filter(m=>modAtivo(m.k)).length;
+  return `<p class="muted" style="margin:0 0 10px;font-size:13px">Ligue só os módulos que você usa (ou que o cliente contratou). O que for desligado some do menu e das configurações, mas <b>nenhum dado é apagado</b>: ao ligar de novo, tudo volta como estava. Sempre ativos: ${MOD_FIXOS}.</p>
+  <div class="banner" style="margin:0 0 12px"><span><b>${on}</b> de ${MODULOS.length} módulos ativos</span><span style="display:flex;gap:6px"><button class="btn sm" data-modtodos="1">Ativar todos</button><button class="btn sm" data-modtodos="0">Desativar todos</button></span></div>
+  <div style="display:grid;gap:8px">${MODULOS.map(m=>{const ativo=M[m.k]!==false;const bloq=m.pre&&M[m.pre]===false;return `<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:12px 14px;${ativo&&!bloq?'':'opacity:.6'}"><div><b>${esc(m.l)}</b>${bloq?` <span class="badge">precisa de ${esc(MODULOS.find(x=>x.k===m.pre).l)}</span>`:''}<div class="muted" style="font-size:12.5px;margin-top:2px">${esc(m.d)}</div></div><div class="seg" style="flex:none"><button data-mod="${m.k}" data-val="1" class="${ativo?'on':''}">Ativo</button><button data-mod="${m.k}" data-val="0" class="${!ativo?'on':''}">Desligado</button></div></div>`}).join('')}</div>`}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-mod],[data-modtodos],[data-cfgir]');if(!t)return;e.preventDefault();
+  if(t.dataset.cfgir){S.ui.cfg.tab=t.dataset.cfgir;go('config');return}
+  const M={...((S.cfg&&S.cfg.modulos)||{})};
+  if(t.dataset.modtodos!==undefined){MODULOS.forEach(m=>{M[m.k]=t.dataset.modtodos==='1'})}else M[t.dataset.mod]=t.dataset.val==='1';
+  cfgSet('modulos',M);render();toast('Módulos atualizados.')});
+AJUDA.modulos={t:'Módulos',p:'Liga e desliga partes do sistema, para usar (ou vender) só o que precisa.',s:['Abra Configurações › Módulos.','Clique em Ativo ou Desligado em cada módulo.','O que for desligado some do menu e das configurações na hora.'],d:['Nenhum dado é apagado ao desligar.','Venda de fotos precisa do módulo Provas ligado.']};
+
 /* ===== Anexar contratos em lote (PDFs → pedidos) ===== */
 const LOTE_STOP=new Set('contrato contratos assinado assinada pdf de da do das dos e a o com para alterado aditivo cas casamento aniversario aniver niver anos festa evento i ii iii iv copia'.split(' '));
 function loteToks(s){return normTxt(s).replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w.length>1&&!LOTE_STOP.has(w)&&!/^(19|20)\d\d$/.test(w))}
@@ -4542,6 +4839,7 @@ async function custoLancarTodos(pid){const p=S.data.pedidos.find(x=>x.id===pid);
   if(n||L.some((c,i)=>c.lancId!==((p.custos||[])[i]||{}).lancId))await patch('pedidos',p.id,{custos:L});return n}
 function pedParcInfo(p){const R=S.data.lancamentos.filter(l=>l.pedidoId===p.id&&l.tipo==='receber');const soma=R.reduce((a,l)=>a+(+l.valor||0),0);const ab=R.filter(l=>!l.pago).sort((a,b)=>String(a.vencimento||'').localeCompare(String(b.vencimento||'')));return {R,soma,ab,dif:Math.round((pedidoTotal(p)-soma)*100)/100}}
 function pedPosSalvar(old,id){const p=S.data.pedidos.find(x=>x.id===id);if(!p)return;
+  const _c=x=>pedStatus(x)==='Cancelado'||x.contratoStatus==='Cancelado';if(!_c(old)&&_c(p))pedAgendaCancelar(p,true);if(_c(old)&&!_c(p))pedAgendaCancelar(p,false);
   if(pedStatus(old)!=='Cancelado'&&pedStatus(p)==='Cancelado'){pedAbertosModal(p,'cancelado');return}
   const I=pedParcInfo(p);if(I.R.length&&Math.abs(I.dif)>0.009&&Math.abs(pedidoTotal(old)-pedidoTotal(p))>0.009)pedParcModal(p.id)}
 function pedParcModal(pid){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;const I=pedParcInfo(p);if(Math.abs(I.dif)<0.01){toast('As parcelas já batem com o total do pedido.');return}
