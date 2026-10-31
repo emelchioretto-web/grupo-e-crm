@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261030202941';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261031090114';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -592,7 +592,7 @@ a.btn{color:inherit;text-decoration:none}
 .chip-tg{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}.chip-tg.on{background:var(--accent);border-color:var(--accent);color:#fff}
 @media (max-width:860px){.cb-split{grid-template-columns:1fr!important}}
 .ssel{position:fixed;z-index:9800;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden}
-.ssel input{margin:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:14px;background:var(--surface);color:var(--fg)}
+.ssel input{margin:0;padding:0 12px;border:0;border-bottom:1px solid var(--line);border-radius:10px 10px 0 0;font:inherit;font-size:14px;background:var(--surface);color:var(--fg);outline:none;flex:none;box-sizing:border-box}.ssel.up input{border-bottom:0;border-top:1px solid var(--line);border-radius:0 0 10px 10px}.ssel.up{flex-direction:column-reverse}.ssel.up ul{padding:6px 0 0}.ssel{border-color:var(--accent)!important}
 .ssel ul{list-style:none;margin:0;padding:0 0 6px;overflow:auto}
 .ssel li{padding:6px 12px;font-size:13.5px;cursor:pointer;white-space:pre}
 .ssel li.on{background:var(--accent);color:#fff}.ssel li.grp{font-weight:600}.ssel li.dis{opacity:.5;cursor:default}
@@ -1260,6 +1260,7 @@ const NAV=[
   {v:'relvendas',l:'Vendas',sub:1},
   {v:'relprod',l:'Faturamento por produto',sub:1},
   {v:'relcontatos',l:'Por cliente / fornecedor',sub:1},
+  {v:'relgastos',l:'Onde gastamos e ganhamos',sub:1},
   {v:'config',l:'Configurações',i:'gear'},
   {v:'backup',l:'Backup e exportação',sub:1},
   {v:'importar',l:'Importar de outro sistema',sub:1}
@@ -2127,7 +2128,7 @@ VIEWS.relatorios=()=>{
 
 /* ---- relatórios de vendas e por cliente/fornecedor ---- */
 const perBar=()=>{const R=S.ui.rel,[de,ate]=relRange();return `<div class="seg">${Object.entries(PER).map(([k,l])=>`<button data-per="${k}" class="${R.periodo===k?'on':''}">${l}</button>`).join('')}</div>${R.periodo==='custom'?`<input type="date" class="search" style="flex:0 1 160px" id="rel-de" value="${de}" aria-label="De"><input type="date" class="search" style="flex:0 1 160px" id="rel-ate" value="${ate}" aria-label="Até">`:''}`};
-const relTabs=v=>`<div class="seg" style="margin-bottom:4px">${[['relatorios','Resultados'],['relresv','Resultados de vendas'],['relfluxo','Fluxo de caixa'],['relvendas','Vendas'],['relprod','Por produto'],['relcontatos','Por cliente / fornecedor']].map(([k,l])=>`<button data-nav="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div>`;
+const relTabs=v=>`<div class="seg" style="margin-bottom:4px">${[['relatorios','Resultados'],['relresv','Resultados de vendas'],['relfluxo','Fluxo de caixa'],['relvendas','Vendas'],['relprod','Por produto'],['relcontatos','Por cliente / fornecedor'],['relgastos','Onde gastamos']].map(([k,l])=>`<button data-nav="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div>`;
 S.ui.rv={grupo:'indicadoPor',base:'emissao'};
 const RV_G={indicadoPor:['Indicado por',p=>p.indicadoPor||'(sem indicação)'],categoria:['Categoria',p=>p.categoria||'(sem categoria)'],vendedor:['Vendedor',p=>p.vendedor||'(sem vendedor)'],responsavel:['Responsável',p=>p.responsavel||'(sem responsável)'],cliente:['Cliente',p=>contatoNome(p.contatoId)||'(sem cliente)'],status:['Status do contrato',p=>p.contratoStatus||'']};
 function csvCopy(rows){const t=rows.map(r=>r.map(c=>{const v=String(c??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(';')).join('\n');return navigator.clipboard.writeText(t)}
@@ -2371,15 +2372,22 @@ VIEWS.fintrans=()=>{
 };
 function txForm(contaNome,tipo0){const B=contasNomes(),cf=contaNome||S.ui.tx.conta,fixa=cf&&B.includes(cf)?cf:'';const outras=B.filter(n=>n!==fixa);
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>Nova transação${fixa?' · '+esc(fixa):''}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
-  <div class="mbody"><div class="fgrid"><div class="field full"><label for="tx-tipo">Tipo</label><select id="tx-tipo"><option value="transf">Transferência ${fixa?'para outra conta':'entre contas'}</option><option value="dep">Depósito / entrada na conta</option><option value="ret">Retirada / saída da conta</option></select></div>
+  <div class="mbody"><div class="fgrid"><div class="field full"><label for="tx-tipo">Tipo</label><select id="tx-tipo"><option value="transf">Transferência ${fixa?'para outra conta':'entre contas'}</option><option value="ret">Pagamento / saída da conta</option><option value="dep">Recebimento / entrada na conta</option></select></div>
   ${fixa?`<input type="hidden" id="tx-de" value="${esc(fixa)}">`:`<div class="field"><label for="tx-de">Conta</label><select id="tx-de">${B.map(n=>`<option>${esc(n)}</option>`).join('')}</select></div>`}
   <div class="field" id="tx-para-f"><label for="tx-para">${fixa?'Transferir para a conta':'Para a conta'}</label><select id="tx-para">${outras.map(n=>`<option>${esc(n)}</option>`).join('')}</select></div>
   <div class="field"><label for="tx-valor">Valor (R$)</label><input id="tx-valor" data-money inputmode="decimal" placeholder="0,00"></div><div class="field"><label for="tx-data">Data</label><input id="tx-data" type="date" value="${today()}"></div>
-  <div class="field full"><label for="tx-desc">Descrição</label><input id="tx-desc" placeholder="Ex.: Transferência para pagar fornecedores"></div></div>
+  <div class="field full tx-mov"><label for="tx-cont" id="tx-cont-l">Para (fornecedor)</label><input id="tx-cont" list="dl-txcont" placeholder="Digite para buscar…" autocomplete="off"><datalist id="dl-txcont">${S.data.contatos.map(r=>`<option value="${esc(refLabel('contatos',r))}">`).join('')}</datalist></div>
+  <div class="field tx-mov"><label for="tx-cat">Categoria</label><select id="tx-cat"></select></div>
+  <div class="field tx-mov"><label for="tx-doc">Número do documento</label><input id="tx-doc"></div>
+  <div class="field tx-mov"><label for="tx-forma">Forma de pagamento</label><select id="tx-forma">${['','Carnê','Dinheiro','PIX','Cheque','Boleto','Cartão Débito Pessoal','Cartão de Debito Empresarial','Cartão Crédito Pessoal','Cartão de Crédito Empresarial','Cartão de Crédito','Depósito','PagSeguro','Paypal','Transferência'].map(x=>`<option ${x==='PIX'?'selected':''}>${esc(x)}</option>`).join('')}</select></div>
+  <div class="field tx-mov"><label>Conciliado</label><div class="seg"><button type="button" data-txconc="1">Sim</button><button type="button" data-txconc="0" class="on">Não</button></div><input type="hidden" id="tx-conc" value="0"></div>
+  <div class="field full"><label for="tx-desc">Descrição</label><input id="tx-desc" placeholder="Ex.: Almoço da equipe"></div></div>
   <p class="muted" style="font-size:12px" id="tx-nota">Transferências entre contas não entram nos relatórios de resultado (não são receita nem despesa).</p></div>
   <footer><button class="btn" data-close>Cancelar</button><button class="btn pri" data-txsave>Salvar</button></footer></div></div>`;
   const tp=$('#tx-tipo'),pf=$('#tx-para-f'),de=$('#tx-de'),pa=$('#tx-para');
-  const upd=()=>{const t=tp.value==='transf';pf.style.display=t?'':'none';$('#tx-nota').style.display=t?'':'none';
+  let tAnt='';const upd=()=>{const t=tp.value==='transf';pf.style.display=t?'':'none';$('#tx-nota').style.display=t?'':'none';
+    document.querySelectorAll('#modalRoot .tx-mov').forEach(x=>x.style.display=t?'none':'');$('#tx-desc').placeholder=t?'Ex.: Transferência para pagar fornecedores':'Ex.: Almoço da equipe';
+    if(!t&&tp.value!==tAnt){tAnt=tp.value;const rec=tp.value==='dep';$('#tx-cont-l').textContent=rec?'De (cliente)':'Para (fornecedor)';const def=planoRot(rec?'3.1':'4.1');const ol=planoOl();$('#tx-cat').innerHTML=planoOpts(rec?'receber':'pagar').map(o=>`<option value="${esc(o)}" ${o===def?'selected':''}>${esc(ol[o]||o||'—')}</option>`).join('')}
     if(!fixa){const atual=pa.value;pa.innerHTML=B.filter(n=>n!==de.value).map(n=>`<option ${n===atual?'selected':''}>${esc(n)}</option>`).join('')}};
   if(tipo0)tp.value=tipo0;tp.onchange=upd;if(!fixa)de.onchange=upd;upd();setTimeout(()=>{try{$('#tx-valor').focus()}catch(_){}},30)}
 /* ================= configurações ================= */
@@ -2502,6 +2510,7 @@ VIEWS.config=()=>{
     body=`<div class="toolbar"><select class="search" style="flex:0 1 260px" data-cfguser>${pes.map(n=>`<option ${n===u?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
      <div class="fin-kpis">${tile('Oportunidades (todas)',S.data.oportunidades.length,'--ok','chat','oportunidades')}${tile('Propostas',S.data.oportunidades.filter(o=>['Proposta enviada','Negociação'].includes(o.etapa)||/propost|decidindo|orçamento|orcamento/i.test(o.etapaAlboom||'')).length,'--warn','doc','funil')}${tile('Pedidos de '+u.split(' ')[0],ped.length,'--danger','cart','pedidos')}${tile('Contratos assinados',ped.filter(p=>p.contratoStatus==='Assinado').length,'--info','doc','pedidos')}${tile('Projetos',S.data.projetos.length,'--accent','img','projetos')}${tile('Provas',S.data.provas.length,'--info','grid','provas')}</div>`}
   if(T.tab==='modulos')body=modulosHTML();
+  if(T.tab==='estudio'&&typeof waCfgHTML==='function')body+=waCfgHTML();
   return loadingOr(`${head('Configurações','Configurações')}<div class="cfg-wrap"><nav class="panel cfg-nav">${CFG_TABS.filter(([k])=>!(typeof modOffTab==='function'&&modOffTab(k))).map(([k,l])=>`<button class="${T.tab===k?'on':''}" data-cfgtab="${k}">${l}</button>`).join('')}</nav><section class="panel"><header><h3>${CFG_TABS.find(x=>x[0]===T.tab)[1]}</h3></header><div class="body" style="display:grid;gap:14px">${body}</div></section></div>`);
 };
 
@@ -3189,10 +3198,12 @@ document.addEventListener('click',async e=>{
   if(d.pcpg){S.ui.pc.pg=+d.pcpg;render();return}
   if(d.txpg){S.ui.tx.pg=+d.txpg;render();return}
   if(d.txnew!==undefined){txForm();return}
+  if(d.txconc!==undefined){$('#tx-conc').value=d.txconc;t.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===t));return}
   if(d.txsave!==undefined){const tp=$('#tx-tipo').value,de=$('#tx-de').value,para=$('#tx-para').value,v=moneyParse($('#tx-valor').value),dt=$('#tx-data').value||today(),ds=$('#tx-desc').value.trim();if(!v){toast('Informe o valor.',true);return}if(tp==='transf'&&de===para){toast('Escolha contas diferentes.',true);return}
+    let extra={};if(tp!=='transf'){const cv=$('#tx-cont').value.trim();let cid='';if(cv){cid=refFromInput(cv,'contatos');if(cid===null){toast('Escolha o contato da lista (ou deixe em branco).',true);return}}const cat=$('#tx-cat').value;extra={contatoId:cid||undefined,documento:$('#tx-doc').value.trim()||undefined,forma:$('#tx-forma').value||'Transferência',conciliado:$('#tx-conc').value==='1'};if(cat){extra.categoria=cat;if(/^\d+(\.\d+)*\s-\s/.test(cat))extra.planoCod=cat.split(' - ')[0]}Object.keys(extra).forEach(k=>extra[k]===undefined&&delete extra[k])}
     const cod=n=>((bancos().find(b=>b.nome===n)||{}).codigo)||'';const base={pago:true,dataPagamento:dt,vencimento:dt,valor:v,forma:'Transferência'};
     if(tp==='transf'){await save('lancamentos',{...base,tipo:'pagar',transf:true,categoria:'Transferência entre contas',conta:de,contaCod:cod(de),descricao:ds||('Transferência para '+para)});await save('lancamentos',{...base,tipo:'receber',transf:true,categoria:'Transferência entre contas',conta:para,contaCod:cod(para),descricao:ds||('Transferência de '+de)})}
-    else await save('lancamentos',{...base,tipo:tp==='dep'?'receber':'pagar',categoria:tp==='dep'?'Depósito / entrada':'Retirada / saída',conta:de,contaCod:cod(de),descricao:ds||(tp==='dep'?'Depósito':'Retirada')});
+    else await save('lancamentos',{...base,tipo:tp==='dep'?'receber':'pagar',categoria:tp==='dep'?'Depósito / entrada':'Retirada / saída',...extra,conta:de,contaCod:cod(de),descricao:ds||(extra.contatoId?nameOf('contatos',extra.contatoId):'')||(tp==='dep'?'Recebimento':'Pagamento')});
     closeModal();toast('Transação lançada');return}
   if(d.paysave!==undefined){const l=S.data.lancamentos.find(r=>r.id===d.paysave);if(!l)return;const v=moneyParse($('#pay-valor').value),dt=$('#pay-data').value||today(),ct=$('#pay-conta').value,ds=$('#pay-desc').value.trim();if(!ct){toast('Escolha a conta.',true);return}
     const bk=bancos().find(b=>b.nome===ct);const ch={pago:true,dataPagamento:dt,conta:ct,descricao:ds||l.descricao,contaCod:(bk&&bk.codigo)||''};if(Math.abs(v-(+l.valor||0))>0.004){ch.valorOriginal=l.valorOriginal||l.valor;ch.valor=v}
@@ -4081,6 +4092,25 @@ const OP_DESDE='2026-10-31';
 async function opAutoPedido(id){const p=S.data.pedidos.find(x=>x.id===id);if(!p||!p.dataEvento||p.dataEvento<OP_DESDE||pedStatus(p)==='Cancelado')return false;if(/dados de opera/i.test(p.notas||''))return false;
   const n=String(p.notas||'').replace(/\s+$/,'');await patch('pedidos',p.id,{notas:(n?n+'\n\n':'')+opDoPedido(p)});return true}
 const _saveOp=save;save=async function(col,rec){const id=await _saveOp(col,rec);if((col==='pedidos'||col==='agenda')&&id&&!(rec&&rec._semOp))setTimeout(()=>{(col==='pedidos'?opAutoPedido:opAutoAgenda)(typeof id==='string'?id:rec.id).catch(()=>{})},900);return id};
+/* ===== Dados de operação: pedido e agenda sempre iguais ===== */
+function opBloco(txt){const s=String(txt||'');let i=s.search(/dados de opera[çc][ãa]o\s*:?/i);if(i<0)i=s.search(/\*PEDIDO:\*/);if(i<0)return null;
+  let fim=s.length;const m=/^.*ALIMENTA[ÇC][ÃA]O.*$/im.exec(s.slice(i));if(m)fim=i+m.index+m[0].length;return {i,fim,txt:s.slice(i,fim)}}
+function opTroca(notas,bloco){const b=opBloco(notas);const n=String(notas||'');if(b)return n.slice(0,b.i)+bloco+n.slice(b.fim);const t=n.replace(/\s+$/,'');return (t?t+'\n\n':'')+bloco}
+const opNorm=t=>String(t||'').replace(/\s+/g,' ').trim();
+const opCheios=t=>(String(t||'').match(/^\s*\*[^*\n]+:\*[ \t]*\S.*$/gm)||[]).length;
+async function opSync(col,id){
+  const rec=(S.data[col]||[]).find(x=>x.id===id);if(!rec)return;const b=opBloco(rec.notas);if(!b)return;
+  const pid=col==='pedidos'?rec.id:rec.pedidoId;if(!pid)return;
+  const alvos=[];if(col==='agenda'){const p=S.data.pedidos.find(x=>x.id===pid);if(p)alvos.push(['pedidos',p])}
+  (S.data.agenda||[]).filter(a=>a.pedidoId===pid&&a.id!==rec.id&&!a.cancelado).forEach(a=>alvos.push(['agenda',a]));
+  for(const [c,r] of alvos){const ob=opBloco(r.notas);if(ob&&(opNorm(ob.txt)===opNorm(b.txt)||opCheios(ob.txt)>opCheios(b.txt)))continue;try{await patch(c,r.id,{notas:opTroca(r.notas,b.txt)})}catch(e){}}}
+const _saveOpSync=save;save=async function(col,rec){const id=await _saveOpSync(col,rec);if((col==='pedidos'||col==='agenda')&&id)setTimeout(()=>{opSync(col,typeof id==='string'?id:rec.id).catch(()=>{})},1500);return id};
+/* uma vez: leva para a agenda o que já foi preenchido nos pedidos */
+async function opSyncTodos(){if(S._opSyncT||!S.dono||cfg().opSync1||!S.loaded||!S.loaded.has('agenda'))return;S._opSyncT=1;cfgSet('opSync1',new Date().toISOString());let n=0;
+  for(const p of S.data.pedidos.filter(p=>p.dataEvento&&p.dataEvento>=OP_DESDE&&opBloco(p.notas))){const b=opBloco(p.notas);for(const a of (S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&!a.cancelado)){const ob=opBloco(a.notas);if(ob&&(opNorm(ob.txt)===opNorm(b.txt)||opCheios(ob.txt)>opCheios(b.txt)))continue;try{await patch('agenda',a.id,{notas:opTroca(a.notas,b.txt)});n++}catch(e){}}}
+  if(n)toast(`Dados de operação copiados dos pedidos para ${n} compromisso${n===1?'':'s'} da agenda.`)}
+setInterval(()=>{try{opSyncTodos()}catch(e){}},20000);
+
 async function opPreencherTodos(){if(S._opLote||!S.dono)return;S._opLote=1;
   if((cfg().opModelo||'').trim()&&!/\*PEDIDO:\*/.test(cfg().opModelo))cfgSet('opModelo','');let n=0,a=0;
   if(!cfg().opLote31){cfgSet('opLote31',new Date().toISOString());for(const p of S.data.pedidos.filter(p=>p.dataEvento&&p.dataEvento>=OP_DESDE)){try{if(await opAutoPedido(p.id))n++}catch(e){}}}
@@ -4182,33 +4212,6 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 document.addEventListener('change',e=>{const t=e.target;if(!(t.matches&&t.matches('[data-gccal]')))return;const c=(S.gcCals||[]).find(x=>x.id===t.value);const ant=gcCfg().agenda||'primary';if(t.value===ant)return;
   if((S.data.agenda||[]).some(x=>x.gcal&&x.gcal.id)&&!confirm('Os eventos já publicados vão ser movidos para a nova agenda na próxima publicação (os participantes recebem o cancelamento do antigo e o convite novo). Continuar?')){render();return}
   cfgSet('gcal',{...gcCfg(),agenda:t.value,agendaNome:c?c.summary:''});render()});
-/* ===== listas grandes (select) com busca ao digitar ===== */
-(function(){const MIN=15;let pop=null,alvo=null;
-  const fechar=()=>{if(pop){pop.remove();pop=null}if(alvo){const a=alvo;alvo=null;try{a.focus()}catch(_){}}};
-  const norm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
-  function abrir(sel,q){if(pop)fechar();alvo=sel;const r=sel.getBoundingClientRect();const opts=[...sel.options];
-    pop=document.createElement('div');pop.className='sbx';
-    const w=Math.max(r.width,260),left=Math.min(r.left,innerWidth-w-8),abaixo=innerHeight-r.bottom>300||r.top<300;
-    pop.style.cssText=`position:fixed;z-index:10050;left:${Math.max(8,left)}px;width:${w}px;${abaixo?'top:'+(r.bottom+2)+'px':'bottom:'+(innerHeight-r.top+2)+'px'};background:var(--surface,#fff);color:var(--fg,#1c1f1d);border:1px solid var(--line,#ccc);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column;max-height:320px;font-size:14px`;
-    pop.innerHTML=`<input type="text" placeholder="Digite para procurar…" style="margin:6px;padding:8px 10px;border:1px solid var(--line,#ccc);border-radius:6px;font:inherit;background:var(--bg,#fff);color:inherit"><div class="sbx-l" style="overflow:auto;flex:1"></div>`;
-    document.body.appendChild(pop);const inp=pop.querySelector('input'),lst=pop.querySelector('.sbx-l');let vis=[],ati=0;
-    const pinta=()=>{const t=norm(inp.value).split(/\s+/).filter(Boolean);vis=opts.filter(o=>!o.disabled&&(!t.length||t.every(x=>norm(o.text).includes(x))));
-      ati=Math.max(0,vis.findIndex(o=>o.value===sel.value&&!t.length));if(t.length)ati=0;
-      lst.innerHTML=vis.length?vis.map((o,i)=>`<div data-i="${i}" style="padding:7px 12px;cursor:pointer;white-space:pre${i===ati?';background:var(--accent,#1f6f54);color:#fff':''}">${o.text.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))||'&nbsp;'}</div>`).join(''):'<div style="padding:8px 12px;opacity:.6">Nada encontrado</div>';
-      const a=lst.children[ati];if(a&&a.scrollIntoView)a.scrollIntoView({block:'nearest'})};
-    const escolhe=i=>{const o=vis[i];if(!o)return;sel.value=o.value;fechar();sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}))};
-    inp.value=q||'';pinta();inp.focus();
-    inp.addEventListener('input',pinta);
-    inp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){ati=Math.min(vis.length-1,ati+1);pinta2()}else if(e.key==='ArrowUp'){ati=Math.max(0,ati-1);pinta2()}else if(e.key==='Enter'){e.preventDefault();escolhe(ati)}else if(e.key==='Escape'||e.key==='Tab'){e.preventDefault();fechar()}else return;e.preventDefault()});
-    function pinta2(){[...lst.children].forEach((d,i)=>{d.style.background=i===ati?'var(--accent,#1f6f54)':'';d.style.color=i===ati?'#fff':''});const a=lst.children[ati];if(a)a.scrollIntoView({block:'nearest'})}
-    lst.addEventListener('mousedown',e=>{const d=e.target.closest('[data-i]');if(d){e.preventDefault();escolhe(+d.dataset.i)}})}
-  const grande=t=>t&&t.tagName==='SELECT'&&!t.multiple&&!t.disabled&&t.options.length>=MIN;
-  document.addEventListener('mousedown',e=>{if(pop&&!pop.contains(e.target)){fechar()}const t=e.target;if(grande(t)){e.preventDefault();t.focus();abrir(t,'')}},true);
-  document.addEventListener('keydown',e=>{const t=e.target;if(!grande(t)||e.ctrlKey||e.metaKey||e.altKey)return;
-    if(e.key.length===1&&e.key!==' '){e.preventDefault();abrir(t,e.key)}else if(e.key==='Enter'||e.key===' '||(e.key==='ArrowDown'&&e.altKey)){e.preventDefault();abrir(t,'')}},true);
-  window.addEventListener('resize',()=>{if(pop)fechar()});document.addEventListener('scroll',e=>{if(pop&&!pop.contains(e.target))fechar()},true);
-})();
-
 /* ===== Provas: convites, link de acesso, dados do contato ===== */
 const PV_TXT_DEF=`Olá {nome},
 
@@ -4620,6 +4623,78 @@ document.addEventListener('change',e=>{const t=e.target;const I=S.ui.imp;if(t.id
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-impprev],[data-impgo],[data-impvolta],[data-impabrir]');if(!t)return;
   if(t.matches('[data-impabrir]')){go('importar');return}if(t.matches('[data-impvolta]')){S.ui.imp={arqs:[],fase:'escolher',log:[]};render();return}if(t.matches('[data-impprev]')){impPrevia();return}if(t.matches('[data-impgo]'))impRodar()});
 AJUDA.importar={t:'Importar planilhas',p:'Traz contatos, pedidos, financeiro, agenda e produtos de outro sistema a partir de planilhas Excel ou CSV.',s:['No sistema antigo, exporte as listas em Excel ou CSV.','Aqui, clique em Escolher planilhas e selecione todas.','Confira o tipo de cada planilha e a ligação das colunas, olhando as 3 primeiras linhas.','Clique em Ver prévia para ver quantos registros são novos e quantos já existem.','Clique em Importar: contatos, produtos, pedidos, financeiro e agenda entram nessa ordem, já ligados entre si.'],d:['Faça um backup antes.','O que já existe não é importado de novo.']};
+/* ===== Onde gastamos e ganhamos (por categoria) ===== */
+S.ui.rg={tipo:'pagar',nivel:'det',cat:''};
+function rgNome(c){if(!c)return 'Sem categoria';const n=(((S.finCfg||{}).plano)||{})[c]||PLANO_DEF[c]||'';return c+' · '+(n||'(sem nome)')}
+function rgCod(l,nivel){let c=l.planoCod||(l.tipo==='receber'&&l.pedidoId?'3.1':'');if(!c)return '';if(nivel==='grp')c=c.split('.').slice(0,2).join('.');return c}
+VIEWS.relgastos=()=>{
+  const R=S.ui.rel,G=S.ui.rg,caixa=R.regime==='caixa';let [de,ate]=relRange();
+  const dOf=l=>caixa?(l.pago?(l.dataPagamento||l.vencimento):''):l.vencimento;
+  const tudo=R.periodo==='tudo';
+  const L=S.data.lancamentos.filter(l=>l.tipo===G.tipo);
+  const soma=(a,b)=>{const m={};L.forEach(l=>{const d=dOf(l);if(d&&d>=a&&d<=b){const k=rgCod(l,G.nivel);m[k]=(m[k]||0)+(+l.valor||0)}});return m};
+  const atual=soma(de,ate),tot=Object.values(atual).reduce((a,b)=>a+b,0);
+  /* período anterior com o mesmo tamanho */
+  let ant=null,totAnt=0,deA='',ateA='';if(!tudo){const d0=parseD(de),d1=parseD(ate);const dias=Math.round((d1-d0)/864e5)+1;ateA=addDays(de,-1);deA=addDays(de,-dias);
+    if(['mes','ultimo','tri','u12'].includes(R.periodo)||R.periodo==='ano'||R.periodo==='anoant'){const meses={mes:1,ultimo:1,tri:3,u12:12,ano:12,anoant:12}[R.periodo];const a=new Date(d0.getFullYear(),d0.getMonth()-meses,1);deA=iso(a);ateA=iso(new Date(d0.getFullYear(),d0.getMonth(),0))}
+    ant=soma(deA,ateA);totAnt=Object.values(ant).reduce((a,b)=>a+b,0)}
+  const lista=Object.entries(atual).filter(([,v])=>v).sort((a,b)=>b[1]-a[1]);const mx=lista.length?lista[0][1]:1;
+  const cor=G.tipo==='pagar'?'var(--danger)':'var(--ok)';
+  const varia=(k)=>{if(!ant)return '';const a=ant[k]||0,v=atual[k]||0;if(!a)return v?'<span class="badge" style="font-size:11px">novo</span>':'';const p=Math.round((v-a)/a*100);if(!p)return '<span class="muted" style="font-size:12px">igual</span>';const ruim=G.tipo==='pagar'?p>0:p<0;return `<span style="font-size:12px;font-weight:600;color:var(${ruim?'--danger':'--ok'})">${p>0?'▲':'▼'} ${Math.abs(p)}%</span>`};
+  const lancs=k=>L.filter(l=>{const d=dOf(l);return d&&d>=de&&d<=ate&&rgCod(l,G.nivel)===k}).sort((a,b)=>(+b.valor||0)-(+a.valor||0));
+  const barras=lista.length?lista.map(([k,v],i)=>{const aberto=G.cat===k;const ls=aberto?lancs(k):[];return `<div style="border-bottom:1px solid var(--line)"><button data-rgcat="${esc(k)}" style="all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:minmax(140px,260px) 1fr auto;gap:12px;align-items:center;width:100%;padding:9px 4px" aria-expanded="${aberto}">
+      <span style="font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(rgNome(k))}"><span class="muted num" style="display:inline-block;min-width:22px">${i+1}.</span> ${esc(rgNome(k))}</span>
+      <span style="position:relative;height:18px;background:var(--line);border-radius:4px;overflow:hidden"><i style="position:absolute;inset:0 auto 0 0;width:${Math.max(1,v/mx*100)}%;background:${cor};opacity:.85;border-radius:4px"></i></span>
+      <span style="text-align:right;white-space:nowrap"><b class="num">${brl(v)}</b> <span class="muted num" style="font-size:12px">${tot?Math.round(v/tot*1000)/10:0}%</span> ${varia(k)}</span></button>
+      ${aberto?`<div style="padding:0 4px 10px 30px"><table class="tbl"><thead><tr><th>Data</th><th>Descrição</th><th>Contato</th><th class="r">Valor</th><th>Pago</th></tr></thead><tbody>${ls.slice(0,200).map(l=>`<tr class="row" data-edit="lancamentos" data-id="${esc(l.id)}" style="cursor:pointer"><td class="num">${fdate(dOf(l))}</td><td>${esc(l.descricao||'')}</td><td>${esc(nameOf('contatos',l.contatoId))}</td><td class="r num">${brl(+l.valor||0)}</td><td>${l.pago?'Sim':'Não'}</td></tr>`).join('')}</tbody></table>${ls.length>200?`<p class="muted" style="font-size:12px">Mostrando 200 de ${ls.length}.</p>`:''}</div>`:''}</div>`}).join(''):`<p class="muted" style="padding:16px">Nenhum lançamento ${G.tipo==='pagar'?'de despesa':'de receita'} neste período.</p>`;
+  /* histórico mês a mês */
+  let hAte=tudo?today():ate;let hDe=tudo?'':de;const fim=parseD(hAte);const months=[];
+  {let d=new Date(fim.getFullYear(),fim.getMonth(),1);for(let i=0;i<12;i++){const mk=d.getFullYear()+'-'+pad(d.getMonth()+1);if(hDe&&mk<hDe.slice(0,7))break;months.unshift(mk);d=new Date(d.getFullYear(),d.getMonth()-1,1)}}
+  const H={};L.forEach(l=>{const d=dOf(l);if(!d)return;const mk=d.slice(0,7);if(!months.includes(mk))return;const k=rgCod(l,G.nivel);(H[k]=H[k]||{t:0})[mk]=((H[k][mk])||0)+(+l.valor||0);H[k].t+=+l.valor||0});
+  const top=Object.entries(H).sort((a,b)=>b[1].t-a[1].t);const princ=top.slice(0,12),resto=top.slice(12);
+  if(resto.length){const o={t:0};resto.forEach(([,r])=>{months.forEach(mk=>{o[mk]=(o[mk]||0)+(r[mk]||0)});o.t+=r.t});princ.push(['__outras',o])}
+  const hmx=Math.max(1,...princ.flatMap(([,r])=>months.map(mk=>r[mk]||0)));
+  const ml=mk=>MESES[+mk.slice(5)-1].slice(0,3).toLowerCase()+'/'+mk.slice(2,4);
+  const totM=months.map(mk=>princ.reduce((a,[,r])=>a+(r[mk]||0),0));
+  const cell=v=>v?`<td class="r num" style="background:color-mix(in srgb, ${cor} ${Math.round(6+v/hmx*40)}%, transparent);font-size:12.5px">${brl(v)}</td>`:`<td class="r muted" style="font-size:12px">—</td>`;
+  S.rgCsv=[['Categoria',...months.map(ml),'Total'],...princ.map(([k,r])=>[k==='__outras'?'Outras':rgNome(k),...months.map(mk=>(r[mk]||0).toFixed(2).replace('.',',')),r.t.toFixed(2).replace('.',',')])];
+  const hist=princ.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Categoria</th>${months.map(mk=>`<th class="r">${ml(mk)}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${princ.map(([k,r])=>`<tr class="row"><td style="white-space:nowrap">${k==='__outras'?'<i>Outras ('+resto.length+')</i>':esc(rgNome(k))}</td>${months.map(mk=>cell(r[mk]||0)).join('')}<td class="r"><b class="num">${brl(r.t)}</b></td></tr>`).join('')}</tbody><tfoot><tr><td><b>Total</b></td>${totM.map(v=>`<td class="r"><b class="num">${brl(v)}</b></td>`).join('')}<td class="r"><b class="num">${brl(totM.reduce((a,b)=>a+b,0))}</b></td></tr></tfoot></table></div>`:'<p class="muted" style="padding:16px">Sem lançamentos nos últimos meses.</p>';
+  const kp=(v,l,c)=>`<div class="panel kpi"><div class="body"><div class="v num" style="font-size:22px;${c?'color:var('+c+')':''}">${v}</div><div class="l">${l}</div></div></div>`;
+  const difT=ant&&totAnt?Math.round((tot-totAnt)/totAnt*100):null;
+  const maior=lista[0];
+  return loadingOr(`${head('Onde '+(G.tipo==='pagar'?'gastamos':'ganhamos')+' · '+PER[R.periodo],'Relatórios / Por categoria',`<button class="btn" data-rgcsv>${ic('copy',15)} Copiar CSV</button>`)}
+   <section class="panel"><div class="body" style="display:grid;gap:12px">${relTabs('relgastos')}
+     <div class="toolbar"><div class="seg"><button data-rgtipo="pagar" class="${G.tipo==='pagar'?'on':''}">Despesas (onde gastamos)</button><button data-rgtipo="receber" class="${G.tipo==='receber'?'on':''}">Receitas (onde ganhamos)</button></div>
+       <div class="seg"><button data-rgnivel="det" class="${G.nivel!=='grp'?'on':''}">Detalhado</button><button data-rgnivel="grp" class="${G.nivel==='grp'?'on':''}">Por grupo</button></div>
+       <div class="seg"><button data-regime="competencia" class="${!caixa?'on':''}">Competência</button><button data-regime="caixa" class="${caixa?'on':''}">Caixa</button></div>${perBar()}</div>
+     <span class="muted" style="font-size:12px">${fdate(de)} a ${fdate(ate)}${ant?` · comparado com ${fdate(deA)} a ${fdate(ateA)}`:''} · ${caixa?'só o que foi pago, pela data do pagamento':'pela data de vencimento, pago ou não'}. Clique numa categoria para ver os lançamentos.</span></div></section>
+   <div class="fin-kpis">${kp(brl(tot),G.tipo==='pagar'?'Total gasto':'Total recebido',G.tipo==='pagar'?'--danger':'--ok')}${kp(difT==null?'—':(difT>0?'▲ ':difT<0?'▼ ':'')+Math.abs(difT)+'%','Em relação ao período anterior'+(ant?' ('+brl(totAnt)+')':''),difT==null?'':((G.tipo==='pagar'?difT>0:difT<0)?'--danger':'--ok'))}${kp(maior?`<span style="font-size:17px">${esc(rgNome(maior[0]).split(' · ').pop())}</span>`:'—',G.tipo==='pagar'?'Maior gasto'+(maior?' · '+brl(maior[1]):''):'Maior receita'+(maior?' · '+brl(maior[1]):''))}${kp(lista.length,'Categorias com movimento')}</div>
+   <section class="panel"><header><h3>${G.tipo==='pagar'?'Onde mais gastamos':'De onde mais ganhamos'}</h3><span class="muted" style="margin-left:auto;font-size:12px">${ant?'▲▼ = variação contra o período anterior':''}</span></header><div class="body" style="padding-top:4px">${barras}</div></section>
+   <section class="panel"><header><h3>Histórico mês a mês</h3><span class="muted" style="margin-left:auto;font-size:12px">quanto mais forte a cor, maior o valor</span></header>${hist}</section>`);
+};
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-rgtipo],[data-rgnivel],[data-rgcat],[data-rgcsv]');if(!t)return;const d=t.dataset,G=S.ui.rg;
+  if(d.rgtipo){G.tipo=d.rgtipo;G.cat='';render();return}
+  if(d.rgnivel){G.nivel=d.rgnivel;G.cat='';render();return}
+  if(d.rgcat!==undefined){G.cat=G.cat===d.rgcat?'':d.rgcat;render();return}
+  if(d.rgcsv!==undefined){try{await csvCopy(S.rgCsv||[]);toast('Tabela copiada — cole no Excel ou Google Planilhas')}catch(err){toast('Não foi possível copiar',true)}}});
+AJUDA.relgastos={t:'Onde gastamos e ganhamos',p:'Mostra, por categoria do plano de contas, onde vai o dinheiro e de onde ele vem, com o histórico de cada mês.',s:['Escolha Despesas ou Receitas.','Escolha o período e o regime (competência = vencimento; caixa = só o que foi pago).','As barras mostram as categorias da maior para a menor, com o % do total e a variação contra o período anterior.','Clique numa categoria para ver os lançamentos dela.','Embaixo, o histórico mês a mês mostra como cada categoria variou.'],d:['Por grupo junta as subcategorias (ex.: todas as 5.7 viram uma só).','Lançamentos sem categoria aparecem em Sem categoria: vale categorizar para o relatório ficar certo.']};
+
+/* ===== WhatsApp: abrir no app instalado ou na mesma aba do WhatsApp Web ===== */
+function waModo(){return (S.cfg&&S.cfg.whatsModo)||'app'}
+function waAbrir(url){try{const u=new URL(url);let fone='',txt='';
+    if(/wa\.me$/.test(u.hostname)){fone=u.pathname.replace(/\D/g,'');txt=u.searchParams.get('text')||''}else{fone=(u.searchParams.get('phone')||'').replace(/\D/g,'');txt=u.searchParams.get('text')||''}
+    const q=(fone?'phone='+fone+'&':'')+'text='+encodeURIComponent(txt);const m=waModo();
+    if(m==='app'){const a=document.createElement('a');a.href='whatsapp://send?'+q;document.body.appendChild(a);a.click();a.remove();return true}
+    if(m==='web'){waOpenOrig('https://web.whatsapp.com/send?'+q,'whatsappweb');return true}
+  }catch(e){}return false}
+const waOpenOrig=window.open.bind(window);
+window.open=function(url,alvo,feat){if(typeof url==='string'&&/^https:\/\/(wa\.me|api\.whatsapp\.com)\//.test(url)&&waModo()!=='nova'&&waAbrir(url))return null;return waOpenOrig(url,alvo,feat)};
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href^="https://wa.me/"],a[href^="https://api.whatsapp.com/"]');if(!a||waModo()==='nova')return;e.preventDefault();waAbrir(a.href)},true);
+function waCfgHTML(){const m=waModo();const b=(k,l)=>`<button type="button" data-wamodo="${k}" class="${m===k?'on':''}">${l}</button>`;
+  return `<h4 style="margin:18px 0 6px">WhatsApp</h4><div class="field"><label>Quando clicar em WhatsApp, abrir</label><div class="seg">${b('app','App instalado')}${b('web','WhatsApp Web (mesma aba)')}${b('nova','Aba nova')}</div>
+  <p class="muted" style="font-size:12px;margin:6px 0 0">${m==='app'?'Abre direto no WhatsApp do computador ou do celular, com a mensagem pronta, sem abrir página nova. Precisa do app instalado.':m==='web'?'Usa sempre a mesma aba do WhatsApp Web: a primeira vez abre a aba, nas próximas ela é reaproveitada.':'Abre a página do WhatsApp numa aba nova a cada envio.'}</p></div>`}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-wamodo]');if(!t)return;cfgSet('whatsModo',t.dataset.wamodo);render();toast('WhatsApp: preferência salva.')});
+
 /* ===== Módulos (ativar / desativar partes do sistema) ===== */
 const MODULOS=[
   {k:'agenda',l:'Agenda e disponibilidade',d:'Agenda de eventos, sincronização com o Google Agenda, equipamentos e disponibilidade para vender.',v:['agenda','reldisp'],t:['agenda','equip']},
@@ -4629,7 +4704,7 @@ const MODULOS=[
   {k:'projetos',l:'Projetos e tarefas',d:'Projetos de produção (álbuns, impressão) e lista de tarefas.',v:['projetos','tarefas'],t:['projetos','fluxos']},
   {k:'provas',l:'Provas e galerias',d:'Galerias para o cliente aprovar e escolher as fotos, com lista de seleção.',v:['provas','prova','provaview'],t:['provas']},
   {k:'venda',l:'Venda de fotos',d:'Venda de fotos na galeria com marca d\'água, Pix e cartão. Precisa do módulo Provas.',v:[],t:['venda'],pre:'provas'},
-  {k:'financeiro',l:'Financeiro',d:'Contas a receber e a pagar, contas bancárias, transações, cashback e fluxo de caixa.',v:['financeiro','contasbanc','fintrans','cashback','finar','finarp','finporcli','finap','finapp','finporforn','relfluxo','relcontatos'],t:['fin']},
+  {k:'financeiro',l:'Financeiro',d:'Contas a receber e a pagar, contas bancárias, transações, cashback e fluxo de caixa.',v:['financeiro','contasbanc','fintrans','cashback','finar','finarp','finporcli','finap','finapp','finporforn','relfluxo','relcontatos','relgastos'],t:['fin']},
   {k:'relatorios',l:'Relatórios',d:'Tela de relatórios gerais.',v:['relatorios']}
 ];
 const MOD_FIXOS='Início, Contatos, Configurações, Backup e Importar planilhas';
@@ -4945,10 +5020,12 @@ initStore();
   const elegivel=el=>el&&el.tagName==='SELECT'&&!el.multiple&&!el.disabled&&!el.hasAttribute('data-nativo')&&el.options.length>MIN;
   function fechar(foco){if(!cur)return;const sel=cur.sel;cur.box.remove();document.removeEventListener('mousedown',fora,true);window.removeEventListener('resize',pos);cur=null;if(foco)try{sel.focus()}catch(_){}}
   function fora(e){if(cur&&!cur.box.contains(e.target)&&e.target!==cur.sel)fechar(false)}
-  function pos(){if(!cur)return;const r=cur.sel.getBoundingClientRect(),vh=innerHeight,w=Math.max(r.width,300);const left=Math.max(8,Math.min(r.left,innerWidth-w-8));const abaixo=vh-r.bottom-12,acima=r.top-12;const up=abaixo<260&&acima>abaixo;const h=Math.min(380,up?acima:abaixo);
-    Object.assign(cur.box.style,{left:left+'px',width:Math.min(w,innerWidth-16)+'px',maxHeight:h+'px',top:up?'':(r.bottom+4)+'px',bottom:up?(vh-r.top+4)+'px':''})}
-  function abrir(sel,txt){fechar(false);const box=document.createElement('div');box.className='ssel';box.innerHTML='<input type="search" placeholder="Digite para procurar…" aria-label="Procurar"><ul role="listbox"></ul>';document.body.appendChild(box);
-    const inp=box.querySelector('input'),ul=box.querySelector('ul');cur={sel,box,inp,ul,i:-1,vis:[]};
+  /* a busca fica no próprio campo: a caixa abre em cima da lista, com o texto digitado no lugar do item */
+  function pos(){if(!cur)return;const r=cur.sel.getBoundingClientRect(),vh=innerHeight,w=Math.max(r.width,260);const left=Math.max(8,Math.min(r.left,innerWidth-w-8));const abaixo=vh-r.top-12,acima=r.bottom-12;const up=abaixo<300&&acima>abaixo;const h=Math.min(420,up?acima:abaixo);
+    cur.box.classList.toggle('up',up);cur.inp.style.height=Math.max(34,r.height)+'px';
+    Object.assign(cur.box.style,{left:left+'px',width:Math.min(w,innerWidth-16)+'px',maxHeight:h+'px',top:up?'':r.top+'px',bottom:up?(vh-r.bottom)+'px':''})}
+  function abrir(sel,txt){fechar(false);const box=document.createElement('div');box.className='ssel';box.innerHTML='<input type="text" autocomplete="off" aria-label="Procurar"><ul role="listbox"></ul>';document.body.appendChild(box);
+    const inp=box.querySelector('input'),ul=box.querySelector('ul');{const o=sel.options[sel.selectedIndex];inp.placeholder=(o&&o.text.trim())?o.text.trim()+' — digite para procurar':'Digite para procurar…'}cur={sel,box,inp,ul,i:-1,vis:[]};
     const opts=[...sel.options].map((o,k)=>({k,t:o.text,n:norm(o.text),dis:o.disabled,v:o.value}));
     const lista=()=>{const q=norm(inp.value).trim().split(/\s+/).filter(Boolean);cur.vis=opts.filter(o=>q.every(w=>o.n.includes(w)));
       ul.innerHTML=cur.vis.length?cur.vis.map((o,j)=>`<li data-j="${j}" class="${o.k===sel.selectedIndex?'on':''}${o.dis?' dis':''}${/^\s*\d+(\.\d+)?\s-\s/.test(o.t)&&!/^\s*\d+\.\d+\.\d+/.test(o.t)?' grp':''}">${esc(o.t.trim()?o.t:'—')}</li>`).join(''):'<div class="nada">Nada encontrado.</div>';
