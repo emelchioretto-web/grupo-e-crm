@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261101015730';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261101020950';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1240,6 +1240,7 @@ const NAV=[
   {v:'projetos',l:'Projetos',i:'img',cnt:()=>S.data.projetos.filter(p=>['Não iniciado','Em andamento'].includes(p.status)).length},
   {v:'tarefas',l:'Tarefas',sub:1,cnt:()=>S.data.tarefas.filter(t=>!t.feita&&t.data&&t.data<=today()).length,alt:1},
   {v:'provas',l:'Provas',i:'grid',cnt:()=>S.data.provas.filter(p=>p.status==='Ativa').length,alt:1},
+  {v:'vendasfotos',l:'Venda de fotos',i:'cart',cnt:()=>(S.compras||[]).filter(c=>c.status==='pago_informado'||c.status==='aguardando').length},
   {g:'Gestão'},
   {v:'financeiro',l:'Financeiro',i:'money'},
   {v:'contasbanc',l:'Contas bancárias',sub:1},
@@ -4555,6 +4556,41 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     await fs.doc(path).set({status:'pago',pagoEm:new Date().toISOString(),enviadoEm:new Date().toISOString()},{merge:true});
     if(t.dataset.vconf){try{await save('lancamentos',{tipo:'receber',categoria:'Venda de fotos',descricao:'Venda de fotos - '+p.nome+' - '+(c.nome||''),valor:+c.total||0,vencimento:today(),pago:true,dataPagamento:today(),forma:c.forma||'',contatoId:p.contatoId||'',pedidoId:p.pedidoId||''})}catch(_){}}
     toast(c.email?'Fotos enviadas para '+c.email:'Pagamento confirmado (sem e-mail: envie pelo WhatsApp)')}catch(err){toast('Não consegui enviar: '+((err&&err.message)||err),true)}t.disabled=false;render()});
+/* ===== Venda de fotos: tela própria em Produção ===== */
+S.ui.vf={f:'abertas',q:''};
+VIEWS.vendasfotos=()=>{
+  const V=cfg().venda||{},F=S.ui.vf,t=today(),mes=t.slice(0,7);
+  const G=S.data.provas.filter(p=>p.tipo==='Venda de fotos').sort((a,b)=>String(b.data||b.criadoEm||'').localeCompare(String(a.data||a.criadoEm||'')));
+  const C=(S.compras||[]).map(c=>({...c,_p:S.data.provas.find(p=>p.galeria&&p.galeria===c._tok)})).sort((a,b)=>String(b.em||'').localeCompare(String(a.em||'')));
+  const pago=c=>c.status==='pago',dPago=c=>String(c.pagoEm||c.em||'').slice(0,10);
+  const kp=(v,l,c,ic2)=>`<div class="panel kpi"><div class="body"><div class="v num" style="font-size:22px;${c?'color:var('+c+')':''}">${v}</div><div class="l">${l}</div></div></div>`;
+  const nInf=C.filter(c=>c.status==='pago_informado').length,nAg=C.filter(c=>c.status==='aguardando').length;
+  const recMes=C.filter(c=>pago(c)&&dPago(c).startsWith(mes)).reduce((a,c)=>a+(+c.total||0),0),recTot=C.filter(pago).reduce((a,c)=>a+(+c.total||0),0);
+  const filtros={abertas:['A confirmar',c=>c.status==='aguardando'||c.status==='pago_informado'],pagas:['Pagas',pago],canceladas:['Canceladas',c=>c.status==='cancelado'],todas:['Todas',()=>true]};
+  const q=impN(F.q||'');const lista=C.filter(filtros[F.f][1]).filter(c=>!q||impN([c.nome,c.email,c.fone,c._p&&c._p.nome].join(' ')).includes(q));
+  const semPix=!(V.pixChave||'').trim()&&!(V.linkCartao||'').trim();
+  const linhaG=p=>{const cs=C.filter(c=>c._tok===p.galeria&&c.status!=='cancelado');const rec=cs.filter(pago).reduce((a,c)=>a+(+c.total||0),0);return `<tr class="row"><td><a href="#" data-vabre="${esc(p.id)}"><b>${esc(p.nome||'(sem nome)')}</b></a>${p.contatoId?`<div class="muted" style="font-size:12px">${esc(nameOf('contatos',p.contatoId))}</div>`:''}</td><td>${badge(p.status||'—',p.status==='Ativa'?'--ok':'--idle')}</td><td class="num">${p.data?fdate(p.data):''}</td><td class="r num">${(p.imgs||[]).length}</td><td class="r num">${cs.length}</td><td class="r"><b class="num">${brl(rec)}</b></td><td style="white-space:nowrap"><button class="btn sm" data-vabre="${esc(p.id)}">Abrir</button>${p.galeria?` <button class="btn sm" data-vlink="${esc(p.id)}">${ic('copy',13)} Link</button>`:''}</td></tr>`};
+  const linhaC=c=>{const p=c._p;const n=(c.itens||[]).length;const wa=waNum({celular:c.fone});return `<tr class="row"><td class="num" style="white-space:nowrap">${c.em?fdate(c.em.slice(0,10))+' '+c.em.slice(11,16):''}</td><td><b>${esc(c.nome||'')}</b><div class="muted" style="font-size:12px">${esc(c.email||'')}${c.fone?' · '+esc(c.fone):''}</div></td><td>${p?`<a href="#" data-vabre="${esc(p.id)}">${esc(p.nome||'')}</a>`:'<span class="muted">(galeria removida)</span>'}</td><td class="r num">${n} foto${n===1?'':'s'}</td><td class="r"><b class="num">${brl(c.total||0)}</b></td><td>${badge(VST[c.status]?VST[c.status][0]:c.status,VST[c.status]?VST[c.status][1]:'--idle')}</td>
+    <td style="white-space:nowrap">${p&&c.status!=='pago'&&c.status!=='cancelado'?`<button class="btn sm pri" data-vconf="${esc(c._ref)}" title="Confirmar pagamento e enviar as fotos">${ic('ok',13)} Confirmar</button>`:''}${p&&pago(c)?`<button class="btn sm" data-vreenv="${esc(c._ref)}">${ic('mail',13)} Reenviar</button>`:''}${wa&&p?` <a class="btn sm" style="background:#25a85a;border-color:#25a85a;color:#fff" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(pago(c)?vendaMsg(p,c):'Olá '+(c.nome||'')+'! Recebemos o seu pedido de fotos de "'+(p.nome||'')+'", total '+brl(c.total||0)+'.')}">${ic('wa',13)}</a>`:''}${c.status!=='pago'&&c.status!=='cancelado'?` <button class="btn sm" data-vcanc="${esc(c._ref)}">Cancelar</button>`:''}</td></tr>`};
+  return `${head('Venda de fotos','Produção / Venda de fotos',`<button class="btn" data-cfgir="venda">${ic('gear',15)} Preços e pagamento</button><button class="btn pri" data-vnova>${ic('plus',15)} Nova galeria de venda</button>`)}
+   ${!window.__HOSTED?`<div class="banner"><span>As compras dos clientes aparecem no CRM publicado (no site). Aqui dá para criar as galerias e configurar os preços.</span></div>`:''}
+   ${semPix?`<div class="banner" style="border-color:var(--warn)"><span>${ic('alertT',14)} Falta configurar a <b>chave Pix</b> ou o <b>link do cartão</b>: sem isso o cliente não vê como pagar.</span><button class="btn sm pri" data-cfgir="venda">Configurar agora</button></div>`:''}
+   <div class="fin-kpis">${kp(nInf,'Cliente diz que pagou (confira e confirme)',nInf?'--info':'')}${kp(nAg,'Aguardando pagamento',nAg?'--warn':'')}${kp(brl(recMes),'Recebido este mês','--ok')}${kp(brl(recTot),'Recebido no total')}</div>
+   <section class="panel"><header><h3>Compras</h3><div class="seg" style="margin-left:auto">${Object.entries(filtros).map(([k,[l,f]])=>`<button data-vff="${k}" class="${F.f===k?'on':''}">${l} (${C.filter(f).length})</button>`).join('')}</div></header>
+     <div class="body" style="padding-bottom:0"><input class="search" id="q-vf" placeholder="Buscar comprador, e-mail ou galeria…" value="${esc(F.q||'')}" style="max-width:360px"></div>
+     ${lista.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Quando</th><th>Comprador</th><th>Galeria</th><th class="r">Itens</th><th class="r">Total</th><th>Situação</th><th></th></tr></thead><tbody>${lista.map(linhaC).join('')}</tbody></table></div>`:`<div class="empty"><b>${C.length?'Nada neste filtro':'Nenhuma compra ainda'}</b><span>${C.length?'Troque o filtro acima.':'Quando um cliente finalizar a compra numa galeria de venda, ela aparece aqui e você recebe um e-mail.'}</span></div>`}</section>
+   <section class="panel"><header><h3>Galerias de venda</h3><span class="muted" style="margin-left:auto;font-size:12px">${G.length} galeria${G.length===1?'':'s'}</span></header>
+     ${G.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Galeria</th><th>Situação</th><th>Data</th><th class="r">Fotos</th><th class="r">Compras</th><th class="r">Recebido</th><th></th></tr></thead><tbody>${G.map(linhaG).join('')}</tbody></table></div>`:`<div class="empty"><b>Nenhuma galeria de venda</b><span>Clique em <b>Nova galeria de venda</b>, suba as fotos e mande o link. A marca d'água entra sozinha.</span></div>`}</section>
+   <section class="panel"><header><h3>Como funciona</h3></header><div class="body"><ol class="ajuda-ol"><li><span>Crie uma <b>galeria de venda</b> e suba as fotos: o sistema faz uma versão com marca d'água para mostrar e guarda a original para entregar.</span></li><li><span>Mande o link para o cliente (botão <b>Link</b>). Ele escolhe digital e/ou impressas e o valor vai somando; ele não consegue baixar nem dar print com facilidade.</span></li><li><span>No fim aparecem o <b>QR Code Pix</b> e o link do cartão. Quando ele avisa que pagou, a compra aparece aqui como <b>Cliente diz que pagou</b>.</span></li><li><span>Confira no banco e clique em <b>Confirmar</b>: as fotos vão por e-mail, o lançamento entra no financeiro e dá para mandar também pelo WhatsApp.</span></li></ol></div></section>`;
+};
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-vabre],[data-vlink],[data-vnova],[data-vff]');if(!t)return;e.preventDefault();const d=t.dataset;
+  if(d.vabre){openProva(d.vabre,'vendas');return}
+  if(d.vff){S.ui.vf.f=d.vff;render();return}
+  if(d.vnova!==undefined){openForm('provas',{tipo:'Venda de fotos',status:'Ativa'});return}
+  if(d.vlink){const p=S.data.provas.find(x=>x.id===d.vlink);if(!p)return;try{await navigator.clipboard.writeText(pvLink(p));toast('Link da galeria copiado')}catch(err){toast(pvLink(p))}}});
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='q-vf'){S.ui.vf.q=e.target.value;render()}});
+AJUDA.vendasfotos={t:'Venda de fotos',p:'Todas as compras de fotos e as galerias de venda num lugar só.',s:['Clique em Nova galeria de venda e suba as fotos (a marca d\'água entra sozinha).','Copie o link da galeria e mande para o cliente.','O cliente escolhe as fotos, vê o total e paga por Pix ou cartão.','Quando aparecer "Cliente diz que pagou", confira no banco e clique em Confirmar: as fotos vão por e-mail e o valor entra no financeiro.'],d:['Preços, chave Pix e link do cartão ficam em Preços e pagamento.','Cada galeria também tem a aba Vendas, dentro da prova.']};
+
 /* ===== Importar planilhas de outro sistema ===== */
 const IMP_TIPOS={
  contatos:{l:'Contatos (clientes e fornecedores)',f:[['nome','Nome *',/^(nome|cliente|nome completo|razao social|contato|name)$/],['sobrenome','Sobrenome',/sobrenome|last ?name|lastname/],['email','E-mail',/e-?mail/],['celular','Celular / WhatsApp',/celular|whats|cel\b|mobile|cellular/],['fone','Telefone',/^(telefone|fone|tel|phone)/],['cpf','CPF / CNPJ',/cpf|cnpj|documento|doc2/],['rg','RG',/^rg$|identidade|doc1/],['empresa','Empresa',/empresa|company/],['endereco','Endereço',/endere|rua|address1|logradouro/],['bairro','Bairro',/bairro|address2/],['cidade','Cidade',/cidade|city/],['uf','Estado (UF)',/^(uf|estado|state)$/],['cep','CEP',/cep|zip/],['categoria','Tipo (Cliente, Fornecedor…)',/categoria|tipo|type/],['obs','Observações',/obs|nota|memo|anota/]]},
@@ -4705,7 +4741,7 @@ const MODULOS=[
   {k:'pedidos',l:'Pedidos e contratos',d:'Produtos, pedidos, contratos com assinatura digital, fichas de contratação e relatórios de vendas.',v:['produtos','pedidos','fichas','relvendas','relprod','relresv'],t:['termos','contratos','pedtar']},
   {k:'projetos',l:'Projetos e tarefas',d:'Projetos de produção (álbuns, impressão) e lista de tarefas.',v:['projetos','tarefas'],t:['projetos','fluxos']},
   {k:'provas',l:'Provas e galerias',d:'Galerias para o cliente aprovar e escolher as fotos, com lista de seleção.',v:['provas','prova','provaview'],t:['provas']},
-  {k:'venda',l:'Venda de fotos',d:'Venda de fotos na galeria com marca d\'água, Pix e cartão. Precisa do módulo Provas.',v:[],t:['venda'],pre:'provas'},
+  {k:'venda',l:'Venda de fotos',d:'Venda de fotos na galeria com marca d\'água, Pix e cartão. Precisa do módulo Provas.',v:['vendasfotos'],t:['venda'],pre:'provas'},
   {k:'financeiro',l:'Financeiro',d:'Contas a receber e a pagar, contas bancárias, transações, cashback e fluxo de caixa.',v:['financeiro','contasbanc','fintrans','cashback','finar','finarp','finporcli','finap','finapp','finporforn','relfluxo','relcontatos','relgastos'],t:['fin']},
   {k:'relatorios',l:'Relatórios',d:'Tela de relatórios gerais.',v:['relatorios']}
 ];
