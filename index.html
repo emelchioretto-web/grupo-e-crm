@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261101021354';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261101022141';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2267,7 +2267,7 @@ function bancos(){const b=(S.finCfg||{}).bancos;return Array.isArray(b)&&b.lengt
 function contasNomes(){return bancos().filter(b=>b.ativo!==false).map(b=>b.nome).sort((a,b)=>a.localeCompare(b,'pt-BR'))}
 function openPay(id){const l=S.data.lancamentos.find(r=>r.id===id);if(!l)return;const pg=l.tipo==='pagar';const last=(()=>{try{return localStorage.getItem('grupoe-ultconta-'+l.tipo)||''}catch(e){return ''}})();const cur=(l.conta&&contasNomes().includes(l.conta))?l.conta:last;
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>${pg?'Pagar uma conta':'Receber uma conta'}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
-   <div class="mbody"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:13px"><div><span class="muted">${pg?'Para':'De'}</span><div><b>${esc(contatoNome(l.contatoId)||'—')}</b></div></div><div><span class="muted">Vencimento</span><div><b class="num">${fdate(l.vencimento)}</b></div></div><div><span class="muted">Valor</span><div><b class="num">${brl(l.valor)}</b></div></div></div>
+   <div class="mbody"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:13px"><div><span class="muted">${pg?'Para':'De'}</span><div>${contatoNome(l.contatoId)?`<b>${esc(contatoNome(l.contatoId))}</b>`:`<input id="pay-cont" class="search" list="dl-paycont" value="${esc(((custoDoLanc(l)||{}).fornecedor)||'')}" placeholder="Digite o nome…" autocomplete="off" style="width:100%"><datalist id="dl-paycont">${fornecedoresLista().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`}</div></div><div><span class="muted">Vencimento</span><div><b class="num">${fdate(l.vencimento)}</b></div></div><div><span class="muted">Valor</span><div><b class="num">${brl(l.valor)}</b></div></div></div>
    <div class="fgrid" style="margin-top:14px"><div class="field"><label for="pay-valor">Valor ${pg?'pago':'recebido'}</label><input id="pay-valor" inputmode="decimal" data-money value="${esc(moneyFmt(l.valor))}" oninput="(()=>{const v=moneyParse(this.value),d=v-(${+l.valor||0});const e=document.getElementById('pay-dif');if(e)e.textContent=Math.abs(d)>0.004?'Diferença: '+brl(d):''})()"><span id="pay-dif" class="sub" style="color:var(--warn)"></span></div><div class="field"><label for="pay-data">Data do ${pg?'pagamento':'recebimento'}</label><input id="pay-data" type="date" value="${today()}"></div>
    <div class="field full"><label for="pay-conta">${pg?'Pagar usando':'Receber em'}</label><select id="pay-conta"><option value="">— escolha a conta —</option>${contasNomes().map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
    <div class="field full"><label for="pay-desc">Descrição</label><textarea id="pay-desc" rows="2">${esc(l.descricao||'')}</textarea></div></div></div>
@@ -3209,7 +3209,7 @@ document.addEventListener('click',async e=>{
     else await save('lancamentos',{...base,tipo:tp==='dep'?'receber':'pagar',categoria:tp==='dep'?'Depósito / entrada':'Retirada / saída',...extra,conta:de,contaCod:cod(de),descricao:ds||(extra.contatoId?nameOf('contatos',extra.contatoId):'')||(tp==='dep'?'Recebimento':'Pagamento')});
     closeModal();toast('Transação lançada');return}
   if(d.paysave!==undefined){const l=S.data.lancamentos.find(r=>r.id===d.paysave);if(!l)return;const v=moneyParse($('#pay-valor').value),dt=$('#pay-data').value||today(),ct=$('#pay-conta').value,ds=$('#pay-desc').value.trim();if(!ct){toast('Escolha a conta.',true);return}
-    const bk=bancos().find(b=>b.nome===ct);const ch={pago:true,dataPagamento:dt,conta:ct,descricao:ds||l.descricao,contaCod:(bk&&bk.codigo)||''};if(Math.abs(v-(+l.valor||0))>0.004){ch.valorOriginal=l.valorOriginal||l.valor;ch.valor=v}
+    const bk=bancos().find(b=>b.nome===ct);const ch={pago:true,dataPagamento:dt,conta:ct,descricao:ds||l.descricao,contaCod:(bk&&bk.codigo)||''};const pc=$('#pay-cont');if(pc&&pc.value.trim()&&!l.contatoId){const cid=await fornResolver(pc.value.trim(),true);if(cid)ch.contatoId=cid}if(Math.abs(v-(+l.valor||0))>0.004){ch.valorOriginal=l.valorOriginal||l.valor;ch.valor=v}
     closeModal();await patch('lancamentos',l.id,ch);toast(l.tipo==='pagar'?'Pago com '+ct:'Recebido em '+ct);payDone(l.id,{...l,...ch});return}
   if(d.move){await patch('oportunidades',d.move,{etapa:d.to});toast('Movida para '+d.to);return}
   if(d.calnav!==undefined){const C=S.ui.cal,n=+d.calnav;if(n===0){const x=new Date();C.y=x.getFullYear();C.m=x.getMonth()}else{const x=new Date(C.y,C.m+n,1);C.y=x.getFullYear();C.m=x.getMonth()}render();return}
@@ -3784,7 +3784,7 @@ function emFila(){const E=emCfg(),T=E.tipos,hoje=today(),out=[];const desde=E.de
       if(d>=0&&a!=null)off='a'+a;else if(d<0&&Dp.includes(-d))off='d'+(-d);if(off==null)return;
       const chave='venc:'+l.id+':'+off;if(emJa(chave))return;const V=emValsLanc(l);if(!l.vencimento)V.due_date=fdate(ref);const c=S.data.contatos.find(x=>x.id===(l.contatoId||(p&&p.contatoId)));
       out.push({chave,tipo:'venc',ref:l.id,pedidoId:l.pedidoId||'',para:emMail(c),nome:V.customer_name,assunto:emFill(T.venc.assunto,V),texto:emCorpo(emFill(T.venc.corpo,V)),quando:(l.vencimento?'pagamento':'evento')+' '+(d>0?`em ${d} dia${d>1?'s':''}`:d===0?'hoje':`venceu há ${-d} dia${d<-1?'s':''}`)})})}
-  if(T.recibo.ativo&&T.recibo.auto){S.data.lancamentos.forEach(l=>{if(l.tipo!=='receber'||!l.pago)return;const pd=l.dataPagamento||'';if(!pd||pd<desde)return;const chave='recibo:'+l.id;if(emJa(chave))return;const V=emValsLanc(l);const c=S.data.contatos.find(x=>x.id===(l.contatoId||((S.data.pedidos.find(p=>p.id===l.pedidoId)||{}).contatoId)));
+  if(T.recibo.ativo&&T.recibo.auto){S.data.lancamentos.forEach(l=>{if(l.tipo!=='receber'||!l.pago)return;const pd=String(l.dataPagamento||'').slice(0,10);if(!pd||pd<desde||pd>hoje)return;const chave='recibo:'+l.id;if(emJa(chave))return;const V=emValsLanc(l);const c=S.data.contatos.find(x=>x.id===(l.contatoId||((S.data.pedidos.find(p=>p.id===l.pedidoId)||{}).contatoId)));
       out.push({chave,tipo:'recibo',ref:l.id,pedidoId:l.pedidoId||'',para:emMail(c),nome:V.customer_name,assunto:emFill(T.recibo.assunto,V),texto:emCorpo(emFill(T.recibo.corpo,V)),quando:'pago em '+fdate(pd)})})}
   if(T.prova.ativo){const Ds=nums(T.prova.dias);S.data.provas.forEach(pv=>{if(pv.status==='Concluída')return;pvClientes(pv).forEach(c=>{if(c.ok||c.lembrete===false)return;
       const pz=String(c.prazo||pv.termino||'').slice(0,10);if(!pz)return;const d=dd(pz,hoje);if(!Ds.includes(d))return;const chave='prova:'+pv.id+':'+c.c+':'+d;if(emJa(chave)||emJa('prova:'+pv.id+':'+d))return;
@@ -3802,7 +3802,7 @@ async function emProcessar(itens,silent){if(EM_RUN)return {ok:0,er:1,busy:1};EM_
   for(const it of itens){if(!it.para){continue}try{await emEnviarItem(it);ok++}catch(e){er++;S.emErro=gmErr(e);if(/conectad|permitir|indispon/i.test(S.emErro))break}await sleep(700)}
   EM_RUN=false;if(!silent||ok||er)toast(er?`${ok} enviado${ok===1?'':'s'}, ${er} com erro: ${S.emErro}`:`${ok} e-mail${ok===1?'':'s'} enviado${ok===1?'':'s'}`,!!er);render();return {ok,er}}
 async function emPular(it){await save('emails',{chave:it.chave,tipo:it.tipo,ref:it.ref||'',pedidoId:it.pedidoId||'',para:it.para||'',nome:it.nome||'',assunto:it.assunto,status:'pulado',enviadoEm:new Date().toISOString(),por:usuarioAtual()});render()}
-(function emAuto(){const tick=()=>{try{if(!S.dono||S.mode!=='db'||!S.loaded||!['lancamentos','contatos','pedidos','emails'].every(c=>S.loaded.has(c)))return;const E=emCfg();const so=k=>E.auto||(E.tipos[k]&&E.tipos[k].sozinho);if(!E.auto&&!Object.values(E.tipos).some(t=>t.ativo&&t.sozinho))return;if(!E.desde){emSet({desde:today()});return}const f=emFila().filter(x=>x.para&&so(x.tipo));if(f.length)emProcessar(f,true)}catch(e){}};setTimeout(tick,25000);setInterval(tick,30*60*1000)})();
+(function emAuto(){const tick=()=>{try{if(!S.dono||S.mode!=='db'||!S.loaded||!['lancamentos','contatos','pedidos','emails'].every(c=>S.loaded.has(c)))return;if(S.cfg&&!cfg().emTudoAuto1){cfgSet('emTudoAuto1',today());emSet({auto:true,desde:today()});toast('E-mails automáticos ligados: recibos, lembretes de prova e avisos à equipe saem sozinhos (os recibos antigos da fila foram deixados de lado).');return}const E=emCfg();const so=k=>E.auto||(E.tipos[k]&&E.tipos[k].sozinho);if(!E.auto&&!Object.values(E.tipos).some(t=>t.ativo&&t.sozinho))return;if(!E.desde){emSet({desde:today()});return}const f=emFila().filter(x=>x.para&&so(x.tipo));if(f.length)emProcessar(f,true)}catch(e){}};setTimeout(tick,25000);setInterval(tick,30*60*1000)})();
 let EM_CNT={t:0,n:0};function emCount(){if(Date.now()-EM_CNT.t<60000)return EM_CNT.n;EM_CNT.t=Date.now();try{EM_CNT.n=S.mode==='db'&&S.loaded.has('emails')?emFila().filter(x=>x.para).length:0}catch(e){EM_CNT.n=0}return EM_CNT.n}
 /* ---- tela E-mails ---- */
 S.ui.em={tab:'fila'};
@@ -4884,6 +4884,12 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   t.disabled=true;t.textContent='Enviando…';const texto=emCorpo(txt);
   try{await gmEnviar({para,assunto:ass,texto});try{await save('emails',{chave:'manual:'+Date.now(),tipo:'manual',para,nome:'',assunto:ass,texto,status:'enviado',enviadoEm:new Date().toISOString(),por:usuarioAtual()})}catch(_){}closeModal();toast('E-mail enviado')}
   catch(err){t.disabled=false;t.textContent='Enviar';toast(gmErr(err),true)}});
+/* fornecedor do custo → contato (acha pelo nome, e-mail ou celular; se for da equipe e não tiver cadastro, cria) */
+function fornAchar(nome){const n=String(nome||'').trim();if(!n)return '';const ex=S.data.contatos.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(n));if(ex)return ex.id;const ids=contatosDaPessoa(n);return ids[0]||''}
+async function fornResolver(nome,criar){const n=String(nome||'').trim();if(!n)return '';const id=fornAchar(n);if(id||!criar)return id;
+  const m=(cfg().equipe||[]).find(z=>nrm(z.nome)===nrm(n))||{};const [pn,...rest]=n.split(' ');
+  try{return await save('contatos',{nome:pn,sobrenome:rest.join(' '),categoria:'Fornecedor',email:m.email||'',celular:m.celular||'',obs:m.nome?'Cadastro criado a partir da equipe ('+(m.tipo||'freelancer')+').':'Cadastro criado a partir de um custo de pedido.'})||''}catch(e){return ''}}
+function custoDoLanc(l){if(!l||!l.pedidoId)return null;const p=S.data.pedidos.find(x=>x.id===l.pedidoId);if(!p)return null;return (p.custos||[]).find(c=>c.lancId===l.id)||(p.custos||[]).find(c=>custoLanc(p,c)===l)||null}
 /* custo do pedido alterado → acerta a conta a pagar ligada a ele no financeiro */
 function custoLanc(p,c){const L=S.data.lancamentos.filter(l=>l.tipo==='pagar'&&l.pedidoId===p.id);
   if(c.lancId&&c.lancId!=='alboom'){const x=L.find(l=>l.id===c.lancId);if(x)return x}
@@ -4893,7 +4899,7 @@ function custoSyncLanc(p,old,nov){const l=custoLanc(p,old);if(!l)return null;
   if(l.pago){toast('Esta conta já está paga no financeiro: mudei só no pedido.',true);return l.id}
   const ch={};if(Math.abs((+nov.valor||0)-(+l.valor||0))>0.005)ch.valor=+nov.valor||0;if(nov.venc&&nov.venc!==l.vencimento)ch.vencimento=nov.venc;
   if((nov.nome||'')!==(old.nome||'')&&nov.nome){const d=String(l.descricao||'');ch.descricao=old.nome&&d.includes(old.nome)?d.replace(old.nome,nov.nome):nov.nome+(d?' - '+d:'')}
-  if((nov.fornecedor||'')!==(old.fornecedor||'')&&nov.fornecedor){const f=S.data.contatos.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(nov.fornecedor));if(f)ch.contatoId=f.id}
+  if(((nov.fornecedor||'')!==(old.fornecedor||'')||!l.contatoId)&&nov.fornecedor){const f=fornAchar(nov.fornecedor);if(f&&f!==l.contatoId)ch.contatoId=f}
   if(Object.keys(ch).length){save('lancamentos',{...l,...ch}).then(()=>toast('Conta a pagar atualizada no financeiro')).catch(failWrite)}return l.id}
 /* ---- janela "Detalhes de Custo" (adicionar / editar) ---- */
 function custoModal(pid,i){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;const c=i>=0?(p.custos||[])[i]||{}:{venc:today()};const PO=planoOpts('pagar');
@@ -4912,8 +4918,8 @@ async function custoModalSalvar(btn){const p=S.data.pedidos.find(x=>x.id===btn.d
   if(!nome){toast('Escreva a descrição do custo.',true);return}if(!valor){toast('Informe o valor.',true);return}
   btn.disabled=true;const L=(p.custos||[]).map(c=>({...c}));const novo=i<0;const old=novo?null:{...L[i]};
   const c=novo?{id:'cu'+Math.random().toString(36).slice(2,9)}:L[i];Object.assign(c,{nome,fornecedor:forn,conta,venc,valor});if(old&&old.fornecedor!==forn)c.fornecedorNum=null;
-  const fc=S.data.contatos.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(forn));
-  try{if(novo){if(venc){c.lancId=await save('lancamentos',{tipo:'pagar',categoria:conta?conta.replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${nome} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor,vencimento:venc,conta:'',pago:false,pedidoId:p.id})||true}L.push(c)}
+  let fc=null;
+  try{if(forn){const fid=await fornResolver(forn,true);fc=fid?{id:fid}:null}if(novo){if(venc){c.lancId=await save('lancamentos',{tipo:'pagar',categoria:conta?conta.replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${nome} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor,vencimento:venc,conta:'',pago:false,pedidoId:p.id})||true}L.push(c)}
     else{const lid=custoSyncLanc(p,old,c);if(lid)c.lancId=lid;else if(venc&&!c.lancId){c.lancId=await save('lancamentos',{tipo:'pagar',categoria:conta?conta.replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${nome} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor,vencimento:venc,conta:'',pago:false,pedidoId:p.id})||true}}
     await patch('pedidos',p.id,{custos:L});closeModal();S.ui.pd.sec='custos';toast(novo?'Custo adicionado'+(venc?' e lançado em Contas a pagar':''):'Custo salvo');render()}
   catch(e){btn.disabled=false;failWrite(e)}}
@@ -4948,9 +4954,13 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     try{await save('cashback',rec);closeModal();toast('Cashback salvo');render()}catch(err){failWrite(err)}}},true);
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-cbq]')){S.ui.cbQ=t.value;clearTimeout(S._cbq);S._cbq=setTimeout(()=>{render();const x=document.querySelector('[data-cbq]');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}},300)}});
 /* ===== pedido x financeiro: total alterado, cancelado ou excluído ===== */
+async function fornCorrigirTodos(){if(S._fornFix||!S.dono||cfg().fornFix1||!S.loaded||!['pedidos','lancamentos','contatos'].every(c=>S.loaded.has(c)))return;S._fornFix=1;cfgSet('fornFix1',new Date().toISOString());let n=0;
+  for(const p of S.data.pedidos){for(const c of (p.custos||[])){if(!c.fornecedor)continue;const l=custoLanc(p,c);if(!l||l.contatoId)continue;const cid=await fornResolver(c.fornecedor,true);if(cid){try{await patch('lancamentos',l.id,{contatoId:cid});n++}catch(e){}}}}
+  if(n)toast(`Fornecedor ligado em ${n} conta${n===1?'':'s'} a pagar que vinham dos custos dos pedidos.`)}
+setInterval(()=>{try{fornCorrigirTodos()}catch(e){}},30000);
 async function custoLancarTodos(pid){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return 0;const L=(p.custos||[]).map(c=>({...c}));let n=0;
   for(const c of L){if(c.lancId||!(+c.valor)||!c.venc)continue;const l0=custoLanc(p,c);if(l0){c.lancId=l0.id;continue}
-    const fc=(c.fornecedorNum!=null&&S.data.contatos.find(x=>+x.num===+c.fornecedorNum))||S.data.contatos.find(x=>nrm(SCHEMAS.contatos.labelOf(x))===nrm(c.fornecedor||''));
+    let fc=(c.fornecedorNum!=null&&S.data.contatos.find(x=>+x.num===+c.fornecedorNum))||null;if(!fc&&c.fornecedor){const fid=await fornResolver(c.fornecedor,true);if(fid)fc={id:fid}}
     try{c.lancId=await save('lancamentos',{tipo:'pagar',categoria:c.conta?String(c.conta).replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${c.nome||'Custo'} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor:+c.valor,vencimento:c.venc,conta:'',pago:false,pedidoId:p.id})||true;n++}catch(e){failWrite(e);break}}
   if(n||L.some((c,i)=>c.lancId!==((p.custos||[])[i]||{}).lancId))await patch('pedidos',p.id,{custos:L});return n}
 function pedParcInfo(p){const R=S.data.lancamentos.filter(l=>l.pedidoId===p.id&&l.tipo==='receber');const soma=R.reduce((a,l)=>a+(+l.valor||0),0);const ab=R.filter(l=>!l.pago).sort((a,b)=>String(a.vencimento||'').localeCompare(String(b.vencimento||'')));return {R,soma,ab,dif:Math.round((pedidoTotal(p)-soma)*100)/100}}
