@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261101020950';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261101021354';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1221,6 +1221,9 @@ function render(){try{quemTopo()}catch(e){}if(S.semAcesso){document.body.innerHT
   if(v==='funil')wireKanban();
   if(v==='provaview')wireAlbum();
 }
+/* agenda: lembra o que foi marcado em "Mostrar também" e nos tipos, mesmo depois do F5 */
+function calGuardar(){try{const C=S.ui.cal;const off=Object.keys(C.tipos).filter(k=>C.tipos[k]===false);localStorage.setItem('grupoe-cal',JSON.stringify({src:C.src,tiposOff:off}))}catch(e){}}
+(function calLer(){try{const o=JSON.parse(localStorage.getItem('grupoe-cal')||'null');if(!o)return;const C=S.ui.cal;if(o.src)Object.keys(C.src).forEach(k=>{if(typeof o.src[k]==='boolean')C.src[k]=o.src[k]});(o.tiposOff||[]).forEach(k=>{C.tipos[k]=false})}catch(e){}})();
 const NAV=[
   {v:'inicio',l:'Início',i:'home'},
   {v:'agenda',l:'Agenda',i:'cal'},
@@ -3211,8 +3214,8 @@ document.addEventListener('click',async e=>{
   if(d.move){await patch('oportunidades',d.move,{etapa:d.to});toast('Movida para '+d.to);return}
   if(d.calnav!==undefined){const C=S.ui.cal,n=+d.calnav;if(n===0){const x=new Date();C.y=x.getFullYear();C.m=x.getMonth()}else{const x=new Date(C.y,C.m+n,1);C.y=x.getFullYear();C.m=x.getMonth()}render();return}
   if(d.calmode){S.ui.cal.mode=d.calmode;render();return}
-  if(d.tipo){S.ui.cal.tipos[d.tipo]=S.ui.cal.tipos[d.tipo]===false;render();return}
-  if(d.src){S.ui.cal.src[d.src]=!S.ui.cal.src[d.src];render();return}
+  if(d.tipo){S.ui.cal.tipos[d.tipo]=S.ui.cal.tipos[d.tipo]===false;calGuardar();render();return}
+  if(d.src){S.ui.cal.src[d.src]=!S.ui.cal.src[d.src];calGuardar();render();return}
   if(d.dayjump){e.stopPropagation();S.ui.cal.mode='lista';render();const n=document.getElementById('d-'+d.dayjump);if(n)n.scrollIntoView({block:'start'});return}
   if(d.newday&&t.classList.contains('day')){openForm('agenda',{data:d.newday,tipo:Object.keys(TIPOS)[0]});return}
   if(d.fintipo){S.ui.fin.tipo=d.fintipo;S.ui.fin.pg=1;render();return}
