@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261101022141';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261101022944';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1230,7 +1230,7 @@ const NAV=[
   {g:'Relacionamento'},
   {v:'contatos',l:'Contatos',i:'user'},
   {v:'dupcont',l:'Duplicados',sub:1,cnt:()=>dupGroups().filter(g=>g.forte).length,alt:1},
-  {v:'emails',l:'E-mails',i:'mail',cnt:()=>emCount(),alt:1},
+  {v:'emails',l:'E-mails',i:'mail',cnt:()=>emNaoEnviados()},
   {v:'oportunidades',l:'Oportunidades',i:'chat',cnt:()=>S.data.oportunidades.filter(o=>ABERTAS.includes(o.etapa)).length},
   {v:'funil',l:'Funil de vendas',sub:1},
   {v:'propostas',l:'Propostas',sub:1},
@@ -1295,7 +1295,7 @@ function renderAlerts(){
   const venc=S.data.lancamentos.filter(l=>!l.pago&&l.vencimento&&l.vencimento<t).length;
   const hoje=agendaAll().filter(e=>e.data===t).length;
   const tar=S.data.tarefas.filter(x=>!x.feita&&x.data&&x.data<=t).length;
-  $('#alerts').innerHTML=[['Hoje',hoje,'--info','agenda'],['Tarefas',tar,'--warn','tarefas'],['Vencidas',venc,'--danger','financeiro']].filter(x=>!(typeof modOffView==='function'&&modOffView(x[3]))).map(([l,n,c,v])=>`<button class="alert" data-nav="${v}">${l}<b style="background:var(${n?c:'--faint'})">${n}</b></button>`).join('');
+  $('#alerts').innerHTML=[['Hoje',hoje,'--info','agenda'],['Tarefas',tar,'--warn','tarefas'],['Vencidas',venc,'--danger','financeiro'],...((typeof emNaoEnviados==='function'&&emNaoEnviados())?[['E-mails não enviados',emNaoEnviados(),'--danger','emails']]:[])].filter(x=>!(typeof modOffView==='function'&&modOffView(x[3]))).map(([l,n,c,v])=>`<button class="alert" data-nav="${v}">${l}<b style="background:var(${n?c:'--faint'})">${n}</b></button>`).join('');
 }
 function renderFoot(){
   const total=COLS.reduce((s,c)=>s+S.data[c].length,0);
@@ -3799,10 +3799,13 @@ let EM_RUN=false;
 async function emEnviarItem(it){if(!it.para)throw new Error('sem e-mail cadastrado');await gmEnviar({para:it.para,assunto:it.assunto,texto:it.texto});
   await save('emails',{chave:it.chave,tipo:it.tipo,ref:it.ref||'',pedidoId:it.pedidoId||'',para:it.para,nome:it.nome||'',assunto:it.assunto,texto:it.texto,status:'enviado',enviadoEm:new Date().toISOString(),por:usuarioAtual()})}
 async function emProcessar(itens,silent){if(EM_RUN)return {ok:0,er:1,busy:1};EM_RUN=true;let ok=0,er=0;
-  for(const it of itens){if(!it.para){continue}try{await emEnviarItem(it);ok++}catch(e){er++;S.emErro=gmErr(e);if(/conectad|permitir|indispon/i.test(S.emErro))break}await sleep(700)}
+  for(const it of itens){if(!it.para){continue}try{await emEnviarItem(it);ok++;if(S.emFalhas)delete S.emFalhas[it.chave]}catch(e){er++;S.emErro=gmErr(e);(S.emFalhas=S.emFalhas||{})[it.chave]=Date.now();if(/conectad|permitir|indispon/i.test(S.emErro))break}await sleep(700)}
   EM_RUN=false;if(!silent||ok||er)toast(er?`${ok} enviado${ok===1?'':'s'}, ${er} com erro: ${S.emErro}`:`${ok} e-mail${ok===1?'':'s'} enviado${ok===1?'':'s'}`,!!er);render();return {ok,er}}
 async function emPular(it){await save('emails',{chave:it.chave,tipo:it.tipo,ref:it.ref||'',pedidoId:it.pedidoId||'',para:it.para||'',nome:it.nome||'',assunto:it.assunto,status:'pulado',enviadoEm:new Date().toISOString(),por:usuarioAtual()});render()}
 (function emAuto(){const tick=()=>{try{if(!S.dono||S.mode!=='db'||!S.loaded||!['lancamentos','contatos','pedidos','emails'].every(c=>S.loaded.has(c)))return;if(S.cfg&&!cfg().emTudoAuto1){cfgSet('emTudoAuto1',today());emSet({auto:true,desde:today()});toast('E-mails automáticos ligados: recibos, lembretes de prova e avisos à equipe saem sozinhos (os recibos antigos da fila foram deixados de lado).');return}const E=emCfg();const so=k=>E.auto||(E.tipos[k]&&E.tipos[k].sozinho);if(!E.auto&&!Object.values(E.tipos).some(t=>t.ativo&&t.sozinho))return;if(!E.desde){emSet({desde:today()});return}const f=emFila().filter(x=>x.para&&so(x.tipo));if(f.length)emProcessar(f,true)}catch(e){}};setTimeout(tick,25000);setInterval(tick,30*60*1000)})();
+/* e-mails que não saíram: sem e-mail no cadastro, deram erro, ou estão parados há mais de 40 min (com o envio automático ligado) */
+let EM_NE={t:0,n:0};function emNaoEnviados(){if(Date.now()-EM_NE.t<60000)return EM_NE.n;EM_NE.t=Date.now();try{if(S.mode!=='db'||!S.loaded.has('emails')){EM_NE.n=0;return 0}const E=emCfg(),V=(S.emVisto=S.emVisto||{}),agora=Date.now();
+  EM_NE.n=emFila().filter(x=>{if(!V[x.chave])V[x.chave]=agora;if(!x.para)return true;if(!E.auto)return true;return (S.emFalhas&&S.emFalhas[x.chave])||agora-V[x.chave]>40*60*1000}).length}catch(e){EM_NE.n=0}return EM_NE.n}
 let EM_CNT={t:0,n:0};function emCount(){if(Date.now()-EM_CNT.t<60000)return EM_CNT.n;EM_CNT.t=Date.now();try{EM_CNT.n=S.mode==='db'&&S.loaded.has('emails')?emFila().filter(x=>x.para).length:0}catch(e){EM_CNT.n=0}return EM_CNT.n}
 /* ---- tela E-mails ---- */
 S.ui.em={tab:'fila'};
@@ -3811,7 +3814,7 @@ VIEWS.emails=()=>{const E=emCfg(),U=S.ui.em;const F=emFila();const semEmail=F.fi
   const TN={venc:'Lembrete de vencimento',recibo:'Recibo',prova:'Prazo de prova',freela:'Agenda do freelancer',manual:'Manual'};
   const linha=(x,i)=>`<tr class="row"><td>${badge(TN[x.tipo]||x.tipo,x.tipo==='recibo'?'--ok':x.tipo==='venc'?'--warn':'--info')}</td><td><b>${esc(x.nome||'')}</b><div class="sub">${x.para?esc(x.para):'<span style="color:var(--danger)">sem e-mail no cadastro</span>'}</div></td><td>${esc(x.assunto)}<div class="sub">${esc(x.quando||'')}</div></td><td style="white-space:nowrap"><button class="btn sm" data-emver="${i}">Ver</button> ${x.para?`<button class="btn sm pri" data-emone="${i}">Enviar</button>`:''} <button class="btn sm" data-emskip="${i}">Pular</button></td></tr>`;
   S.emFilaCache=F;
-  return `${head('E-mails','Relacionamento / E-mails',`<button class="btn" data-emcfg>${ic('gear',15)} Modelos e regras</button>`)}
+  return `${head('E-mails automáticos','Relacionamento / E-mails',`<button class="btn" data-emcfg>${ic('gear',15)} Modelos e regras</button>`)}
   <section class="panel"><div class="body" style="display:grid;gap:14px">
    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><div class="seg"><button data-emtab="fila" class="${U.tab==='fila'?'on':''}">Para enviar hoje (${F.length})</button><button data-emtab="log" class="${U.tab==='log'?'on':''}">Enviados (${log.filter(x=>x.status==='enviado').length})</button></div>
     <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-emauto ${E.auto?'checked':''}> Enviar sozinho (com o CRM aberto, a cada 30 min)</label><span class="sp" style="flex:1"></span>
