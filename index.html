@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261102104403';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261102110131';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2003,7 +2003,7 @@ function tipoAg2(p){const c=nrm(p.categoria),t=nrm(p.titulo),has=k=>TIPOS[k]?k:n
   if(/sessao|ensaio|gestante/.test(c))return has('Sessão')||has('Evento');if(/curso/.test(c))return has('Curso')||has('Evento');return has('Evento')||Object.keys(TIPOS)[0]}
 let _pedEv={src:null,list:[],t:null};
 function pedEvents(){if(_pedEv.src===S.data.pedidos&&_pedEv.t===TIPOS)return _pedEv.list;const l=[];S.data.pedidos.forEach(p=>{if(!p.dataEvento||p.contratoStatus==='Cancelado'||pedStatus(p)==='Cancelado')return;l.push({id:p.id,_ped:1,data:p.dataEvento,hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',titulo:p.titulo,tipo:TIPOS[p.tipoAgenda]?p.tipoAgenda:tipoAg2(p),local:pedLocal(p),contatoId:p.contatoId,responsavel:p.responsavel||'',participantes:p.participantes||[]})});_pedEv={src:S.data.pedidos,list:l,t:TIPOS};return l}
-function agendaAll(){const cob=new Set();S.data.agenda.forEach(a=>{if(a.pedidoId&&a.origem==='Alboom')cob.add(a.pedidoId)});const canc=new Set(S.data.pedidos.filter(p=>pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado').map(p=>p.id));return S.data.agenda.filter(a=>!a.cancelado&&!(a.pedidoId&&canc.has(a.pedidoId))).concat(pedEvents().filter(e=>!cob.has(e.id)))}
+function agendaAll(){const cob=new Set();S.data.agenda.forEach(a=>{if(a.pedidoId&&(a.origem==='Alboom'||a.origem==='Pedido'))cob.add(a.pedidoId)});const canc=new Set(S.data.pedidos.filter(p=>pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado').map(p=>p.id));return S.data.agenda.filter(a=>!a.cancelado&&!(a.pedidoId&&canc.has(a.pedidoId))).concat(pedEvents().filter(e=>!cob.has(e.id)))}
 function calItems(from,to){
   const C=S.ui.cal,out=[],inR=d=>d&&d>=from&&d<=to;
   if(C.src.eventos)agendaAll().forEach(e=>{if(inR(e.data)&&C.tipos[e.tipo]!==false&&(!C.resp||(e.participantes||[]).includes(C.resp)||(e._ped?e.responsavel===C.resp:(e.responsavel||'')===C.resp||!e.responsavel)))out.push({d:e.data,h:e.hora||'',t:e.titulo+(e.origem==='Google'?' · Google':''),c:TIPOS[e.tipo]||'--idle',col:e._ped?'pedidos':'agenda',id:e.id})});
@@ -2300,6 +2300,39 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='pay-difcat')S.ui.payDif.cat=e.target.value;if(e.target&&e.target.id==='pay-prox')S.ui.payDif.prox=e.target.value});
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-pedper],[data-pedbase]');if(!t)return;e.preventDefault();const P=S.ui.pedPer||(S.ui.pedPer={per:'todos',base:'venda'});if(t.dataset.pedper)P.per=t.dataset.pedper;if(t.dataset.pedbase)P.base=t.dataset.pedbase;S.ui.lim.pedidos=100;render()});
 document.addEventListener('change',e=>{const t=e.target;if(!t||!['ped-de','ped-ate'].includes(t.id))return;const P=S.ui.pedPer;if(!P)return;P[t.id==='ped-de'?'de':'ate']=t.value;render()});
+/* ---- pedido sem compromisso na agenda: cria o compromisso (vai para a Google Agenda e abre como compromisso) ---- */
+function pedAgendaDados(p){return {titulo:p.titulo||'',data:p.dataEvento,hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',local:pedLocal(p),tipo:TIPOS[p.tipoAgenda]?p.tipoAgenda:tipoAg2(p),contatoId:p.contatoId||'',responsavel:p.responsavel||'',participantes:p.participantes||[]}}
+async function pedAgendaGarantir(p){if(!p||!p.dataEvento||p.contratoStatus==='Cancelado'||pedStatus(p)==='Cancelado')return null;
+  const ex=(S.data.agenda||[]).find(a=>a.pedidoId===p.id&&!a.cancelado);if(ex)return ex.id;
+  const b=opBloco(p.notas);const rec={...pedAgendaDados(p),pedidoId:p.id,origem:'Pedido',notas:b?b.txt:''};return await save('agenda',rec)}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-edit="pedidos"][data-id]');if(!t||S.ui.view!=='agenda'||t.closest('.modal'))return;
+  e.preventDefault();e.stopPropagation();const p=S.data.pedidos.find(x=>x.id===t.dataset.id);if(!p)return;
+  try{const id=await pedAgendaGarantir(p);let a=null;for(let i=0;i<20&&!a;i++){a=(S.data.agenda||[]).find(x=>x.id===id);if(!a)await sleep(150)}if(a)openForm('agenda',a);else openPedido(p.id)}catch(err){openPedido(p.id)}},true);
+/* pedido mudou (data, hora, local, título): acerta o compromisso criado a partir dele */
+const _savePedAg=save;save=async function(col,rec){const id=await _savePedAg(col,rec);try{if(col==='pedidos'){const pid=typeof id==='string'?id:rec.id;setTimeout(async()=>{const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;
+    const L=(S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&a.origem==='Pedido'&&!a.cancelado);
+    if(!L.length){if(S.dono&&p.dataEvento&&p.dataEvento>=today())await pedAgendaGarantir(p);return}
+    const D=pedAgendaDados(p);for(const a of L){const ch={};['titulo','data','hora','horaFim','local'].forEach(k=>{if((D[k]||'')!==(a[k]||'')&&D[k])ch[k]=D[k]});if(Object.keys(ch).length)await patch('agenda',a.id,ch)}},1200)}}catch(e){}return id};
+/* uma vez: cria o compromisso dos pedidos futuros que ainda não têm (assim vão para a Google Agenda da equipe) */
+async function pedAgendaTodos(){if(S._pedAgT||!S.dono||cfg().pedAg1||!S.loaded||!['pedidos','agenda'].every(c=>S.loaded.has(c)))return;S._pedAgT=1;cfgSet('pedAg1',new Date().toISOString());let n=0;
+  for(const p of S.data.pedidos.filter(p=>p.dataEvento&&p.dataEvento>=today())){try{const tem=(S.data.agenda||[]).some(a=>a.pedidoId===p.id);if(!tem&&await pedAgendaGarantir(p))n++}catch(e){}}
+  if(n)toast(`${n} pedido${n===1?'':'s'} ganharam compromisso na agenda (e vão para a Google Agenda).`)}
+setInterval(()=>{try{pedAgendaTodos()}catch(e){}},30000);
+/* ---- datas em que o freelancer não pode → compromisso "Folga" na agenda (vai para a Google Agenda e para a agenda dele) ---- */
+function indTipoFolga(){const k=Object.keys(TIPOS||{});return k.includes('Pessoal')?'Pessoal':(k.includes('Sem Agenda')?'Sem Agenda':k[0]||'')}
+let IND_RUN=false;
+async function indAgendaSync(){if(IND_RUN||!S.dono||S.mode!=='db'||!S.loaded||!['indisp','agenda'].every(c=>S.loaded.has(c)))return;IND_RUN=true;
+  try{const t=today(),ont=addDays(t,-1),quer={};
+    (S.data.indisp||[]).forEach(x=>{if(!x.pessoa||!x.de)return;const ate=(x.ate&&x.ate>=x.de)?x.ate:x.de;if(ate<ont)return;let d=x.de<ont?ont:x.de,n=0;while(d<=ate&&n<62){quer[x.id+'|'+d]={x,d};d=addDays(d,1);n++}});
+    const tem={};(S.data.agenda||[]).filter(a=>a.origem==='Indisp'&&!a.cancelado).forEach(a=>{tem[a.indispId+'|'+a.data]=a});
+    for(const k of Object.keys(quer)){if(tem[k])continue;const {x,d}=quer[k];
+      await save('agenda',{titulo:'Folga - '+x.pessoa+(x.motivo?' ('+x.motivo+')':''),data:d,hora:'07:00',horaFim:'23:00',tipo:indTipoFolga(),participantes:[x.pessoa],responsavel:x.pessoa,notas:(x.pessoa+' não pode trabalhar neste dia'+(x.motivo?': '+x.motivo:'')+'.'),origem:'Indisp',indispId:x.id})}
+    for(const k of Object.keys(tem)){if(quer[k])continue;const a=tem[k];if(a.data<ont)continue;await patch('agenda',a.id,{cancelado:true,canceladoPor:'Indisponibilidade removida',canceladoEm:new Date().toISOString()});
+      try{if(a.gcal&&a.gcal.id){const mcp=await getMcp();if(mcp)await mcp.callTool(GC,'delete_event',{eventId:a.gcal.id,calendarId:a.gcal.cal||gcCfg().agenda||'primary',notificationLevel:gcNotif()},{cache:false})}}catch(e){}}
+  }catch(e){}IND_RUN=false}
+setInterval(()=>{try{indAgendaSync()}catch(e){}},60000);
+const _saveInd=save;save=async function(col,rec){const id=await _saveInd(col,rec);if(col==='indisp')setTimeout(()=>{try{indAgendaSync()}catch(e){}},1500);return id};
+const _remInd=removeRec;removeRec=async function(col,id){const r=await _remInd(col,id);if(col==='indisp')setTimeout(()=>{try{indAgendaSync()}catch(e){}},1500);return r};
 /* ---- detalhes de uma conta paga / recebida (igual ao Alboom) ---- */
 function lancDetalhe(id,ov){const l=ov||S.data.lancamentos.find(x=>x.id===id);if(!l)return;const pg=l.tipo==='pagar';const c=S.data.contatos.find(x=>x.id===l.contatoId)||{};
   const p=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoId);const orig=+(l.valorOriginal||l.valor)||0,pago=+l.valor||0;
@@ -2961,7 +2994,7 @@ async function openSign(id){
   const camp=dsCampos(p,cfg.templateId||DS_TPL_DEF);
   const links=(A.links||[]).map(l=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:12px;min-width:110px">${esc(l.role||'Link')}</b><input class="search mono" readonly value="${esc(l.url)}" style="flex:1 1 240px;font-size:12px" onclick="this.select()"><button class="btn sm" data-copytxt="${esc(l.url)}">Copiar</button>${l.role!=='Contratado'&&waNum(c)?`<a class="btn sm" style="background:#25a85a;border-color:#25a85a;color:#fff" target="_blank" rel="noopener" href="https://wa.me/${waNum(c)}?text=${encodeURIComponent('Olá '+(c.nome||'')+', tudo bem? Segue o contrato de "'+p.titulo+'" para assinatura digital: '+l.url)}">${ic('wa',13)} WhatsApp</a>`:''}${l.role==='Contratado'?`<a class="btn sm" target="_blank" rel="noopener" href="${esc(l.url)}">Assinar agora</a>`:''}</div>`).join('');
   const st=A.status==='assinado'?`<div class="banner" style="border-style:solid;border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--surface))"><span>${ic('ok',16)} <b>Contrato assinado</b> em ${fdate((A.assinadoEm||'').slice(0,10))}.</span>${(A.docs||[]).map((u,k)=>`<a class="btn sm" target="_blank" rel="noopener" href="${esc(u)}">${ic('doc',13)} PDF assinado${A.docs.length>1?' '+(k+1):''}</a>`).join('')}</div><span class="muted" style="font-size:12px">O documento assinado também fica guardado na sua conta do DocuSeal${A.submissionId?' (envio nº '+esc(A.submissionId)+')':''}. Links de download do DocuSeal podem expirar; se não abrir, use Verificar de novo.</span>`
-    :A.status==='enviado'?`<div class="banner" style="border-style:solid;border-color:var(--info);background:color-mix(in srgb,var(--info) 8%,var(--surface))"><span><b>Aguardando assinatura</b> desde ${fdate((A.em||'').slice(0,10))}. O DocuSeal também mandou o convite por e-mail para ${esc(A.email||'')}.</span><button class="btn sm" data-signverify="${p.id}">${ic('refresh',13)} Verificar agora</button></div>${links}`:'';
+    :A.status==='enviado'?`<div class="banner" style="border-style:solid;border-color:var(--info);background:color-mix(in srgb,var(--info) 8%,var(--surface))"><span><b>Aguardando assinatura</b> desde ${fdate((A.em||'').slice(0,10))}. O DocuSeal também mandou o convite por e-mail para ${esc(A.email||'')}.${(A.envios||[]).length?'<br>'+(A.envios||[]).map(x=>`<span style="font-size:12.5px">${esc(x.email)}: ${x.assinado?'✅ assinou em '+fdate(String(x.assinado).slice(0,10)):x.aberto?'👀 abriu o convite em '+fdate(String(x.aberto).slice(0,10))+' '+String(x.aberto).slice(11,16)+', ainda não assinou':x.enviado?'📨 convite entregue em '+fdate(String(x.enviado).slice(0,10))+', ainda não abriu':'aguardando'}</span>`).join('<br>'):''}</span><button class="btn sm" data-signverify="${p.id}">${ic('refresh',13)} Verificar agora</button></div>${links}`:'';
   const missing=['Nome / Razão Social','CPF / CNPJ','Endereço','Local do Evento','Data Início','Descrição do Serviço'].filter(k=>!camp[k]);
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal"><header><h3>Assinatura digital · ${esc(p.titulo)}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
    <div class="mbody">${st}
@@ -2992,11 +3025,11 @@ async function sendSign(id,btn){
       const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
       const subm=[{role:'Contratante',email,name:nome||contatoNome(p.contatoId)||''}];if(tags.co)subm.push({role:'Contratado',email:eu,name:'Elton Melchioretto'});
       btn.textContent='Enviando…';
-      const r=await mcp.callTool(DS,'send_pdf',{name:titulo,send_email:true,documents:[{name:nomeArq(titulo)+'.pdf',file:b64}],submitters:subm},{cache:false});
+      const r=await mcp.callTool(DS,'send_pdf',{name:titulo,send_email:true,bcc_completed:((cfg().estudio||{}).email||'')||undefined,documents:[{name:nomeArq(titulo)+'.pdf',file:b64}],submitters:subm},{cache:false});
       const pl=parsePayload(r);const subs=(pl&&pl.submitters)||deepFind(pl,o=>typeof o.email==='string'&&(o.embed_src||o.slug));
       const links=subs.map(o=>({role:o.role||'Contratante',email:o.email,url:o.embed_src||(o.slug?'https://docuseal.com/s/'+o.slug:''),id:o.id})).filter(l=>l.url);
       await save('pedidos',{...p,contratoStatus:'Aguardando assinatura',assinatura:{status:'enviado',em:new Date().toISOString(),email,submissionId:String((pl&&pl.id)||''),submitterIds:subs.map(o=>o.id).filter(Boolean),links,pdf:true,modelo:mod||''}});
-      toast('Contrato enviado para assinatura (com a marca d\'água)');openSign(id)}
+      toast('Contrato enviado para assinatura (com a marca d\'água)');contratoAviso(p,email,links);openSign(id)}
     catch(e){btn.disabled=false;btn.textContent='Enviar para assinar';show(mcpErrMsg(e))}
     return}
   const camp=dsCampos(p,tpl);
@@ -3011,9 +3044,12 @@ async function sendSign(id,btn){
   if(!links.length){const urls=deepStrings(pl).filter(u=>/^https?:\/\/[^ ]*docuseal[^ ]*\/s\//.test(u));urls.forEach((u,k)=>links.push({role:k?'Contratado':'Contratante',url:u}))}
   const subId=(deepFind(pl,o=>o.submission_id!==undefined)[0]||{}).submission_id||(subs[0]&&subs[0].submission_id)||'';
   await save('pedidos',{...p,contratoStatus:'Aguardando assinatura',assinatura:{status:'enviado',em:new Date().toISOString(),email,submissionId:String(subId||''),submitterIds:subs.map(o=>o.id).filter(Boolean),links,templateId:tpl,raw:links.length?undefined:JSON.stringify(pl).slice(0,2000)}});
-  toast(links.length?'Contrato enviado para assinatura':'Enviado ao DocuSeal. O link chega por e-mail ao cliente.');
+  toast(links.length?'Contrato enviado para assinatura':'Enviado ao DocuSeal. O link chega por e-mail ao cliente.');contratoAviso(p,email,links);
   openSign(id);
 }
+/* aviso para o estúdio: contrato enviado para assinar (fica na caixa de entrada como comprovante) */
+function contratoAviso(p,email,links){try{const E=cfg().estudio||{};if(!E.email||(cfg().emails||{}).copia===false)return;const c=S.data.contatos.find(x=>x.id===p.contatoId)||{};
+  gmEnviar({para:E.email,copia:true,assunto:`Contrato #${p.num||''} enviado para assinatura - ${c.id?SCHEMAS.contatos.labelOf(c):email}`,texto:`O contrato do pedido #${p.num||''} (${p.titulo||''}) foi enviado pelo DocuSeal para assinatura.\n\nPara: ${email}\nEm: ${fdate(today())} ${new Date().toTimeString().slice(0,5)}\n\nLinks de assinatura:\n${(links||[]).map(l=>'- '+(l.role||'')+(l.email?' ('+l.email+')':'')+': '+l.url).join('\n')||'(o link vai no e-mail do DocuSeal)'}\n\nNo CRM, abra o pedido e use "Verificar agora" para ver se o cliente abriu e assinou.`}).catch(()=>{})}catch(e){}}
 async function verifySign(ids,silent){
   const mcp=await getMcp();if(!mcp){if(!silent)toast('Conectores indisponíveis neste acesso.',true);return}
   let ok=0;
@@ -3024,6 +3060,7 @@ async function verifySign(ids,silent){
     const mine=cands.filter(o=>{const ids=[o.id,o.submission_id,o.submission&&o.submission.id].filter(x=>x!==undefined).map(String);
       return (A.submissionId&&ids.includes(String(A.submissionId)))||(A.submitterIds||[]).some(s=>ids.includes(String(s)))||deepStrings(o).includes(A.email)});
     const pick=mine.filter(o=>!A.em||!o.created_at||String(o.created_at)>=A.em.slice(0,10));
+    try{const env=pick.filter(o=>o.email).map(o=>({email:o.email,status:String(o.status||''),enviado:o.sent_at||'',aberto:o.opened_at||'',assinado:o.completed_at||''}));if(env.length&&JSON.stringify(env)!==JSON.stringify(A.envios||[])){A.envios=env;await patch('pedidos',p.id,{assinatura:{...A,envios:env}})}}catch(e){}
     const done=pick.find(o=>String(o.status||'').toLowerCase()==='completed'||o.completed_at);
     // all signers completed?
     const allDone=pick.length&&pick.every(o=>String(o.status||'').toLowerCase()==='completed'||o.completed_at||!('status' in o));
@@ -3822,7 +3859,7 @@ function gmMontar(sch,{para,assunto,texto}){const P=(sch&&sch.properties)||null;
   if(kB)o[kB]=kH?emPlano(texto):(P[kB]&&/html/i.test(String(P[kB].description||''))?emHtml(texto):emPlano(texto));if(kH)o[kH]=emHtml(texto);if(!kB&&!kH)o.body=emPlano(texto);if(kF){o[kF]=true;o[kB||'body']=emHtml(texto)}
   const kM=pick('mimeType','contentType','body_type','bodyType');if(kM&&!kH&&P[kM]&&P[kM].enum&&P[kM].enum.some(x=>/plain/i.test(x)))o[kM]=P[kM].enum.find(x=>/plain/i.test(x));
   return o}
-async function gmEnviar(m){const mcp=await getMcp();if(!mcp)throw new Error('Conectores indisponíveis neste acesso. Abra o CRM no claude.ai.');const sch=await gmSchema(mcp);const input=gmMontar(sch,m);return mcp.callTool(GM,'send_message',input,{cache:false})}
+async function gmEnviar(m){const mcp=await getMcp();if(!mcp)throw new Error('Conectores indisponíveis neste acesso. Abra o CRM no claude.ai.');const sch=await gmSchema(mcp);const input=gmMontar(sch,m);if(window.__HOSTED&&(m.copia||(cfg().emails||{}).copia!==false))input.copiaCRM=true;return mcp.callTool(GM,'send_message',input,{cache:false})}
 const gmErr=e=>{const c=e&&e.code;if(window.__HOSTED&&e&&e.message)return e.message;return c==='server_not_connected'?'O Gmail não está conectado no claude.ai.':c==='approval_required'||c==='not_granted'?'Falta permitir o Gmail para esta página (clique em Enviar e aceite).':((e&&e.message)||String(e))};
 /* ---- fila: o que deve sair hoje ---- */
 function emJa(chave){return (S.data.emails||[]).some(x=>x.chave===chave&&x.status!=='erro')}
@@ -3845,7 +3882,7 @@ function emFila(){const E=emCfg(),T=E.tipos,hoje=today(),out=[];const desde=E.de
   if(T.prova.ativo){const Ds=nums(T.prova.dias);S.data.provas.forEach(pv=>{if(pv.status==='Concluída')return;pvClientes(pv).forEach(c=>{if(c.ok||c.lembrete===false)return;
       const pz=String(c.prazo||pv.termino||'').slice(0,10);if(!pz)return;const d=dd(pz,hoje);if(!Ds.includes(d))return;const chave='prova:'+pv.id+':'+c.c+':'+d;if(emJa(chave)||emJa('prova:'+pv.id+':'+d))return;
       out.push(pvLembrete(pv,c,d,chave))})})}
-  if(T.freela.ativo){const A=nums(T.freela.antes);(cfg().equipe||[]).forEach(m=>{if(m.ativo===false||!m.email)return;eventosDaPessoa(m.nome,Math.max(30,...A,1)).forEach(ev=>{const d=dd(ev.data,hoje);let off=null;if(A.includes(d))off='a'+d;if(off==null)return;const chave='freela:'+nrm(m.nome)+':'+ev.id+':'+off;if(emJa(chave))return;out.push(emFreela(m,ev,chave,`evento em ${d} dia${d===1?'':'s'}`))})})}
+  if(T.freela.ativo){const A=nums(T.freela.antes);(cfg().equipe||[]).forEach(m=>{if(m.ativo===false||!m.email)return;eventosDaPessoa(m.nome,Math.max(30,...A,1)).forEach(ev=>{if(ev.origem==='Indisp')return;const d=dd(ev.data,hoje);let off=null;if(A.includes(d))off='a'+d;if(off==null)return;const chave='freela:'+nrm(m.nome)+':'+ev.id+':'+off;if(emJa(chave))return;out.push(emFreela(m,ev,chave,`evento em ${d} dia${d===1?'':'s'}`))})})}
   return out}
 function emFreela(m,ev,chave,quando){const T=emCfg().tipos.freela;const p=ev._ped?S.data.pedidos.find(x=>x.id===ev.id):null;const L=p?ctLocal(p):{lugar:ev.local||''};
   const V={...(p?ctVals(p,''):{}),freelancer_name:m.nome,freelancer_firstname:String(m.nome).split(' ')[0],event_name:ev.titulo||'',event_date:fdate(ev.data),event_time:ev.hora||'',event_place:ev.local||L.lugar||'',order_number:p?p.num:'',calendar_link:gcalLink({titulo:ev.titulo,data:ev.data,hora:ev.hora,fim:ev.horaFim||'',local:ev.local,num:p?p.num:'',notas:''})};
@@ -3873,7 +3910,7 @@ VIEWS.emails=()=>{const E=emCfg(),U=S.ui.em;const F=emFila();const semEmail=F.fi
   return `${head('E-mails automáticos','Relacionamento / E-mails',`<button class="btn" data-emcfg>${ic('gear',15)} Modelos e regras</button>`)}
   <section class="panel"><div class="body" style="display:grid;gap:14px">
    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><div class="seg"><button data-emtab="fila" class="${U.tab==='fila'?'on':''}">Para enviar hoje (${F.length})</button><button data-emtab="log" class="${U.tab==='log'?'on':''}">Enviados (${log.filter(x=>x.status==='enviado').length})</button></div>
-    <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-emauto ${E.auto?'checked':''}> Enviar sozinho (com o CRM aberto, a cada 30 min)</label><span class="sp" style="flex:1"></span>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-emauto ${E.auto?'checked':''}> Enviar sozinho (com o CRM aberto, a cada 30 min)</label><label style="display:flex;gap:8px;align-items:center;font-size:14px" title="Cada e-mail que o sistema manda (e cada contrato enviado para assinar) aparece também na sua Caixa de entrada, com a etiqueta CRM - Enviados"><input type="checkbox" data-emcopia ${E.copia!==false?'checked':''}> Receber cópia de tudo no meu Gmail</label><span class="sp" style="flex:1"></span>
     ${U.tab==='fila'&&F.some(x=>x.para)?`<button class="btn pri" data-emall ${EM_RUN?'disabled':''}>${ic('mail',15)} ${EM_RUN?'Enviando…':'Enviar todos agora'}</button>`:''}</div>
    ${S.emErro?`<div class="banner" style="margin:0;border-color:var(--danger)"><span><b>Último erro de envio:</b> ${esc(S.emErro)}</span></div>`:''}
    ${U.tab==='fila'?(F.length?`${semEmail.length?`<p class="muted" style="margin:0;font-size:13px">${semEmail.length} pessoa${semEmail.length>1?'s estão':' está'} sem e-mail no cadastro; complete o cadastro para o envio sair.</p>`:''}<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tipo</th><th>Para</th><th>Assunto</th><th></th></tr></thead><tbody>${F.map(linha).join('')}</tbody></table></div>`:`<div class="empty"><b>Nada para enviar agora</b><span>Lembretes de vencimento, recibos de pagamentos novos, prazos de provas e agendas dos freelancers aparecem aqui no dia certo.</span></div>`)
@@ -3893,7 +3930,7 @@ function emCfgModal(){const E=emCfg(),T=E.tipos;const codes='[customer_name] [cu
    ${bloco('prova','Lembrete de prazo da prova',`<div class="field" style="margin:0"><label>Dias antes do prazo</label><input class="search" data-emt="prova.dias" value="${esc(T.prova.dias)}" placeholder="7,3,1"></div>`)}
    ${bloco('freela','Agenda do freelancer',`<div class="field" style="margin:0"><label>Dias antes do evento</label><input class="search" data-emt="freela.antes" value="${esc(T.freela.antes)}" placeholder="2"></div><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-emt="freela.aoAgendar" ${T.freela.aoAgendar?'checked':''}> Também enviar na hora em que a pessoa é colocada no evento</label><span class="muted" style="font-size:12px">O e-mail de cada pessoa fica em Configurações → Usuários e freelancers.</span>`)}
   </div><footer><span class="sp"></span><button class="btn pri" data-close>Pronto</button></footer></div></div>`}
-document.addEventListener('change',e=>{const t=e.target;if(t.matches&&t.matches('[data-emt]')){const [k,f]=t.dataset.emt.split('.');emSetTipo(k,{[f]:t.type==='checkbox'?t.checked:t.value});return}if(t.matches&&t.matches('[data-emauto]')){emSet({auto:t.checked,desde:emCfg().desde||today()});render()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.matches&&t.matches('[data-emcopia]')){emSet({copia:t.checked});toast(t.checked?'Você vai receber cópia de tudo no Gmail (etiqueta CRM - Enviados)':'Cópias desligadas');return}if(t.matches&&t.matches('[data-emt]')){const [k,f]=t.dataset.emt.split('.');emSetTipo(k,{[f]:t.type==='checkbox'?t.checked:t.value});return}if(t.matches&&t.matches('[data-emauto]')){emSet({auto:t.checked,desde:emCfg().desde||today()});render()}});
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-emtab],[data-emcfg],[data-emall],[data-emone],[data-emskip],[data-emver],[data-emsendedit],[data-recibo]');if(!t)return;const d=t.dataset;const F=S.emFilaCache||[];
   if('emtab' in d){S.ui.em.tab=d.emtab;render();return}
   if('emcfg' in d){emCfgModal();return}
