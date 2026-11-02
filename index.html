@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261102081114';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261102093229';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2265,14 +2265,30 @@ const BANCOS_SEED=[['Antecipação de Recebíveis','Outros','Crevisc','','',0],[
 const BANCOS_DEF=BANCOS_SEED.map(b=>b.nome);
 function bancos(){const b=(S.finCfg||{}).bancos;return Array.isArray(b)&&b.length?b:BANCOS_SEED}
 function contasNomes(){return bancos().filter(b=>b.ativo!==false).map(b=>b.nome).sort((a,b)=>a.localeCompare(b,'pt-BR'))}
-function openPay(id){const l=S.data.lancamentos.find(r=>r.id===id);if(!l)return;const pg=l.tipo==='pagar';const last=(()=>{try{return localStorage.getItem('grupoe-ultconta-'+l.tipo)||''}catch(e){return ''}})();const cur=(l.conta&&contasNomes().includes(l.conta))?l.conta:last;
+function openPay(id){const l=S.data.lancamentos.find(r=>r.id===id);if(!l)return;S.ui.payDif={tipo:'parcial'};const pg=l.tipo==='pagar';const last=(()=>{try{return localStorage.getItem('grupoe-ultconta-'+l.tipo)||''}catch(e){return ''}})();const cur=(l.conta&&contasNomes().includes(l.conta))?l.conta:last;
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>${pg?'Pagar uma conta':'Receber uma conta'}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
    <div class="mbody"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:13px"><div><span class="muted">${pg?'Para':'De'}</span><div>${contatoNome(l.contatoId)?`<b>${esc(contatoNome(l.contatoId))}</b>`:`<input id="pay-cont" class="search" list="dl-paycont" value="${esc(((custoDoLanc(l)||{}).fornecedor)||'')}" placeholder="Digite o nome…" autocomplete="off" style="width:100%"><datalist id="dl-paycont">${fornecedoresLista().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`}</div></div><div><span class="muted">Vencimento</span><div><b class="num">${fdate(l.vencimento)}</b></div></div><div><span class="muted">Valor</span><div><b class="num">${brl(l.valor)}</b></div></div></div>
-   <div class="fgrid" style="margin-top:14px"><div class="field"><label for="pay-valor">Valor ${pg?'pago':'recebido'}</label><input id="pay-valor" inputmode="decimal" data-money value="${esc(moneyFmt(l.valor))}" oninput="(()=>{const v=moneyParse(this.value),d=v-(${+l.valor||0});const e=document.getElementById('pay-dif');if(e)e.textContent=Math.abs(d)>0.004?'Diferença: '+brl(d):''})()"><span id="pay-dif" class="sub" style="color:var(--warn)"></span></div><div class="field"><label for="pay-data">Data do ${pg?'pagamento':'recebimento'}</label><input id="pay-data" type="date" value="${today()}"></div>
+   <div class="fgrid" style="margin-top:14px"><div class="field"><label for="pay-valor">Valor ${pg?'pago':'recebido'}</label><input id="pay-valor" inputmode="decimal" data-money value="${esc(moneyFmt(l.valor))}" ><span id="pay-dif" class="sub" style="color:var(--warn)"></span></div><div class="field"><label for="pay-data">Data do ${pg?'pagamento':'recebimento'}</label><input id="pay-data" type="date" value="${today()}"></div>
+   <div class="field full" id="pay-difbox" style="display:none"></div>
    <div class="field full"><label for="pay-conta">${pg?'Pagar usando':'Receber em'}</label><select id="pay-conta"><option value="">— escolha a conta —</option>${contasNomes().map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
    <div class="field full"><label for="pay-desc">Descrição</label><textarea id="pay-desc" rows="2">${esc(l.descricao||'')}</textarea></div></div></div>
    <footer><button class="btn" data-close>Cancelar</button><button class="btn pri" data-paysave="${l.id}">${ic('paid',15)} Salvar</button></footer></div></div>`;
-  setTimeout(()=>{const c=$('#pay-conta');if(c)c.addEventListener('change',()=>{try{localStorage.setItem('grupoe-ultconta-'+l.tipo,c.value)}catch(e){}})},0)}
+  setTimeout(()=>{const c=$('#pay-conta');if(c)c.addEventListener('change',()=>{try{localStorage.setItem('grupoe-ultconta-'+l.tipo,c.value)}catch(e){}});const v=$('#pay-valor');if(v){v.addEventListener('input',()=>payDifRender(l));payDifRender(l)}},0)}
+/* diferença ao pagar/receber: parcial (gera o restante), desconto ou juros (com a conta do plano onde lançar) */
+S.ui.payDif={tipo:'parcial'};
+function payDifRender(l){const box=$('#pay-difbox'),info=$('#pay-dif');if(!box)return;const v=moneyParse($('#pay-valor').value),d=Math.round((v-(+l.valor||0))*100)/100;const pg=l.tipo==='pagar';
+  if(!v||Math.abs(d)<0.005){box.style.display='none';box.innerHTML='';if(info)info.textContent='';return}
+  if(info)info.textContent='Diferença: '+brl(d);const menos=d<0;const T=S.ui.payDif;if(!menos)T.tipo='juros';else if(T.tipo==='juros')T.tipo='parcial';
+  const ol=planoOl();const opts=planoOpts('');const def=T.tipo==='desconto'?planoRot(pg?'3.2':'5.6'):planoRot(pg?'5.6':'3.2');
+  const sel=`<select id="pay-difcat">${opts.filter(Boolean).map(o=>`<option value="${esc(o)}" ${o===(T.cat||def)?'selected':''}>${esc(ol[o]||o)}</option>`).join('')}</select>`;
+  const prox=(()=>{const d0=parseD($('#pay-data').value||today());return iso(new Date(d0.getFullYear(),d0.getMonth()+1,d0.getDate()))})();
+  box.style.display='';
+  box.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;border:1px solid var(--line);border-radius:10px;padding:12px">
+    <div class="field" style="margin:0"><label>Tipo de diferença</label><div class="seg">${menos?`<button type="button" data-paydif="parcial" class="${T.tipo==='parcial'?'on':''}">Pagamento parcial</button><button type="button" data-paydif="desconto" class="${T.tipo==='desconto'?'on':''}">Desconto</button>`:`<button type="button" class="on">${pg?'Juros / multa':'Juros / acréscimo'}</button>`}</div></div>
+    ${T.tipo==='parcial'?`<div class="field" style="margin:0"><label for="pay-prox">Próxima data de vencimento</label><input id="pay-prox" type="date" value="${esc(T.prox||prox)}"></div><div class="full muted" style="font-size:12px;grid-column:1/-1">Fica pago ${brl(v)} agora e o restante de <b>${brl(-d)}</b> vira uma nova conta ${pg?'a pagar':'a receber'} nessa data.</div>`
+      :`<div class="field" style="margin:0"><label for="pay-difcat">Conta a lançar a diferença</label>${sel}</div><div class="full muted" style="font-size:12px;grid-column:1/-1">${T.tipo==='desconto'?`Conta quitada com <b>${brl(-d)}</b> de desconto.`:`Pago <b>${brl(d)}</b> a mais (juros/multa).`}</div>`}</div>`}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-paydif]');if(!t)return;e.preventDefault();S.ui.payDif.tipo=t.dataset.paydif;const id=($('[data-paysave]')||{}).dataset;const l=id&&S.data.lancamentos.find(x=>x.id===id.paysave);if(l)payDifRender(l)});
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='pay-difcat')S.ui.payDif.cat=e.target.value;if(e.target&&e.target.id==='pay-prox')S.ui.payDif.prox=e.target.value});
 /* ---- contas bancárias e plano de contas ---- */
 function finCfgSave(ch){const cfg={contas:{...((S.finCfg||{}).contas||{})},plano:{...((S.finCfg||{}).plano||{})},bancos:JSON.parse(JSON.stringify(bancos()))};ch(cfg);S.finCfg=cfg;rebuildLanc();schedule();if(S.mode==='db')S.db.doc('config/financeiro').set(cfg).catch(failWrite)}
 function movPagos(){return S.data.lancamentos.filter(l=>l.pago).concat(S.movBanco||[])}
@@ -3209,8 +3225,11 @@ document.addEventListener('click',async e=>{
     else await save('lancamentos',{...base,tipo:tp==='dep'?'receber':'pagar',categoria:tp==='dep'?'Depósito / entrada':'Retirada / saída',...extra,conta:de,contaCod:cod(de),descricao:ds||(extra.contatoId?nameOf('contatos',extra.contatoId):'')||(tp==='dep'?'Recebimento':'Pagamento')});
     closeModal();toast('Transação lançada');return}
   if(d.paysave!==undefined){const l=S.data.lancamentos.find(r=>r.id===d.paysave);if(!l)return;const v=moneyParse($('#pay-valor').value),dt=$('#pay-data').value||today(),ct=$('#pay-conta').value,ds=$('#pay-desc').value.trim();if(!ct){toast('Escolha a conta.',true);return}
-    const bk=bancos().find(b=>b.nome===ct);const ch={pago:true,dataPagamento:dt,conta:ct,descricao:ds||l.descricao,contaCod:(bk&&bk.codigo)||''};const pc=$('#pay-cont');if(pc&&pc.value.trim()&&!l.contatoId){const cid=await fornResolver(pc.value.trim(),true);if(cid)ch.contatoId=cid}if(Math.abs(v-(+l.valor||0))>0.004){ch.valorOriginal=l.valorOriginal||l.valor;ch.valor=v}
-    closeModal();await patch('lancamentos',l.id,ch);toast(l.tipo==='pagar'?'Pago com '+ct:'Recebido em '+ct);payDone(l.id,{...l,...ch});return}
+    const bk=bancos().find(b=>b.nome===ct);const ch={pago:true,dataPagamento:dt,conta:ct,descricao:ds||l.descricao,contaCod:(bk&&bk.codigo)||''};const pc=$('#pay-cont');if(pc&&pc.value.trim()&&!l.contatoId){const cid=await fornResolver(pc.value.trim(),true);if(cid)ch.contatoId=cid}let resto=null;const dif=Math.round((v-(+l.valor||0))*100)/100;if(Math.abs(dif)>0.004){ch.valorOriginal=l.valorOriginal||l.valor;ch.valor=v;const T=S.ui.payDif;
+      if(dif<0&&T.tipo==='parcial'){const px=($('#pay-prox')||{}).value||addDays(dt,30);ch.parcial=true;ch.valorOriginal=+l.valor||0;resto={...l,id:undefined,num:undefined,aid:undefined,criadoEm:undefined,pago:false,dataPagamento:'',conta:l.conta&&!l.pago?l.conta:'',contaCod:'',valor:Math.round(-dif*100)/100,vencimento:px,parcialDe:l.id,descricao:(l.descricao||'')+' (restante)'};Object.keys(resto).forEach(k=>resto[k]===undefined&&delete resto[k])}
+      else{const cat=($('#pay-difcat')||{}).value||'';if(dif<0){ch.desconto=Math.round(-dif*100)/100;ch.descontoConta=cat}else{ch.juros=dif;ch.jurosConta=cat}}}
+    S.ui.payDif={tipo:'parcial'};
+    closeModal();await patch('lancamentos',l.id,ch);if(resto){try{await save('lancamentos',resto);toast('Restante de '+brl(resto.valor)+' lançado para '+fdate(resto.vencimento))}catch(e){failWrite(e)}}else toast(l.tipo==='pagar'?'Pago com '+ct:'Recebido em '+ct);payDone(l.id,{...l,...ch});return}
   if(d.move){await patch('oportunidades',d.move,{etapa:d.to});toast('Movida para '+d.to);return}
   if(d.calnav!==undefined){const C=S.ui.cal,n=+d.calnav;if(n===0){const x=new Date();C.y=x.getFullYear();C.m=x.getMonth()}else{const x=new Date(C.y,C.m+n,1);C.y=x.getFullYear();C.m=x.getMonth()}render();return}
   if(d.calmode){S.ui.cal.mode=d.calmode;render();return}
@@ -4211,7 +4230,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
   if(t.dataset.gcauto!==undefined){const on=t.dataset.gcauto==='1';cfgSet('gcal',{...gcCfg(),auto:on,desde:on&&!gcCfg().desde?today():gcCfg().desde});render();if(on)gcSync(false);return}
   t.disabled=true;t.textContent='Publicando…';gcSync(false)});
 /* ===== Google Agenda → CRM: o que for criado ou mudado direto na agenda da equipe aparece aqui ===== */
-function gcTipoDe(t){const k=Object.keys(TIPOS);const n=nrm(t||'');return k.find(x=>n.includes(nrm(x)))||(k.includes('Evento')?'Evento':k[0])||''}
+function gcTipoDe(t){const k=Object.keys(TIPOS);const n=nrm(t||'');const tem=x=>k.includes(x)?x:null;return k.find(x=>n.includes(nrm(x)))||(/espelho/.test(n)&&tem('Espelho'))||(/toten|totem|cabine|hashtag|ring|spinner|grua|360|csi/.test(n)&&tem('Toten/Cabine/Hashtag'))||(/reuni/.test(n)&&tem('Reunião'))||(/folga|pessoal|anivers/.test(n)&&tem('Pessoal'))||(/sess|ensaio|pre ?casamento|book/.test(n)&&tem('Sessão'))||(k.includes('Evento')?'Evento':k[0])||''}
 function gcLimpaDesc(d){const nome=(cfg().estudio||{}).nome||'';let s=String(d||'').replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]+>/g,'');if(nome){const i=s.lastIndexOf('— '+nome);if(i>=0)s=s.slice(0,i)}return s.replace(/\s+$/,'')}
 function gcHoraDe(x){const dt=x&&x.dateTime;if(dt)return {data:dt.slice(0,10),hora:dt.slice(11,16)};return {data:(x&&x.date)||'',hora:''}}
 async function gcImportar(silent){if(S._gcImp||(silent&&!S.dono)||S.mode!=='db'||!S.loaded||!S.loaded.has('agenda'))return;const cal=gcCfg().agenda;if(!cal||cal==='primary')return;
@@ -4220,13 +4239,13 @@ async function gcImportar(silent){if(S._gcImp||(silent&&!S.dono)||S.mode!=='db'|
     const r=await mcp.callTool(GC,'list_events',{calendarId:cal,timeMin:ini,timeMax:fim},{cache:false});const P=parsePayload(r)||{};const L=P.items||[];
     const porId={};(S.data.agenda||[]).forEach(a=>{if(a.gcal&&a.gcal.id)porId[a.gcal.id]=a});const nomeEst=(cfg().estudio||{}).nome||'';
     for(const ev of L){const a=porId[ev.id];
-      if(ev.status==='cancelled'){if(a&&!a.cancelado){if(a.origem==='Google'){await patch('agenda',a.id,{cancelado:true});rem++}else if(!(a.gcal||{}).apagadoGoogle){await patch('agenda',a.id,{gcal:{...a.gcal,apagadoGoogle:true}})}}continue}
+      if(ev.status==='cancelled'){if(a&&!a.cancelado){await patch('agenda',a.id,{cancelado:true,canceladoPor:'Google Agenda',canceladoEm:new Date().toISOString(),gcal:{...a.gcal,apagadoGoogle:true}});rem++}continue}
       const I=gcHoraDe(ev.start),F=gcHoraDe(ev.end);if(!I.data)continue;let horaFim=F.hora||'';
       const base={titulo:ev.summary||'(sem título)',data:I.data,hora:I.hora,horaFim:horaFim,local:ev.location||''};
       if(!a){if(nomeEst&&String(ev.description||'').includes('— '+nomeEst))continue; /* foi o CRM que mandou e o registro sumiu: não duplica */
         const rec={...base,tipo:gcTipoDe(ev.summary),notas:gcLimpaDesc(ev.description),participantes:[],origem:'Google',gcal:{id:ev.id,cal,emails:[],upd:ev.updated,em:new Date().toISOString()}};rec.gcal.sig=gcSig(gcDados(rec));
         try{await save('agenda',rec);novos++}catch(e){}continue}
-      const g=a.gcal||{};if(g.upd&&ev.updated<=g.upd)continue;if(!g.upd){await patch('agenda',a.id,{gcal:{...g,upd:ev.updated}});continue}
+      const g=a.gcal||{};if(g.upd&&ev.updated<=g.upd)continue;if(!g.upd&&!(g.em&&ev.updated&&Date.parse(ev.updated)>Date.parse(g.em)+5000)){await patch('agenda',a.id,{gcal:{...g,upd:ev.updated}});continue}
       /* mudou no Google depois do último envio do CRM */
       const ch={};const D=gcDados(a);const gIni=I.data+'T'+(I.hora||'00:00'),gFim=F.data+'T'+(F.hora||'00:00');
       if(gIni!==D.ini.slice(0,16)){ch.data=I.data;ch.hora=I.hora}if(F.hora&&gFim!==D.fim.slice(0,16))ch.horaFim=F.hora;
