@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261101023330';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261102081114';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1998,7 +1998,7 @@ function pedEvents(){if(_pedEv.src===S.data.pedidos&&_pedEv.t===TIPOS)return _pe
 function agendaAll(){const cob=new Set();S.data.agenda.forEach(a=>{if(a.pedidoId&&a.origem==='Alboom')cob.add(a.pedidoId)});const canc=new Set(S.data.pedidos.filter(p=>pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado').map(p=>p.id));return S.data.agenda.filter(a=>!a.cancelado&&!(a.pedidoId&&canc.has(a.pedidoId))).concat(pedEvents().filter(e=>!cob.has(e.id)))}
 function calItems(from,to){
   const C=S.ui.cal,out=[],inR=d=>d&&d>=from&&d<=to;
-  if(C.src.eventos)agendaAll().forEach(e=>{if(inR(e.data)&&C.tipos[e.tipo]!==false&&(!C.resp||(e.participantes||[]).includes(C.resp)||(e._ped?e.responsavel===C.resp:(e.responsavel||'')===C.resp||!e.responsavel)))out.push({d:e.data,h:e.hora||'',t:e.titulo,c:TIPOS[e.tipo]||'--idle',col:e._ped?'pedidos':'agenda',id:e.id})});
+  if(C.src.eventos)agendaAll().forEach(e=>{if(inR(e.data)&&C.tipos[e.tipo]!==false&&(!C.resp||(e.participantes||[]).includes(C.resp)||(e._ped?e.responsavel===C.resp:(e.responsavel||'')===C.resp||!e.responsavel)))out.push({d:e.data,h:e.hora||'',t:e.titulo+(e.origem==='Google'?' · Google':''),c:TIPOS[e.tipo]||'--idle',col:e._ped?'pedidos':'agenda',id:e.id})});
   if(C.src.projetos)S.data.projetos.forEach(p=>{if(inR(p.entrega)&&!['Concluído','Cancelado'].includes(p.status))out.push({d:p.entrega,h:'',t:'Entrega · '+p.titulo,c:'--ev-proj',col:'projetos',id:p.id})});
   if(C.src.oportunidades)S.data.oportunidades.forEach(o=>{if(inR(o.dataEvento)&&ABERTAS.includes(o.etapa))out.push({d:o.dataEvento,h:'',t:'Oport. · '+o.titulo,c:'--ev-opp',col:'oportunidades',id:o.id})});
   if(C.src.contas)S.data.lancamentos.forEach(l=>{if(inR(l.vencimento)&&!l.pago)out.push({d:l.vencimento,h:'',t:(l.tipo==='pagar'?'Pagar ':'Receber ')+brl(l.valor)+' · '+l.descricao,c:l.tipo==='pagar'?'--ev-conta':'--ev-foto',col:'lancamentos',id:l.id})});
@@ -4090,7 +4090,7 @@ document.addEventListener('change',e=>{const t=e.target;const box=t&&t.closest&&
 /* dados de operação também nas observações do pedido */
 function opBranco(r){const D={...opDados(r),montagem:'',liberacao:'',responsavel:'',operador:''};return opModelo().replace(/\{(\w+)\}/g,(m,k)=>k in D?String(D[k]||''):m)}
 function opDoPedido(p){return opBranco({pedidoId:p.id,titulo:p.titulo,data:p.dataEvento,hora:p.horaEvento,horaFim:p.horaFimEvento,local:p.local,contatoId:p.contatoId,participantes:[]})}
-async function opAutoAgenda(id){const r=(S.data.agenda||[]).find(x=>x.id===id);if(!r||!r.data||r.data<OP_DESDE)return false;if(/dados de opera/i.test(r.notas||''))return false;
+async function opAutoAgenda(id){const r=(S.data.agenda||[]).find(x=>x.id===id);if(!r||!r.data||r.data<OP_DESDE||r.origem==='Google')return false;if(/dados de opera/i.test(r.notas||''))return false;
   const ped=r.pedidoId&&S.data.pedidos.find(p=>p.id===r.pedidoId);if(ped&&pedStatus(ped)==='Cancelado')return false;
   if(!ped&&!(typeof TIPOS!=='undefined'&&/toten|cabine|hashtag|espelho|spinner|grua|evento|foto|film/i.test((r.tipo||'')+' '+(r.titulo||''))))return false;
   const n=String(r.notas||'').replace(/\s+$/,'');await patch('agenda',r.id,{notas:(n?n+'\n\n':'')+opBranco({...r,participantes:[]})});return true}
@@ -4177,18 +4177,18 @@ function gcBase(D){return {calendarId:gcCfg().agenda||'primary',summary:D.titulo
 function gcMontar(sch,D,id){return id?{eventId:id,calendarId:gcCfg().agenda||'primary',notificationLevel:gcNotif()}:{...gcBase(D),attendees:D.pessoas.map(x=>({email:x.email,displayName:x.nome}))}}
 function gcIdDe(r){const p=parsePayload(r)||{};const ev=p.event||p.data||p;return ev.id||ev.eventId||ev.event_id||(typeof p==='string'&&(p.match(/"id"\s*:\s*"([^"]+)"/)||[])[1])||''}
 const gcGeral=()=>{const a=gcCfg().agenda||'primary';return a!=='primary'};
-function gcAlvos(){const t=today(),D=gcCfg().desde||t;const canc=new Set(S.data.pedidos.filter(p=>pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado').map(p=>p.id));return (S.data.agenda||[]).filter(e=>!e.cancelado&&!(e.pedidoId&&canc.has(e.pedidoId))&&e.data&&e.data>=t&&e.data>=D&&(gcGeral()||(e.participantes||[]).length||(e.gcal&&e.gcal.id)))}
-async function gcPublicar(ev,mcp){const D=gcDados(ev);const sig=gcSig(D);let g=ev.gcal||{};const cal=gcCfg().agenda||'primary';const now=()=>new Date().toISOString();
+function gcAlvos(){const t=today(),D=gcCfg().desde||t;const _gA=e=>!(e.gcal&&e.gcal.apagadoGoogle);const canc=new Set(S.data.pedidos.filter(p=>pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado').map(p=>p.id));return (S.data.agenda||[]).filter(e=>_gA(e)&&!e.cancelado&&!(e.pedidoId&&canc.has(e.pedidoId))&&e.data&&e.data>=t&&e.data>=D&&(gcGeral()||(e.participantes||[]).length||(e.gcal&&e.gcal.id)))}
+async function gcPublicar(ev,mcp){if(ev.gcal&&ev.gcal.apagadoGoogle)return null;const D=gcDados(ev);const sig=gcSig(D);let g=ev.gcal||{};const cal=gcCfg().agenda||'primary';const now=()=>new Date().toISOString();
   if(g.id&&(g.cal||'primary')!==cal){try{await mcp.callTool(GC,'delete_event',{eventId:g.id,calendarId:g.cal||'primary',notificationLevel:gcNotif()},{cache:false})}catch(e){}g={}}
   if(!D.pessoas.length&&!gcGeral()){if(g.id){try{await mcp.callTool(GC,'delete_event',{eventId:g.id,calendarId:g.cal||cal,notificationLevel:gcNotif()},{cache:false})}catch(e){}await patch('agenda',ev.id,{gcal:{id:'',sig:'',emails:[],em:now()}});return 'removido'}return null}
   if(g.id&&g.sig===sig)return null;
   const emails=D.pessoas.map(x=>x.email);
   if(g.id){const antes=g.emails||[];const add=D.pessoas.filter(x=>!antes.includes(x.email)).map(x=>({email:x.email,displayName:x.nome}));const rem=antes.filter(x=>!emails.includes(x));
     const inp={eventId:g.id,...gcBase(D)};if(add.length)inp.addedAttendees=add;if(rem.length)inp.removedAttendeeEmails=rem;
-    try{await mcp.callTool(GC,'update_event',inp,{cache:false});await patch('agenda',ev.id,{gcal:{id:g.id,cal,sig,emails,em:now()}});return 'atualizado'}
+    try{const ru=await mcp.callTool(GC,'update_event',inp,{cache:false});const up=((parsePayload(ru)||{}).updated)||'';await patch('agenda',ev.id,{gcal:{id:g.id,cal,sig,emails,em:now(),upd:up}});return 'atualizado'}
     catch(e){if(!/not.?found|404|deleted/i.test(String(e&&e.message||'')))throw e}}
   const r=await mcp.callTool(GC,'create_event',{...gcBase(D),attendees:D.pessoas.map(x=>({email:x.email,displayName:x.nome}))},{cache:false});const id=gcIdDe(r);
-  await patch('agenda',ev.id,{gcal:{id,cal,sig,emails,em:now()}});return 'criado'}
+  const upc=((parsePayload(r)||{}).updated)||'';await patch('agenda',ev.id,{gcal:{id,cal,sig,emails,em:now(),upd:upc}});return 'criado'}
 async function gcSync(silent,soId,soPub){if(GC_RUN&&Date.now()-(S._gcIni||0)<180000)return;if(silent&&S._gcPausa&&Date.now()<S._gcPausa)return;GC_RUN=true;S._gcIni=Date.now();S.gcErro='';let n={criado:0,atualizado:0,removido:0},er=0;
   try{const mcp=await getMcp();if(!mcp)throw new Error('Conectores indisponíveis neste acesso. Abra o CRM no claude.ai.');
     const L=soId?(S.data.agenda||[]).filter(e=>e.id===soId):gcAlvos().filter(e=>!soPub||(e.gcal&&e.gcal.id));
@@ -4203,13 +4203,42 @@ function gcCfgHTML(){const G=gcCfg();const L=gcAlvos();const pend=L.filter(e=>{c
   ${gcGeral()?`<p style="font-size:12.5px;margin:0 0 10px">Todos os compromissos de hoje em diante vão para <b>${esc(G.agendaNome||G.agenda)}</b>; quem é participante recebe convite. Para ter o <b>link iCal</b> (igual ao do Alboom): Google Agenda → Configurações → ${esc(G.agendaNome||'a agenda')} → <b>Endereço secreto no formato iCal</b>. Cole no iPhone, Apple Calendar ou passe para quem precisar ver tudo.</p>`:''}
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><span style="font-size:13px">Convidar os participantes (eles recebem e-mail e o evento na agenda deles):</span><div class="seg"><button data-gcconv="1" class="${G.convidar?'on':''}">Sim</button><button data-gcconv="0" class="${!G.convidar?'on':''}">Não — modo teste</button></div>${!G.convidar?'<span class="muted" style="font-size:12px">ninguém da equipe é avisado; os eventos só aparecem na sua agenda</span>':''}</div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><div class="seg"><button data-gcauto="1" class="${G.auto?'on':''}">Automático</button><button data-gcauto="0" class="${!G.auto?'on':''}">Só quando eu mandar</button></div>
-   <button class="btn sm pri" data-gcsync>${ic('refresh',13)} Publicar agora${pend?' ('+pend+')':''}</button><span class="muted" style="font-size:12px">${pub} evento${pub===1?'':'s'} já publicado${pub===1?'':'s'} · ${pend} para publicar/atualizar · só eventos de hoje em diante</span></div>
+   <button class="btn sm pri" data-gcsync>${ic('refresh',13)} Publicar agora${pend?' ('+pend+')':''}</button><button class="btn sm" data-gcimp title="Traz para o CRM o que foi criado ou mudado direto na Google Agenda (a cada 5 min isso já acontece sozinho)">${ic('down',13)} Trazer do Google</button><span class="muted" style="font-size:12px">${pub} evento${pub===1?'':'s'} já publicado${pub===1?'':'s'} · ${pend} para publicar/atualizar · só eventos de hoje em diante</span></div>
   ${sem.length?`<div class="banner" style="margin:8px 0 0"><span style="font-size:12.5px">Sem e-mail cadastrado (não recebem na agenda): <b>${sem.map(esc).join(', ')}</b>. Cadastre em Usuários e freelancers.</span></div>`:''}
   ${S.gcErro?`<div class="banner" style="margin:8px 0 0;border-color:var(--danger)"><span style="font-size:12.5px">Último erro: ${esc(S.gcErro)}. Confira se o conector Google Calendar está conectado e permitido para este CRM.</span></div>`:''}`}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-gcsync],[data-gcauto],[data-gcconv]');if(!t)return;
   if(t.dataset.gcconv!==undefined){const on=t.dataset.gcconv==='1';if(on&&!confirm('A partir de agora os participantes de cada evento recebem convite por e-mail e o evento na agenda deles. Confirmar?'))return;cfgSet('gcal',{...gcCfg(),convidar:on});render();return}
   if(t.dataset.gcauto!==undefined){const on=t.dataset.gcauto==='1';cfgSet('gcal',{...gcCfg(),auto:on,desde:on&&!gcCfg().desde?today():gcCfg().desde});render();if(on)gcSync(false);return}
   t.disabled=true;t.textContent='Publicando…';gcSync(false)});
+/* ===== Google Agenda → CRM: o que for criado ou mudado direto na agenda da equipe aparece aqui ===== */
+function gcTipoDe(t){const k=Object.keys(TIPOS);const n=nrm(t||'');return k.find(x=>n.includes(nrm(x)))||(k.includes('Evento')?'Evento':k[0])||''}
+function gcLimpaDesc(d){const nome=(cfg().estudio||{}).nome||'';let s=String(d||'').replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]+>/g,'');if(nome){const i=s.lastIndexOf('— '+nome);if(i>=0)s=s.slice(0,i)}return s.replace(/\s+$/,'')}
+function gcHoraDe(x){const dt=x&&x.dateTime;if(dt)return {data:dt.slice(0,10),hora:dt.slice(11,16)};return {data:(x&&x.date)||'',hora:''}}
+async function gcImportar(silent){if(S._gcImp||(silent&&!S.dono)||S.mode!=='db'||!S.loaded||!S.loaded.has('agenda'))return;const cal=gcCfg().agenda;if(!cal||cal==='primary')return;
+  if(S._gcPausa&&Date.now()<S._gcPausa)return;S._gcImp=1;let novos=0,mud=0,rem=0;
+  try{const mcp=await getMcp();if(!mcp)return;const ini=new Date(Date.now()-30*864e5).toISOString(),fim=new Date(Date.now()+400*864e5).toISOString();
+    const r=await mcp.callTool(GC,'list_events',{calendarId:cal,timeMin:ini,timeMax:fim},{cache:false});const P=parsePayload(r)||{};const L=P.items||[];
+    const porId={};(S.data.agenda||[]).forEach(a=>{if(a.gcal&&a.gcal.id)porId[a.gcal.id]=a});const nomeEst=(cfg().estudio||{}).nome||'';
+    for(const ev of L){const a=porId[ev.id];
+      if(ev.status==='cancelled'){if(a&&!a.cancelado){if(a.origem==='Google'){await patch('agenda',a.id,{cancelado:true});rem++}else if(!(a.gcal||{}).apagadoGoogle){await patch('agenda',a.id,{gcal:{...a.gcal,apagadoGoogle:true}})}}continue}
+      const I=gcHoraDe(ev.start),F=gcHoraDe(ev.end);if(!I.data)continue;let horaFim=F.hora||'';
+      const base={titulo:ev.summary||'(sem título)',data:I.data,hora:I.hora,horaFim:horaFim,local:ev.location||''};
+      if(!a){if(nomeEst&&String(ev.description||'').includes('— '+nomeEst))continue; /* foi o CRM que mandou e o registro sumiu: não duplica */
+        const rec={...base,tipo:gcTipoDe(ev.summary),notas:gcLimpaDesc(ev.description),participantes:[],origem:'Google',gcal:{id:ev.id,cal,emails:[],upd:ev.updated,em:new Date().toISOString()}};rec.gcal.sig=gcSig(gcDados(rec));
+        try{await save('agenda',rec);novos++}catch(e){}continue}
+      const g=a.gcal||{};if(g.upd&&ev.updated<=g.upd)continue;if(!g.upd){await patch('agenda',a.id,{gcal:{...g,upd:ev.updated}});continue}
+      /* mudou no Google depois do último envio do CRM */
+      const ch={};const D=gcDados(a);const gIni=I.data+'T'+(I.hora||'00:00'),gFim=F.data+'T'+(F.hora||'00:00');
+      if(gIni!==D.ini.slice(0,16)){ch.data=I.data;ch.hora=I.hora}if(F.hora&&gFim!==D.fim.slice(0,16))ch.horaFim=F.hora;
+      if((ev.summary||'')!==(D.titulo||''))ch.titulo=ev.summary||a.titulo;if((ev.location||'')!==(D.local||''))ch.local=ev.location||'';
+      if(a.origem==='Google'){const nt=gcLimpaDesc(ev.description);if(nt!==(a.notas||''))ch.notas=nt}
+      const novo={...a,...ch};await patch('agenda',a.id,{...ch,gcal:{...g,upd:ev.updated,sig:gcSig(gcDados(novo))}});if(Object.keys(ch).length)mud++}
+    if(!silent||novos||mud||rem)toast(`Google Agenda → CRM: ${novos} novo${novos===1?'':'s'}, ${mud} alterado${mud===1?'':'s'}, ${rem} removido${rem===1?'':'s'}`)}
+  catch(e){const m=mcpErrMsg(e,'Google Calendar');if(/muitas vezes|too many|quota/i.test(m))S._gcPausa=Date.now()+3600e3;if(!silent)toast('Não consegui ler a Google Agenda: '+m,true)}
+  finally{S._gcImp=0}}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-gcimp]');if(!t)return;e.preventDefault();e.stopPropagation();gcImportar(false)},true);
+(function gcImpAuto(){const t=()=>{try{gcImportar(true)}catch(e){}};setTimeout(t,50000);setInterval(t,5*60*1000)})();
+
 (function gcAuto(){const tick=()=>{try{if(!S.dono||S.mode!=='db'||!S.loaded||!S.loaded.has('agenda'))return;if(gcCfg().auto)gcSync(true);else gcSync(true,null,true)}catch(e){}};setTimeout(tick,40000);setInterval(tick,5*60*1000)})();
 /* mudou um compromisso que já está na Google Agenda (inclusive pelos dados de operação vindos do pedido): atualiza lá também */
 const GC_FILA=new Set();let GC_T=null;function gcFila(id){GC_FILA.add(id);clearTimeout(GC_T);GC_T=setTimeout(async function vai(){if(GC_RUN){GC_T=setTimeout(vai,4000);return}const ids=[...GC_FILA];GC_FILA.clear();for(const i of ids){try{await gcSync(true,i)}catch(e){}}},3000)}
