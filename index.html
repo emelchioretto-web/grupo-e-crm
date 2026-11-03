@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261103093712';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261103142336';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -146,11 +146,18 @@ async function dsChave(){let x=await segredos();if(x.docusealKey)return {key:x.d
   if(!v)throw erro('Sem a chave da API do DocuSeal.');const base=v[1]?'https://api.docuseal.eu':'https://api.docuseal.com';await fs.doc('config/segredos').set({docusealKey:v[0],docusealBase:base},{merge:true});return {key:v[0],base}}
 async function ds(tool,input){const k=await dsChave();try{return await ponte('DocuSeal',tool,input,{docuseal:k})}catch(e){if(/não foi aceita/.test(e.message))await fs.doc('config/segredos').set({docusealKey:''},{merge:true});throw e}}
 
+/* ---------- IA (Claude) pela mesma ponte; a chave fica no banco, só administradores leem ---------- */
+async function iaChave(){let x=await segredos();if(x.anthropicKey)return {key:x.anthropicKey};
+  const v=await pedir('Chave da API da Anthropic (Claude)','Para ler fotos de contas e faturas. Em <b>console.anthropic.com › API Keys</b>, crie uma chave e cole aqui. É pedida uma vez só e fica guardada no banco, que só os administradores leem.',[{label:'Chave da API (começa com sk-ant-)'}]);
+  if(!v||!v[0])throw erro('Sem a chave da API da Anthropic.');await fs.doc('config/segredos').set({anthropicKey:v[0].trim()},{merge:true});return {key:v[0].trim()}}
+async function iaCall(tool,input){const k=await iaChave();try{return await ponte('IA',tool,input,{ia:k})}catch(e){if(/não foi aceita/.test(e.message))await fs.doc('config/segredos').set({anthropicKey:''},{merge:true});throw e}}
+
 /* ---------- o que o CRM chama ---------- */
 const SCH={Gmail:{send_message:{type:'object',properties:{to:{type:'array'},subject:{type:'string'},body:{type:'string'},htmlBody:{type:'string'}}}}};
 const MCP={
   async callTool(server,tool,input){let p;
     if(server==='DocuSeal')p=await ds(tool,input||{});
+    else if(server==='IA')p=await iaCall(tool,input||{});
     else if(['Gmail','Google Calendar','Google Drive'].includes(server))p=await ponte(server,tool,input||{});
     else throw erro('Função não disponível: '+server+' / '+tool,'not_in_manifest');
     return {payload:p,content:[{type:'text',text:JSON.stringify(p)}]}},
@@ -2333,6 +2340,133 @@ async function indAgendaSync(){if(IND_RUN||!S.dono||S.mode!=='db'||!S.loaded||![
 setInterval(()=>{try{indAgendaSync()}catch(e){}},60000);
 const _saveInd=save;save=async function(col,rec){const id=await _saveInd(col,rec);if(col==='indisp')setTimeout(()=>{try{indAgendaSync()}catch(e){}},1500);return id};
 const _remInd=removeRec;removeRec=async function(col,id){const r=await _remInd(col,id);if(col==='indisp')setTimeout(()=>{try{indAgendaSync()}catch(e){}},1500);return r};
+/* ===== IA: ler foto/PDF de conta e fatura do cartão (Claude, pelo Apps Script) ===== */
+const IA_FORMAS=['Carnê','Dinheiro','PIX','Cheque','Boleto','Cartão Débito Pessoal','Cartão de Debito Empresarial','Cartão Crédito Pessoal','Cartão de Crédito Empresarial','Cartão de Crédito','Depósito','PagSeguro','Paypal','Transferência'];
+function iaLS(k,v){try{if(v===undefined)return localStorage.getItem('grupoe-ia-'+k)||'';localStorage.setItem('grupoe-ia-'+k,v)}catch(e){return ''}}
+async function iaB64(file){
+  if(/pdf/i.test(file.type)||/\.pdf$/i.test(file.name)){if(file.size>20e6)throw new Error('PDF muito grande (máx. 20 MB).');const buf=new Uint8Array(await file.arrayBuffer());let s='';for(let i=0;i<buf.length;i+=0x8000)s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));return {b64:btoa(s),mime:'application/pdf'}}
+  const url=URL.createObjectURL(file);try{const img=await new Promise((ok,er)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>er(new Error('Não consegui abrir a imagem.'));im.src=url});
+    const M=1800,k=Math.min(1,M/Math.max(img.naturalWidth,img.naturalHeight));const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    return {b64:cv.toDataURL('image/jpeg',0.85).split(',')[1],mime:'image/jpeg'}}finally{URL.revokeObjectURL(url)}}
+function iaCats(){return planoOpts('pagar').filter(Boolean)}
+/* categoria mais usada antes para um fornecedor/descrição parecida */
+function iaCatHist(nome){const k=nrm(String(nome||'')).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>2).slice(0,2).join(' ');if(!k)return '';const cnt={};
+  S.data.lancamentos.forEach(l=>{if(l.tipo!=='pagar'||!l.categoria||!/^\d/.test(l.categoria))return;const t=nrm((contatoNome(l.contatoId)||'')+' '+(l.contatoNome||'')+' '+(l.descricao||''));if(t.includes(k))cnt[l.categoria]=(cnt[l.categoria]||0)+1});
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];return top?top[0]:''}
+function iaCatMatch(sug){if(!sug)return '';const C=iaCats();const s=nrm(sug);return C.find(c=>nrm(c)===s)||C.find(c=>nrm(c).startsWith(s.split(' ')[0]+' '))||C.find(c=>nrm(c).includes(s.replace(/^[\d.]+\s*-\s*/,'')))||''}
+async function iaChamar(tool,file,prompt){const mcp=await getMcp();if(!mcp||!window.__HOSTED)throw new Error('A leitura por IA funciona no CRM publicado (no site).');const {b64,mime}=await iaB64(file);
+  const r=await mcp.callTool('IA',tool,{arquivo:b64,mime,prompt},{cache:false});const pl=parsePayload(r)||{};if(!pl.dados)throw new Error('A IA não devolveu os dados.');return pl.dados}
+const IA_PROMPT_CONTA=()=>`Você recebe a foto ou PDF de um comprovante de despesa de uma empresa brasileira (cupom fiscal/NFC-e, nota fiscal, boleto, recibo ou fatura de serviço). Extraia os dados e responda SOMENTE com um JSON, sem texto fora dele, neste formato:
+{"tipo_documento":"cupom|nota|boleto|recibo|fatura|outro","fornecedor":"nome fantasia","razao_social":"","cnpj":"só números ou vazio","cidade":"","valor_total":0.00,"data_emissao":"AAAA-MM-DD","vencimento":"AAAA-MM-DD ou vazio","forma_pagamento":"PIX|Cartão de crédito|Cartão de débito|Dinheiro|Boleto|Transferência|vazio","ja_pago":true,"parcelas":1,"numero_documento":"","linha_digitavel":"","itens":[{"descricao":"","valor":0.00}],"categoria":"uma opção EXATA da lista abaixo ou vazio","observacao":"algo importante, curto"}
+Regras: valores em número com ponto decimal; "ja_pago" true para cupom/recibo pago na hora, false para boleto ou fatura a vencer; se tiver parcelamento informe "parcelas" (número de parcelas). Categorias possíveis:
+${iaCats().join('\n')}`;
+const IA_PROMPT_FATURA=()=>`Você recebe a fatura (PDF ou foto) de um cartão de crédito brasileiro. Extraia TODOS os lançamentos de compras do período (inclua compras parceladas com a parcela atual; inclua anuidade, juros, IOF e tarifas como lançamentos; NÃO inclua o pagamento da fatura anterior nem "saldo anterior"). Responda SOMENTE com um JSON, sem texto fora dele:
+{"banco":"","cartao_final":"4 últimos dígitos","titular":"","vencimento":"AAAA-MM-DD","total_fatura":0.00,"itens":[{"data":"AAAA-MM-DD","descricao":"como está na fatura","fornecedor":"nome limpo do estabelecimento","valor":0.00,"parcela":"3/10 ou vazio","estorno":false,"categoria":"opção EXATA da lista abaixo ou vazio"}]}
+Valores positivos para compras; estornos/créditos com "estorno": true e valor positivo. Se a fatura não mostrar o ano da compra, deduza pelo vencimento. Categorias possíveis:
+${iaCats().join('\n')}`;
+/* ---------- 1) foto/PDF de uma conta ---------- */
+function iaPedirArquivo(acao){const i=document.createElement('input');i.type='file';i.accept=acao==='fatura'?'application/pdf,image/*':'image/*,application/pdf';i.onchange=()=>{const f=i.files[0];if(f)(acao==='fatura'?iaFatura(f):iaConta(f))};i.click()}
+function iaEspera(t){$('#modalRoot').innerHTML=`<div class="overlay"><div class="modal" style="max-width:420px"><div class="mbody" style="text-align:center;padding:30px"><div class="spin" style="margin:0 auto 12px;width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite"></div><b>${esc(t)}</b><p class="muted" style="font-size:12.5px;margin:6px 0 0">A IA está lendo o arquivo… leva de 5 a 30 segundos.</p></div></div></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>`}
+async function iaConta(file){iaEspera('Lendo a conta');let d;try{d=await iaChamar('ler_conta',file,IA_PROMPT_CONTA())}catch(e){closeModal();toast(String(e.message||e),true);return}
+  S._iaConta={file,d};iaContaModal()}
+function iaContaModal(){const {file,d}=S._iaConta;const cnpj=String(d.cnpj||'').replace(/\D/g,'');
+  const ex=(cnpj&&S.data.contatos.find(c=>String(c.cpf||'').replace(/\D/g,'')===cnpj))||null;const fid=ex?ex.id:fornAchar(d.fornecedor||d.razao_social);const fc=fid&&S.data.contatos.find(c=>c.id===fid);
+  const cat=iaCatHist(d.fornecedor||d.razao_social)||iaCatMatch(d.categoria);const fp=String(d.forma_pagamento||'');
+  const forma=/pix/i.test(fp)?'PIX':/cr[eé]dito/i.test(fp)?(iaLS('formaCredito')||'Cartão de Crédito Empresarial'):/d[eé]bito|cart/i.test(fp)?(iaLS('formaDebito')||'Cartão de Debito Empresarial'):/boleto/i.test(fp)||d.tipo_documento==='boleto'?'Boleto':/dinheiro/i.test(fp)?'Dinheiro':/transf/i.test(fp)?'Transferência':'';
+  const dt=d.data_emissao||today(),venc=d.vencimento||dt,pago=d.ja_pago!==false&&d.tipo_documento!=='boleto';const itens=(d.itens||[]).filter(i=>i.descricao).map(i=>`${i.descricao}${i.valor?' — '+brl(+i.valor):''}`).join('\n');
+  const isImg=!/pdf/i.test(file.type);const prev=isImg?URL.createObjectURL(file):'';
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:820px"><header><h3>${ic('up',16)} Conta lida pela IA — confira e salve</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody" style="display:grid;grid-template-columns:${isImg?'220px 1fr':'1fr'};gap:16px">${isImg?`<div><img src="${prev}" style="width:100%;border-radius:8px;border:1px solid var(--line)" alt="Foto da conta"><div class="muted" style="font-size:11.5px;margin-top:4px">${esc(d.tipo_documento||'')}${d.numero_documento?' · nº '+esc(d.numero_documento):''}</div></div>`:''}
+   <div class="fgrid">
+    <div class="field full"><label for="ia-forn">Fornecedor</label><input id="ia-forn" list="dl-iaforn" value="${esc(fc?refLabel('contatos',fc):(d.fornecedor||d.razao_social||''))}" autocomplete="off"><datalist id="dl-iaforn">${S.data.contatos.map(r=>`<option value="${esc(refLabel('contatos',r))}">`).join('')}</datalist><span class="sub">${fc?'Fornecedor já cadastrado.':'Novo: vai ser cadastrado'+(cnpj?' com o CNPJ '+esc(cnpj):'')+(d.cidade?' · '+esc(d.cidade):'')+'.'}${d.razao_social&&d.razao_social!==d.fornecedor?' Razão social: '+esc(d.razao_social):''}</span></div>
+    <div class="field"><label for="ia-valor">Valor total</label><input id="ia-valor" data-money inputmode="decimal" value="${esc(moneyFmt(+d.valor_total||0))}"></div>
+    <div class="field"><label for="ia-parc">Parcelas</label><input id="ia-parc" type="number" min="1" max="48" value="${Math.max(1,+d.parcelas||1)}"></div>
+    <div class="field"><label for="ia-data">Data da compra</label><input id="ia-data" type="date" value="${esc(dt)}"></div>
+    <div class="field"><label for="ia-venc">Vencimento ${'(1ª parcela)'}</label><input id="ia-venc" type="date" value="${esc(venc)}"></div>
+    <div class="field"><label for="ia-cat">Categoria</label><select id="ia-cat"><option value="">— escolha —</option>${iaCats().map(c=>`<option ${c===cat?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+    <div class="field"><label for="ia-forma">Forma de pagamento</label><select id="ia-forma"><option value="">—</option>${IA_FORMAS.map(f=>`<option ${f===forma?'selected':''}>${esc(f)}</option>`).join('')}</select></div>
+    <div class="field"><label>Já foi pago?</label><div class="seg"><button type="button" data-iapago="1" class="${pago?'on':''}">Sim</button><button type="button" data-iapago="0" class="${!pago?'on':''}">Não, vou pagar</button></div><input type="hidden" id="ia-pago" value="${pago?1:0}"></div>
+    <div class="field ia-pg" style="${pago?'':'display:none'}"><label for="ia-conta">Pago com a conta</label><select id="ia-conta"><option value="">— escolha —</option>${contasNomes().map(n=>`<option ${n===iaLS('conta')?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
+    <div class="field"><label for="ia-doc">Número do documento</label><input id="ia-doc" value="${esc(d.linha_digitavel||d.numero_documento||'')}"></div>
+    <div class="field full"><label for="ia-desc">Descrição</label><input id="ia-desc" value="${esc((d.fornecedor||d.razao_social||'Compra')+(d.tipo_documento&&d.tipo_documento!=='outro'?' - '+d.tipo_documento:''))}"></div>
+    <div class="field full"><label for="ia-obs">Observações (itens)</label><textarea id="ia-obs" rows="3">${esc([itens,d.observacao].filter(Boolean).join('\n'))}</textarea></div>
+    <p class="muted full" style="font-size:12px;margin:0">${/cr[eé]dito/i.test(forma)?'💳 Compra no cartão de crédito: fica como paga na data em que a fatura vence (coloque esse dia no vencimento). Quando importar a fatura, ela não é lançada de novo.':'A foto fica anexada na conta como comprovante.'}</p>
+   </div></div>
+  <footer><button class="btn" data-close>Cancelar</button><span class="sp"></span><button class="btn pri" data-iasave>${ic('check',15)} Salvar conta</button></footer></div></div>`}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-iapago],[data-iasave],[data-iaconta],[data-iafatura]');if(!t)return;e.preventDefault();e.stopPropagation();const d=t.dataset;
+  if(d.iaconta!==undefined){iaPedirArquivo('conta');return}
+  if(d.iafatura!==undefined){iaPedirArquivo('fatura');return}
+  if(d.iapago!==undefined){$('#ia-pago').value=d.iapago;t.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===t));document.querySelectorAll('.ia-pg').forEach(x=>x.style.display=d.iapago==='1'?'':'none');return}
+  if(d.iasave!==undefined){const {file,d:D}=S._iaConta||{};if(!file)return;const valor=moneyParse($('#ia-valor').value);if(!valor){toast('Informe o valor.',true);return}
+    const n=Math.max(1,Math.min(48,+$('#ia-parc').value||1)),venc=$('#ia-venc').value||today(),dc=$('#ia-data').value||venc,cat=$('#ia-cat').value,forma=$('#ia-forma').value,pago=$('#ia-pago').value==='1',conta=pago?$('#ia-conta').value:'';
+    if(pago&&!conta){toast('Escolha a conta que pagou.',true);return}
+    t.disabled=true;t.textContent='Salvando…';
+    try{let cid='';const fv=$('#ia-forn').value.trim();if(fv){cid=refFromInput(fv,'contatos')||'';if(!cid){const cnpj=String(D.cnpj||'').replace(/\D/g,'');const [pn,...rest]=fv.split(' ');cid=await save('contatos',{nome:pn,sobrenome:rest.join(' '),categoria:'Fornecedor',cpf:cnpj?cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):'',pj:cnpj.length===14,empresa:D.razao_social||'',cidade:D.cidade||'',obs:'Cadastrado pela leitura de conta (IA).'})||''}}
+      if(pago)iaLS('conta',conta);if(/cr[eé]dito/i.test(forma))iaLS('formaCredito',forma);else if(/d[eé]bito/i.test(forma))iaLS('formaDebito',forma);
+      let url='';try{const A=await getAssets();if(A){const r=await A.upload(file);url=r.url||r.id}}catch(_){}
+      const desc=$('#ia-desc').value.trim()||'Compra',obs=$('#ia-obs').value.trim(),doc=$('#ia-doc').value.trim();const cents=Math.round(valor*100),base=Math.floor(cents/n);const ids=[];
+      for(let k=0;k<n;k++){const v=(k===n-1?cents-base*(n-1):base)/100;const vk=(()=>{const x=parseD(venc);return iso(new Date(x.getFullYear(),x.getMonth()+k,x.getDate()))})();
+        const rec={tipo:'pagar',valor:v,vencimento:vk,dataCompra:dc,emissao:dc,descricao:desc+(n>1?` (${k+1}/${n})`:''),obs,documento:doc,forma,contatoId:cid||undefined,pago,dataPagamento:pago?vk:'',conta,contaCod:((bancos().find(b=>b.nome===conta)||{}).codigo)||'',categoria:cat||'',comprovante:url||undefined,origem:'IA'};
+        if(cat&&/^\d+(\.\d+)*\s-\s/.test(cat))rec.planoCod=cat.split(' - ')[0];Object.keys(rec).forEach(k2=>rec[k2]===undefined&&delete rec[k2]);ids.push(await save('lancamentos',rec))}
+      if(url){try{await save('anexos',{id:'ax-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),a:url,nome:file.name||'comprovante.jpg',tam:file.size,tipo:file.type,em:new Date().toISOString(),lancId:ids[0]||'',contatoId:cid||''})}catch(_){}}
+      closeModal();toast(n>1?`${n} parcelas lançadas em Contas a pagar`:'Conta lançada'+(pago?' (paga)':' em Contas a pagar'));render()}catch(err){t.disabled=false;t.textContent='Salvar conta';failWrite(err)}}},true);
+/* ---------- 2) fatura do cartão: conferir com o que já está no CRM e dar baixa ---------- */
+const IA_TOL=v=>Math.max(1,v*0.03); /* diferença de valor aceita para sugerir (centavos variam) */
+async function iaFatura(file){iaEspera('Lendo a fatura do cartão');let d;try{d=await iaChamar('ler_fatura',file,IA_PROMPT_FATURA())}catch(e){closeModal();toast(String(e.message||e),true);return}
+  const fin=String(d.cartao_final||'').replace(/\D/g,'').slice(-4),venc=d.vencimento||today();
+  const ja=new Set(S.data.lancamentos.map(l=>l.faturaRef).filter(Boolean));const dd=(a,b)=>Math.abs((parseD(a)-parseD(b))/864e5);
+  const pool=S.data.lancamentos.filter(l=>l.tipo==='pagar'&&!l.transf&&!l.faturaRef&&l.vencimento&&dd(l.vencimento,venc)<=45&&(!l.pago||String(l.dataPagamento||'')>=addDays(venc,-10)));
+  const vOf=l=>+l.valorOriginal||+l.valor||0;
+  const itens=(d.itens||[]).map((x,i)=>{const desc=String(x.descricao||'').trim(),valor=Math.abs(+x.valor||0),dc=x.data||venc;const ref=[fin,venc,x.data||'',nrm(desc).replace(/\s+/g,' '),valor.toFixed(2),x.parcela||''].join('|');
+    const cands=x.estorno||ja.has(ref)?[]:pool.map(l=>{const dif=Math.abs(vOf(l)-valor);if(dif>IA_TOL(valor))return null;const dCompra=l.dataCompra||String(l.emissao||l.criadoEm||'').slice(0,10);const dist=Math.min(dCompra?dd(dCompra,dc):99,dd(l.vencimento,venc));return {id:l.id,dif,dist,sc:dif*20+dist/3}}).filter(Boolean).sort((a,b)=>a.sc-b.sc).slice(0,6);
+    return {i,data:x.data||'',desc,forn:x.fornecedor||desc,valor,parcela:x.parcela||'',estorno:!!x.estorno,cat:iaCatHist(x.fornecedor||desc)||iaCatMatch(x.categoria),ref,ja:ja.has(ref),cands,exId:'',nivel:'nenhum',on:false}});
+  /* certeza = valor igual (até 1 centavo), data perto e nenhuma outra conta com valor parecido; só essas já vêm marcadas */
+  const usados=new Set();
+  itens.forEach(x=>{const c=x.cands.filter(c=>!usados.has(c.id));if(!c.length)return;const b=c[0];const parecidas=c.filter(y=>y.dif<=0.30).length;
+    if(b.dif<=0.01&&b.dist<=7&&parecidas===1){x.exId=b.id;x.nivel='certo';x.on=true;usados.add(b.id)}});
+  itens.forEach(x=>{if(x.exId)return;const c=x.cands.filter(c=>!usados.has(c.id));if(!c.length)return;x.exId=c[0].id;x.nivel='provavel';usados.add(c[0].id)});
+  const fora=S.data.lancamentos.filter(l=>l.tipo==='pagar'&&!l.transf&&!l.faturaRef&&!l.pago&&!usados.has(l.id)&&/cr[eé]dito/i.test(l.forma||'')&&l.vencimento&&dd(l.vencimento,venc)<=5);
+  S._iaFat={file,d,fin,venc,itens,fora:fora.map(l=>l.id)};iaFaturaModal()}
+function iaLancLabel(l){return `#${l.aid||''} · ${(contatoNome(l.contatoId)||l.contatoNome||l.descricao||'').slice(0,40)} · ${brl(+l.valorOriginal||+l.valor||0)} · venc. ${fdate(l.vencimento).slice(0,5)}${l.pago?' · já paga':''}`}
+function iaFaturaModal(){const F=S._iaFat;const sel=F.itens.filter(x=>x.on);const tot=sel.reduce((a,x)=>a+x.valor,0);const C=iaCats();const nB=sel.filter(x=>x.exId).length,nN=sel.length-nB;
+  const cont=k=>F.itens.filter(x=>x.nivel===k&&!x.estorno&&!x.ja).length;
+  const badge2=x=>x.ja?'<span class="badge">já conferida antes</span>':x.estorno?'<span class="badge">estorno</span>':x.nivel==='certo'?'<span class="badge" style="color:var(--ok)">✓ certeza</span>':x.nivel==='manual'?'<span class="badge" style="color:var(--info)">escolhida por você</span>':x.nivel==='provavel'?'<span class="badge" style="color:var(--warn)">? confira</span>':'<span class="badge">não achei no CRM</span>';
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:1180px"><header><h3>${ic('money',16)} Fatura ${esc(F.d.banco||'')}${F.fin?' · final '+esc(F.fin):''} — conferir e dar baixa</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody" style="display:grid;gap:12px">
+   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+    <div class="field" style="margin:0"><label for="iaf-venc">Vencimento da fatura</label><input id="iaf-venc" type="date" value="${esc(F.venc)}"></div>
+    <div class="field" style="margin:0;min-width:220px"><label for="iaf-forma">Forma</label><select id="iaf-forma">${IA_FORMAS.filter(f=>/cr[eé]dito/i.test(f)).map(f=>`<option ${f===(iaLS('fatForma'+F.fin)||iaLS('formaCredito')||'Cartão de Crédito Empresarial')?'selected':''}>${esc(f)}</option>`).join('')}</select></div>
+    <div class="field" style="margin:0;min-width:220px"><label for="iaf-conta">Paga pela conta</label><select id="iaf-conta"><option value="">— escolha —</option>${contasNomes().map(n=>`<option ${n===(iaLS('fatConta'+F.fin)||iaLS('conta'))?'selected':''}>${esc(n)}</option>`).join('')}</select></div></div>
+   <div class="banner" style="margin:0"><span><b style="color:var(--ok)">${cont('certo')} com certeza</b> (já marcadas) · <b style="color:var(--warn)">${cont('provavel')} para conferir</b> (desmarcadas: confira no site e marque) · <b>${cont('nenhum')} não achadas no CRM</b>${F.d.total_fatura?(()=>{const lido=F.itens.reduce((a,x)=>a+(x.estorno?-x.valor:x.valor),0);const df=+F.d.total_fatura-lido;return ` · total da fatura <b>${brl(+F.d.total_fatura)}</b>, lido ${brl(lido)}${Math.abs(df)>0.05?' <span style="color:var(--warn)">(faltam '+brl(df)+')</span>':' ✓'}`})():''}</span></div>
+   <div class="tbl-wrap" style="max-height:55vh;overflow:auto"><table class="tbl" style="font-size:12.5px"><thead><tr><th><input type="checkbox" data-iaftodos ${sel.length&&sel.length===F.itens.length?'checked':''} aria-label="Marcar todos"></th><th>Data</th><th>Na fatura</th><th class="r">Valor</th><th>Conta no CRM</th><th>Se for nova: fornecedor / categoria</th></tr></thead><tbody>
+   ${F.itens.map(x=>{const l=x.exId&&S.data.lancamentos.find(y=>y.id===x.exId);const dif=l?x.valor-(+l.valorOriginal||+l.valor||0):0;return `<tr class="row" style="${x.on?'':'opacity:.7'}"><td><input type="checkbox" data-iafon="${x.i}" ${x.on?'checked':''}></td><td class="num" style="white-space:nowrap">${fdate(x.data).slice(0,5)}</td><td>${esc(x.desc)}${x.parcela?' <span class="muted">('+esc(x.parcela)+')</span>':''}<div style="margin-top:2px">${badge2(x)}</div></td><td class="r num" style="white-space:nowrap">${x.estorno?'−':''}${brl(x.valor)}${l&&Math.abs(dif)>0.005?`<div style="font-size:11px;color:var(--warn)">CRM ${brl(+l.valorOriginal||+l.valor||0)} (${dif>0?'+':''}${moneyFmt(dif)})</div>`:''}</td>
+     <td>${x.estorno||x.ja?'—':`<select class="search" style="width:240px;padding:4px 6px" data-iafex="${x.i}" data-nativo><option value="">— não está no CRM: cadastrar como nova —</option>${x.cands.map(c=>{const y=S.data.lancamentos.find(z=>z.id===c.id);return y?`<option value="${y.id}" ${y.id===x.exId?'selected':''}>${esc(iaLancLabel(y))}</option>`:''}).join('')}</select>`}</td>
+     <td>${x.exId||x.estorno||x.ja?'<span class="muted">—</span>':`<div style="display:flex;gap:4px"><input class="search" style="width:110px;padding:4px 6px" data-iafforn="${x.i}" value="${esc(x.forn)}"><select class="search" style="width:150px;padding:4px 6px" data-iafcat="${x.i}" data-nativo><option value="">—</option>${C.map(c=>`<option ${c===x.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></div>`}</td></tr>`}).join('')}
+   </tbody></table></div>
+   ${(F.fora||[]).length?`<div class="banner" style="margin:0;border-color:var(--warn)"><span><b>${F.fora.length} conta${F.fora.length===1?'':'s'} do CRM no cartão vencendo perto desta fatura ficou${F.fora.length===1?'':'ram'} sem par:</b> ${F.fora.map(id=>{const l=S.data.lancamentos.find(y=>y.id===id)||{};return esc(iaLancLabel(l))}).join(' · ')}. Pode ser de outro cartão ou da próxima fatura.</span></div>`:''}
+   <p class="muted" style="font-size:12px;margin:0">Só as de <b>certeza</b> (valor igual, data perto e nenhuma outra parecida) já vêm marcadas. As <b>"? confira"</b> trazem a conta mais provável do CRM: confira no site da compra e marque. Se a conta certa for outra, troque em "Conta no CRM". Se o valor da fatura for diferente por centavos, a baixa usa o valor da fatura e guarda o original.</p></div>
+  <footer><button class="btn" data-close>Cancelar</button><span class="sp"></span><button class="btn pri" data-iafsave ${sel.length?'':'disabled'}>${ic('check',15)} Confirmar: ${nB} baixa${nB===1?'':'s'}${nN?` + ${nN} nova${nN===1?'':'s'}`:''} · ${brl(tot)}</button></footer></div></div>`}
+document.addEventListener('change',e=>{const t=e.target;const F=S._iaFat;if(!F||!t.dataset)return;
+  if(t.dataset.iafon!==undefined){F.itens[+t.dataset.iafon].on=t.checked;iaFaturaModal();return}
+  if(t.dataset.iaftodos!==undefined){F.itens.forEach(x=>{if(!x.estorno&&!x.ja)x.on=t.checked});iaFaturaModal();return}
+  if(t.dataset.iafex!==undefined){const x=F.itens[+t.dataset.iafex];x.exId=t.value;x.nivel=t.value?'manual':'nenhum';iaFaturaModal();return}
+  if(t.dataset.iafcat!==undefined){F.itens[+t.dataset.iafcat].cat=t.value;return}
+  if(t.dataset.iafforn!==undefined){F.itens[+t.dataset.iafforn].forn=t.value;return}
+  if(t.id==='iaf-venc')F.venc=t.value});
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-iafsave]');if(!t)return;e.preventDefault();const F=S._iaFat;if(!F)return;
+  const venc=$('#iaf-venc').value||F.venc,forma=$('#iaf-forma').value,conta=$('#iaf-conta').value;if(!conta){toast('Escolha a conta que paga a fatura.',true);return}
+  const L=F.itens.filter(x=>x.on);if(!L.length){toast('Nenhum lançamento marcado.',true);return}
+  const rep=L.filter(x=>x.exId).map(x=>x.exId);if(new Set(rep).size!==rep.length){toast('A mesma conta do CRM foi escolhida em duas linhas. Corrija antes de confirmar.',true);return}
+  iaLS('fatForma'+F.fin,forma);iaLS('fatConta'+F.fin,conta);t.disabled=true;t.textContent='Salvando…';let n=0,nb=0;
+  try{let url='';try{const A=await getAssets();if(A){const r=await A.upload(F.file);url=r.url||r.id}}catch(_){}
+    const cod=((bancos().find(b=>b.nome===conta)||{}).codigo)||'';
+    for(const x of L.filter(y=>y.exId)){const l=S.data.lancamentos.find(y=>y.id===x.exId);if(!l)continue;const ch={pago:true,dataPagamento:venc,conta,contaCod:cod,faturaRef:x.ref,pagoPor:usuarioAtual()};
+      if(Math.abs((+l.valor||0)-x.valor)>0.005){ch.valorOriginal=+l.valorOriginal||+l.valor||0;ch.valor=x.valor}if(!l.forma)ch.forma=forma;if(url&&!l.comprovante)ch.comprovante=url;try{await patch('lancamentos',l.id,ch);nb++}catch(err){}}
+    for(const x of L.filter(y=>!y.exId)){const cid=fornAchar(x.forn);const rec={tipo:x.estorno?'receber':'pagar',valor:x.valor,vencimento:venc,dataCompra:x.data||venc,emissao:x.data||venc,descricao:x.forn+(x.parcela?` (${x.parcela})`:'')+(x.estorno?' - estorno':''),obs:'Fatura '+(F.d.banco||'cartão')+(F.fin?' final '+F.fin:'')+' · '+x.desc,forma,conta,contaCod:cod,pago:true,dataPagamento:venc,categoria:x.cat||'',faturaRef:x.ref,origem:'Fatura',comprovante:url||undefined};
+      if(cid)rec.contatoId=cid;else rec.contatoNome=x.forn;if(x.cat&&/^\d+(\.\d+)*\s-\s/.test(x.cat))rec.planoCod=x.cat.split(' - ')[0];Object.keys(rec).forEach(k=>rec[k]===undefined&&delete rec[k]);try{await save('lancamentos',rec);n++}catch(err){}}
+    if(url){try{await save('anexos',{id:'ax-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),a:url,nome:F.file.name||'fatura.pdf',tam:F.file.size,tipo:F.file.type,em:new Date().toISOString(),fatura:venc})}catch(_){}}
+    closeModal();S._iaFat=null;toast(`Fatura ${fdate(venc)}: ${nb} baixa${nb===1?'':'s'}${n?` e ${n} nova${n===1?'':'s'}`:''}. As que ficaram desmarcadas continuam em aberto.`);render()}catch(err){t.disabled=false;failWrite(err)}});
+
 /* ---- detalhes de uma conta paga / recebida (igual ao Alboom) ---- */
 function lancDetalhe(id,ov){const l=ov||S.data.lancamentos.find(x=>x.id===id);if(!l)return;const pg=l.tipo==='pagar';const c=S.data.contatos.find(x=>x.id===l.contatoId)||{};
   const p=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoId);const orig=+(l.valorOriginal||l.valor)||0,pago=+l.valor||0;
@@ -2349,7 +2483,7 @@ function lancDetalhe(id,ov){const l=ov||S.data.lancamentos.find(x=>x.id===id);if
     ${cel('Emissão',fdate(String(l.emissao||l.criadoEm||'').slice(0,10)))}${cel('Vencimento',fdate(l.vencimento))}${cel('Valor',`<span class="num">${moneyFmt(orig)}</span>`)}
     ${cel('Forma de pagamento',esc(l.forma||''))}${cel('Número do documento',esc(l.documento||''))}${cel('Pedido',p?`<a href="#" data-edit="pedidos" data-id="${p.id}">#${esc(String(p.num||''))} ${esc(p.titulo||'')}</a>`:'')}
     ${cel('Categoria',esc(nomeCat(l.categoria)))}${cel('Lançada por',esc(l.usuario||''))}<div></div>
-    <div style="grid-column:1/-1">${cel('Descrição',esc(l.descricao||''))}</div>
+    <div style="grid-column:1/-1">${cel('Descrição',esc(l.descricao||''))}${l.obs?`<div class="muted" style="font-size:12px;white-space:pre-line;margin-top:4px">${esc(l.obs)}</div>`:''}${l.comprovante?`<a class="btn sm" style="margin-top:6px" href="${esc(l.comprovante)}" target="_blank" rel="noopener">${ic('doc',13)} Ver comprovante</a>`:''}</div>
     ${sec(pg?'Detalhes do pagamento':'Detalhes do recebimento')}
     ${cel('Data',fdate(l.dataPagamento))}<div><div class="muted" style="font-size:12px">Valor</div>${linhas.map(x=>`<div class="num" style="font-weight:600;${cor}">${x[0]}</div>`).join('')}</div><div><div class="muted" style="font-size:12px">Categoria</div>${linhas.map(x=>`<div style="font-weight:600">${esc(x[1])}</div>`).join('')}</div>
     ${restos.length?`<div style="grid-column:1/-1;font-size:13px">${ic('alertT',13)} Pagamento parcial: ${restos.map(x=>`restante de <b>${brl(+x.valor||0)}</b> para ${fdate(x.vencimento)}${x.pago?' (já pago)':''}`).join(' · ')}</div>`:''}
@@ -2425,7 +2559,7 @@ function finListView(mode){
     <div class="toolbar" style="justify-content:space-between"><div style="display:grid;gap:4px"><div class="seg">${[10,25,50,100].map(n=>`<button data-flpp="${n}" class="${pp===n?'on':''}">${n}</button>`).join('')}</div><span class="muted" style="font-size:12px">Itens por página</span></div>
     <div style="display:grid;gap:4px;justify-items:end"><div class="seg"><button data-flpg="1" ${pgN===1?'disabled':''}>«</button><button data-flpg="${pgN-1}" ${pgN===1?'disabled':''}>‹</button>${Array.from({length:nPg},(_,i)=>i+1).filter(i=>Math.abs(i-pgN)<=2||i===1||i===nPg).map((i,k,a)=>`${k&&i-a[k-1]>1?'<button disabled>…</button>':''}<button data-flpg="${i}" class="${i===pgN?'on':''}">${i}</button>`).join('')}<button data-flpg="${pgN+1}" ${pgN===nPg?'disabled':''}>›</button><button data-flpg="${nPg}" ${pgN===nPg?'disabled':''}>»</button></div><span class="muted" style="font-size:12px">Mostrando item ${(pgN-1)*pp+1} a ${Math.min(pgN*pp,nAll)} (total de ${nAll})</span></div></div>`
    :`<div class="empty"><b>Nada por aqui</b><span>Nenhum lançamento com esses filtros.</span></div>`;
-  return loadingOr(`${head(M.t+' · '+FIN_PER[F.per||'todos'],'Financeiro / '+M.t,`<button class="btn" data-flprint>${ic('doc',15)} Imprimir</button><button class="btn" data-flcsv>${ic('copy',15)} Copiar CSV</button>${M.nova?`<button class="btn pri" data-newfin="${M.tipo}">${ic(M.tipo==='pagar'?'up':'down',15)} ${M.nova}</button>`:''}`)}
+  return loadingOr(`${head(M.t+' · '+FIN_PER[F.per||'todos'],'Financeiro / '+M.t,`<button class="btn" data-flprint>${ic('doc',15)} Imprimir</button><button class="btn" data-flcsv>${ic('copy',15)} Copiar CSV</button>${M.tipo==='pagar'?`<button class="btn" data-iaconta title="Tire foto (ou escolha o PDF) de um cupom, nota, boleto ou recibo: a IA preenche a conta">📷 Ler conta (foto)</button><button class="btn" data-iafatura title="Anexe o PDF da fatura do cartão: a IA lista as compras para lançar de uma vez">💳 Conferir fatura</button>`:''}${M.nova?`<button class="btn pri" data-newfin="${M.tipo}">${ic(M.tipo==='pagar'?'up':'down',15)} ${M.nova}</button>`:''}`)}
    <section class="panel"><div class="body" style="display:grid;gap:12px"><div class="toolbar">${sel('forma','Tipo',opts('forma'))}<select class="search" style="flex:0 1 190px" data-flf="per" aria-label="Período">${Object.entries(FIN_PER).filter(([k])=>M.pago?k!=='vencidas':true).map(([k,l])=>`<option value="${k}" ${(F.per||'todos')===k?'selected':''}>${l}</option>`).join('')}</select>${F.per==='custom'?`<input type="date" class="search" style="flex:0 1 160px" data-flf="de" value="${esc(F.de||'')}"><input type="date" class="search" style="flex:0 1 160px" data-flf="ate" value="${esc(F.ate||'')}">`:''}${sel('usuario','Usuário',opts('usuario'))}${M.pago?sel('conta','Conta',contasNomes()):''}
      <input class="search" id="q-fl-${mode}" data-flq="${mode}" placeholder="Buscar (nome, obs, nº do pedido, data aaaa-mm-dd)…" value="${esc(F.q||'')}"></div>${tbl}</div></section>`);
 }
