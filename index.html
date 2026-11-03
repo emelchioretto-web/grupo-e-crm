@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261103152526';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261103155952';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1816,6 +1816,13 @@ async function uploadToProva(id,files,section){
   if(!imgs.length){toast('Nenhuma imagem JPG, PNG ou GIF encontrada nos arquivos.',true);return}
   const p0=S.data.provas.find(x=>x.id===id);const album=p0.tipo==='Álbum';
   const existing=section==='imgs'?(p0.imgs||[]):section==='paginas'?(p0.paginas||[]):[];
+  if(section==='imgs'||section==='paginas'){const nk=n=>String(n||'').trim().toLowerCase();const ja=new Set(existing.map(x=>nk(x.n)));const vistos=new Set();const noLote=[],naProva=[];
+    imgs=imgs.filter(f=>{const k=nk(f.name);if(vistos.has(k)){noLote.push(f.name);return false}vistos.add(k);if(ja.has(k)){naProva.push(f.name);return true}return true});
+    if(naProva.length){const lista=naProva.slice(0,8).join(', ')+(naProva.length>8?` e mais ${naProva.length-8}`:'');
+      if(!confirm(`⚠️ ${naProva.length===1?'Esta foto já está':'Estas '+naProva.length+' fotos já estão'} na prova:\n${lista}\n\nOK = pular as repetidas e enviar só as novas\nCancelar = não enviar nada`)){toast('Envio cancelado.');return}
+      const rep=new Set(naProva.map(nk));imgs=imgs.filter(f=>!rep.has(nk(f.name)))}
+    if(noLote.length)toast(`${noLote.length} foto(s) repetida(s) na seleção foram ignoradas: ${noLote.slice(0,3).join(', ')}${noLote.length>3?'…':''}`,true);
+    if(!imgs.length){toast('Nenhuma foto nova para enviar: todas já estão na prova.',true);return}}
   if(existing.length+imgs.length>2200){toast('Limite de 2.200 imagens por prova. Divida em duas provas.',true);return}
   const PC=cfg().provas;const max=album?2600:1800;const box=!album&&PC.redim?{w:+PC.maxW||1500,h:+PC.maxH||1000}:null;
   let wm=null;if(p0.marcaDagua&&PC.marca&&PC.marca.a){try{const b=await (await fetch(blobUrl(PC.marca.a))).blob();wm={bmp:await createImageBitmap(b),pos:+PC.marca.pos||8,margem:PC.marca.margem}}catch(e){}}
@@ -1840,7 +1847,7 @@ function upProg(){const el=$('#upProg');if(!el||!S.up)return;const u=S.up;el.hid
 async function pvDeleteImgs(id,section,which){
   const p=S.data.provas.find(x=>x.id===id);if(!p)return;const A=await getAssets();
   let list=section==='imgs'?(p.imgs||[]):section==='paginas'?(p.paginas||[]):[p[section]].filter(Boolean);
-  const del=which==='all'?list:list.filter(x=>x.a===which);
+  const del=which==='all'?list:Array.isArray(which)?list.filter(x=>which.includes(x.a)):list.filter(x=>x.a===which);
   const keep=list.filter(x=>!del.includes(x));const ch={};
   if(section==='imgs')ch.imgs=keep;else if(section==='paginas')ch.paginas=keep;else ch[section]=null;
   if(del.some(x=>x.a===p.capaImg))ch.capaImg=(keep[0]&&keep[0].a)||'';
@@ -1849,9 +1856,15 @@ async function pvDeleteImgs(id,section,which){
   if(A){let i=0;const w=async()=>{while(i<del.length){const x=del[i++];try{await A.delete(x.a)}catch(e){}if(x.f){try{await A.delete(x.f)}catch(e){}}}};await Promise.all([w(),w(),w(),w()])}
 }
 function dropZone(section,txt){return `<label class="drop" data-drop="${section}">${ic('upload',44)}<span><b style="color:var(--fg)">${txt||'Arraste e solte as imagens aqui ou clique para selecionar'}</b><br>JPG, PNG ou GIF. Pode soltar também os arquivos <span class="mono">.xmp</span> do Lightroom junto, se as fotos forem RAW.</span><input type="file" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.xmp,image/*" data-upfile="${section}" hidden></label>`}
+/* fotos repetidas na prova (mesmo nome de arquivo): a primeira fica, as outras são marcadas */
+function pvRepetidas(arr){const vistos=new Set();return (arr||[]).filter(x=>{const k=String(x.n||'').trim().toLowerCase();if(vistos.has(k))return true;vistos.add(k);return false})}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-pvrep]');if(!t)return;e.preventDefault();const sec=t.dataset.pvrep;const p=S.data.provas.find(x=>x.id===S.ui.pv.id);if(!p)return;
+  const r=pvRepetidas(sec==='imgs'?p.imgs:p.paginas);if(!r.length)return;if(!confirm(`Remover ${r.length} foto(s) repetida(s)? Fica uma de cada.`))return;t.disabled=true;
+  try{await pvDeleteImgs(p.id,sec,r.map(x=>x.a));toast(`${r.length} repetida(s) removida(s).`)}catch(er){t.disabled=false;toast(String(er.message||er),true)}});
 function imgRows(id,list,section){
   if(!list.length)return '<div class="muted" style="font-size:13px;padding:8px 0">Nenhum arquivo ainda.</div>';
-  return list.map((x,k)=>`<div class="imgrow"><span class="num muted">${k+1}</span><img loading="lazy" src="${blobUrl(x.a)}" alt=""><div style="min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.n)}</div>${x.l?`<span class="lab" style="--c:${LBLC[x.l]}"></span>`:x.lr?`<span class="sub">${esc(x.lr)}</span>`:''}</div><button class="btn sm danger" data-pvdel="${x.a}" data-sec="${section}">Excluir</button><span class="num muted sz" style="text-align:right">${fmtBytes(x.s||0)}</span></div>`).join('');
+  const pv0=S.data.provas.find(x=>x.id===id)||{};const rep=new Set(pvRepetidas(section==='imgs'?pv0.imgs:section==='paginas'?pv0.paginas:[]).map(x=>x.a));
+  return list.map((x,k)=>`<div class="imgrow"><span class="num muted">${k+1}</span><img loading="lazy" src="${blobUrl(x.a)}" alt=""><div style="min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.n)}${rep.has(x.a)?' <b style="color:var(--danger);font-size:11.5px">· repetida</b>':''}</div>${x.l?`<span class="lab" style="--c:${LBLC[x.l]}"></span>`:x.lr?`<span class="sub">${esc(x.lr)}</span>`:''}</div><button class="btn sm danger" data-pvdel="${x.a}" data-sec="${section}">Excluir</button><span class="num muted sz" style="text-align:right">${fmtBytes(x.s||0)}</span></div>`).join('');
 }
 VIEWS.prova=()=>{
   const p=S.data.provas.find(x=>x.id===S.ui.pv.id);
@@ -1927,7 +1940,7 @@ VIEWS.prova=()=>{
      <div style="display:grid;gap:6px"><b style="font-size:13px">Cores do Lightroom → nome da pasta para o cliente</b><span class="muted" style="font-size:12px">O rótulo de cor que você marca no Lightroom vem no XMP de cada foto. Defina aqui o nome que cada cor representa nesta prova.</span>
      <div class="legend-ed">${LBL.map(([k,pt,c])=>`<label><span class="lab" style="--c:${c}"></span><input data-leg="${k}" value="${esc(leg[k])}" aria-label="Nome da cor ${pt}"><button type="button" class="clink num" data-pvfcor="${k}" title="Mostrar só estas" style="${T.fcor===k?'font-weight:700;text-decoration:underline':''}">${cnt[k]||0}</button></label>`).join('')}</div>
      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px">${cnt['']?`<button type="button" class="clink" data-pvfcor="-">${cnt['']} foto(s) sem cor</button> ·`:''} ${T.fcor?`<button type="button" class="clink" data-pvfcor="">mostrar todas</button> ·`:''}</div></div>
-     <div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;font-size:14px">Arquivos <span class="muted num" style="font-weight:400">· ${(p.imgs||[]).length}</span></h3>${(p.imgs||[]).length?`<button class="btn sm danger" style="margin-left:auto" data-pvdelall="imgs">Excluir tudo</button>`:''}</div>
+     <div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;font-size:14px">Arquivos <span class="muted num" style="font-weight:400">· ${(p.imgs||[]).length}</span></h3>${pvRepetidas(p.imgs).length?`<span style="margin-left:auto;color:var(--danger);font-size:12.5px;font-weight:600">⚠️ ${pvRepetidas(p.imgs).length} foto(s) repetida(s)</span><button class="btn sm" data-pvrep="imgs">Remover repetidas</button>`:''}${(p.imgs||[]).length?`<button class="btn sm danger" style="${pvRepetidas(p.imgs).length?'':'margin-left:auto'}" data-pvdelall="imgs">Excluir tudo</button>`:''}</div>
      <div>${(()=>{const L=(p.imgs||[]).filter(x=>!T.fcor||(T.fcor==='-'?!x.l:x.l===T.fcor));return imgRows(p.id,L.slice(0,T.lim||200),'imgs')+(L.length>(T.lim||200)?`<button class="btn sm" data-pvmore style="margin-top:8px">Mostrar mais 200</button>`:'')})()}${false?`<button class="btn sm" data-pvmore style="margin-top:8px">Mostrar mais 200</button>`:''}</div>`;
   }
   const q=(T.q||'').toLowerCase();
