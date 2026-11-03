@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261103150913';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261103151637';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2362,8 +2362,8 @@ function iaCatMatch(sug){if(!sug)return '';const C=iaCats();const s=nrm(sug);ret
 async function iaChamar(tool,file,prompt){const mcp=await getMcp();if(!mcp||!window.__HOSTED)throw new Error('A leitura por IA funciona no CRM publicado (no site).');const {b64,mime}=await iaB64(file);
   const r=await mcp.callTool('IA',tool,{arquivo:b64,mime,prompt},{cache:false});const pl=parsePayload(r)||{};if(!pl.dados)throw new Error('A IA não devolveu os dados.');return pl.dados}
 const IA_PROMPT_CONTA=()=>`Você recebe a foto ou PDF de um comprovante de despesa de uma empresa brasileira (cupom fiscal/NFC-e, nota fiscal, boleto, recibo ou fatura de serviço). Extraia os dados e responda SOMENTE com um JSON, sem texto fora dele, neste formato:
-{"tipo_documento":"cupom|nota|boleto|recibo|fatura|outro","fornecedor":"nome fantasia","razao_social":"","cnpj":"só números ou vazio","cidade":"","valor_total":0.00,"data_emissao":"AAAA-MM-DD","vencimento":"AAAA-MM-DD ou vazio","forma_pagamento":"PIX|Cartão de crédito|Cartão de débito|Dinheiro|Boleto|Transferência|vazio","ja_pago":true,"parcelas":1,"numero_documento":"","linha_digitavel":"","itens":[{"descricao":"","valor":0.00}],"categoria":"uma opção EXATA da lista abaixo ou vazio","observacao":"algo importante, curto"}
-Regras: valores em número com ponto decimal; "ja_pago" true para cupom/recibo pago na hora, false para boleto ou fatura a vencer; se tiver parcelamento informe "parcelas" (número de parcelas). Categorias possíveis:
+{"tipo_documento":"cupom|nota|boleto|recibo|fatura|outro","fornecedor":"nome fantasia","razao_social":"","cnpj":"só números ou vazio","cidade":"","moeda":"BRL|USD|EUR (a moeda em que o valor está impresso)","valor_total":0.00,"data_emissao":"AAAA-MM-DD","vencimento":"AAAA-MM-DD ou vazio","forma_pagamento":"PIX|Cartão de crédito|Cartão de débito|Dinheiro|Boleto|Transferência|vazio","ja_pago":true,"parcelas":1,"numero_documento":"","linha_digitavel":"","itens":[{"descricao":"","valor":0.00}],"categoria":"uma opção EXATA da lista abaixo ou vazio","observacao":"algo importante, curto"}
+Regras: valores em número com ponto decimal, na moeda impressa no documento (se estiver em dólar, "moeda":"USD" e o valor em dólar; não converta); "ja_pago" true para cupom/recibo pago na hora, false para boleto ou fatura a vencer; se tiver parcelamento informe "parcelas" (número de parcelas). Categorias possíveis:
 ${iaCats().join('\n')}`;
 const IA_PROMPT_FATURA=()=>`Você recebe a fatura (PDF ou foto) de um cartão de crédito brasileiro. Extraia TODOS os lançamentos de compras do período (inclua compras parceladas com a parcela atual; inclua anuidade, juros, IOF e tarifas como lançamentos; NÃO inclua o pagamento da fatura anterior nem "saldo anterior"). Responda SOMENTE com um JSON, sem texto fora dele:
 {"banco":"","cartao_final":"4 últimos dígitos","titular":"","vencimento":"AAAA-MM-DD","total_fatura":0.00,"itens":[{"data":"AAAA-MM-DD","descricao":"como está na fatura","fornecedor":"nome limpo do estabelecimento","valor":0.00,"parcela":"3/10 ou vazio","estorno":false,"categoria":"opção EXATA da lista abaixo ou vazio"}]}
@@ -2374,6 +2374,20 @@ function iaPedirArquivo(acao){const i=document.createElement('input');i.type='fi
 function iaEspera(t){$('#modalRoot').innerHTML=`<div class="overlay"><div class="modal" style="max-width:420px"><div class="mbody" style="text-align:center;padding:30px"><div class="spin" style="margin:0 auto 12px;width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite"></div><b>${esc(t)}</b><p class="muted" style="font-size:12.5px;margin:6px 0 0">A IA está lendo o arquivo… leva de 5 a 30 segundos.</p></div></div></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>`}
 async function iaConta(file){iaEspera('Lendo a conta');let d;try{d=await iaChamar('ler_conta',file,IA_PROMPT_CONTA())}catch(e){closeModal();toast(String(e.message||e),true);return}
   S._iaConta={file,d};iaContaModal()}
+/* compra em moeda estrangeira: converte pela cotação do dia da compra + IOF (tudo editável) */
+function iaMoeda(d){const m=String((d&&d.moeda)||'BRL').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);return /^(USD|EUR|GBP)$/.test(m)?m:'BRL'}
+function iaCambioCalc(){const v=moneyParse(($('#ia-vorig')||{}).value||''),c=parseFloat(String(($('#ia-cot')||{}).value||'').replace(',','.')),i=parseFloat(String(($('#ia-iof')||{}).value||'0').replace(',','.'))||0;
+  if(!v||!c)return;const r=Math.round(v*c*(1+i/100)*100)/100;const el=$('#ia-valor');if(el)el.value=moneyFmt(r);const sb=$('#ia-cotsub');if(sb&&sb.dataset.base)sb.textContent=sb.dataset.base+' → '+brl(r)}
+async function iaCotacao(moeda,data){const sb=$('#ia-cotsub'),ci=$('#ia-cot');if(!ci)return;
+  const ymd=d=>String(d).replace(/-/g,'');let val=0,quando='';
+  try{const ini=addDays(data,-6);const r=await fetch(`https://economia.awesomeapi.com.br/json/daily/${moeda}-BRL/10?start_date=${ymd(ini)}&end_date=${ymd(data)}`);const j=await r.json();
+    if(Array.isArray(j)&&j.length){const x=j[0];val=+x.ask||+x.bid;quando=new Date(+x.timestamp*1000).toLocaleDateString('pt-BR')}}catch(e){}
+  if(!val)try{const r=await fetch(`https://economia.awesomeapi.com.br/json/last/${moeda}-BRL`);const j=await r.json();const x=j[moeda+'BRL'];if(x){val=+x.ask||+x.bid;quando='hoje'}}catch(e){}
+  if(!$('#ia-cot'))return;
+  if(val){ci.value=val.toFixed(4).replace('.',',');if(sb){sb.dataset.base=`Cotação de ${quando}: R$ ${val.toFixed(4).replace('.',',')} + IOF`;sb.textContent=sb.dataset.base}}
+  else if(sb){sb.dataset.base='Não achei a cotação: digite a do dia (veja na fatura do cartão)';sb.textContent=sb.dataset.base}
+  iaCambioCalc()}
+document.addEventListener('input',e=>{const id=e.target&&e.target.id;if(id==='ia-vorig'||id==='ia-cot'||id==='ia-iof'){if(id==='ia-iof')iaLS('iof',e.target.value);iaCambioCalc()}});
 /* bloqueio de conta repetida: mesmo cupom (CNPJ + número) ou mesmo número de documento do mesmo fornecedor */
 function iaChaveDe(D,doc){const c=String((D&&D.cnpj)||'').replace(/\D/g,''),n=String(doc||(D&&D.numero_documento)||'').replace(/\D/g,'').replace(/^0+/,'');return c&&n?c+'|'+n:''}
 function iaDup(D,valor,dc,cid,doc){const k=iaChaveDe(D,doc),nd=String(doc||'').replace(/\D/g,'').replace(/^0+/,'');const L=(S.data.lancamentos||[]).filter(l=>l.tipo==='pagar'&&!l.transf);
@@ -2400,7 +2414,7 @@ async function iaApelidoGuardar(cid,cnpj,nome){const c=S.data.contatos.find(x=>x
   const L=[...(c.iaApelidos||[])];[cnpj,nrm(nome||'')].forEach(k=>{if(k&&!L.includes(k))L.push(k)});if(L.length===(c.iaApelidos||[]).length)return;
   S.data.contatos.forEach(x=>{if(x.id!==cid&&Array.isArray(x.iaApelidos)&&x.iaApelidos.some(k=>L.includes(k)))save('contatos',{...x,iaApelidos:x.iaApelidos.filter(k=>!L.includes(k))}).catch(()=>{})});
   try{await save('contatos',{...c,iaApelidos:L})}catch(e){}}
-function iaContaModal(){const {file,d}=S._iaConta;const cnpj=String(d.cnpj||'').replace(/\D/g,'');
+function iaContaModal(){const {file,d}=S._iaConta;if(iaMoeda(d)!=='BRL')setTimeout(()=>iaCotacao(iaMoeda(d),d.data_emissao||today()),50);const cnpj=String(d.cnpj||'').replace(/\D/g,'');
   const ap=iaApelidoAchar(cnpj,d.fornecedor||d.razao_social);const ex=ap||(cnpj&&S.data.contatos.find(c=>String(c.cpf||'').replace(/\D/g,'')===cnpj))||null;const fid=ex?ex.id:fornAchar(d.fornecedor||d.razao_social);const fc=fid&&S.data.contatos.find(c=>c.id===fid);
   const cat=iaCatHist(d.fornecedor||d.razao_social)||iaCatMatch(d.categoria);const fp=String(d.forma_pagamento||'');
   const forma=/pix/i.test(fp)?'PIX':/cr[eé]dito/i.test(fp)?(iaLS('formaCredito')||'Cartão de Crédito Empresarial'):/d[eé]bito|cart/i.test(fp)?(iaLS('formaDebito')||'Cartão de Debito Empresarial'):/boleto/i.test(fp)||d.tipo_documento==='boleto'?'Boleto':/dinheiro/i.test(fp)?'Dinheiro':/transf/i.test(fp)?'Transferência':'';
@@ -2411,7 +2425,12 @@ function iaContaModal(){const {file,d}=S._iaConta;const cnpj=String(d.cnpj||'').
    <div class="fgrid">
     ${iaDupHTML(iaDup(d,+d.valor_total||0,dt,fid,d.numero_documento))}
     <div class="field full"><label for="ia-forn">Fornecedor</label><input id="ia-forn" list="dl-iaforn" value="${esc(fc?refLabel('contatos',fc):(d.fornecedor||d.razao_social||''))}" autocomplete="off"><datalist id="dl-iaforn">${S.data.contatos.map(r=>`<option value="${esc(refLabel('contatos',r))}">`).join('')}</datalist><span class="sub" id="ia-fornsub">${fc?(ap?'Fornecedor que você usa para este estabelecimento.':'Fornecedor já cadastrado.'):'Novo: vai ser cadastrado'+(cnpj?' com o CNPJ '+esc(cnpj):'')+(d.cidade?' · '+esc(d.cidade):'')+'.'}${d.razao_social&&d.razao_social!==d.fornecedor?' Razão social: '+esc(d.razao_social):''}</span></div>
-    <div class="field"><label for="ia-valor">Valor total</label><input id="ia-valor" data-money inputmode="decimal" value="${esc(moneyFmt(+d.valor_total||0))}"></div>
+    ${iaMoeda(d)!=='BRL'?`<div class="field full" id="ia-cambio" style="background:#eef4ff;border:1px solid #b9cdf3;border-radius:10px;padding:10px 12px"><b>💱 Compra em ${iaMoeda(d)==='USD'?'dólar':iaMoeda(d)==='EUR'?'euro':esc(iaMoeda(d))}</b>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px"><div><label for="ia-vorig" style="font-size:12px">Valor em ${iaMoeda(d)==='USD'?'US$':iaMoeda(d)==='EUR'?'€':esc(iaMoeda(d))}</label><input id="ia-vorig" data-money inputmode="decimal" value="${esc(moneyFmt(+d.valor_total||0))}"></div>
+      <div><label for="ia-cot" style="font-size:12px">Cotação (R$)</label><input id="ia-cot" inputmode="decimal" placeholder="buscando…"></div>
+      <div><label for="ia-iof" style="font-size:12px">IOF %</label><input id="ia-iof" inputmode="decimal" value="${esc(iaLS('iof')||'3,5')}"></div></div>
+      <span class="sub" id="ia-cotsub">Buscando a cotação do dia da compra…</span></div>`:''}
+    <div class="field"><label for="ia-valor">Valor total${iaMoeda(d)!=='BRL'?' em reais':''}</label><input id="ia-valor" data-money inputmode="decimal" value="${esc(iaMoeda(d)!=='BRL'?'':moneyFmt(+d.valor_total||0))}"></div>
     <div class="field"><label for="ia-parc">Parcelas</label><input id="ia-parc" type="number" min="1" max="48" value="${Math.max(1,+d.parcelas||1)}"></div>
     <div class="field"><label for="ia-data">Data da compra</label><input id="ia-data" type="date" value="${esc(dt)}"></div>
     <div class="field"><label for="ia-venc">Vencimento ${'(1ª parcela)'}</label><input id="ia-venc" type="date" value="${esc(venc)}"><div id="ia-cartdias" style="display:${cred?'flex':'none'};gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center"><span class="muted" style="font-size:12px">Fatura vence dia:</span>${iaCartDias().map(n=>`<button type="button" class="btn${+iaLS('diaCartao')===n?' pri':''}" data-iadia="${n}" style="padding:4px 10px">${n}</button>`).join('')}</div></div>
@@ -2437,7 +2456,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     try{let cid='';const fv=$('#ia-forn').value.trim();if(fv){cid=refFromInput(fv,'contatos')||'';if(cid)iaApelidoGuardar(cid,String(D.cnpj||'').replace(/\D/g,''),D.fornecedor||D.razao_social);if(!cid){const cnpj=String(D.cnpj||'').replace(/\D/g,'');const [pn,...rest]=fv.split(' ');cid=await save('contatos',{nome:pn,sobrenome:rest.join(' '),categoria:'Fornecedor',cpf:cnpj?cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):'',pj:cnpj.length===14,empresa:D.razao_social||'',cidade:D.cidade||'',obs:'Cadastrado pela leitura de conta (IA).'})||''}}
       if(pago)iaLS('conta',conta);if(/cr[eé]dito/i.test(forma))iaLS('formaCredito',forma);else if(/d[eé]bito/i.test(forma))iaLS('formaDebito',forma);
       let url='';try{const A=await getAssets();if(A){const r=await A.upload(file);url=r.url||r.id}}catch(_){}
-      const desc=$('#ia-desc').value.trim()||'Compra',obs=$('#ia-obs').value.trim(),doc=$('#ia-doc').value.trim();const cents=Math.round(valor*100),base=Math.floor(cents/n);const ids=[];
+      const desc=$('#ia-desc').value.trim()||'Compra',obs=[$('#ia-vorig')?`Compra em ${iaMoeda(D)} ${$('#ia-vorig').value} × cotação ${$('#ia-cot').value} + IOF ${$('#ia-iof').value}%`:'',$('#ia-obs').value.trim()].filter(Boolean).join('\n'),doc=$('#ia-doc').value.trim();const cents=Math.round(valor*100),base=Math.floor(cents/n);const ids=[];
       for(let k=0;k<n;k++){const v=(k===n-1?cents-base*(n-1):base)/100;const vk=(()=>{const x=parseD(venc);return iso(new Date(x.getFullYear(),x.getMonth()+k,x.getDate()))})();
         const rec={tipo:'pagar',valor:v,vencimento:vk,dataCompra:dc,emissao:dc,descricao:desc+(n>1?` (${k+1}/${n})`:''),obs,documento:doc,forma,contatoId:cid||undefined,pago,dataPagamento:pago?vk:'',conta,contaCod:((bancos().find(b=>b.nome===conta)||{}).codigo)||'',categoria:cat||'',comprovante:url||undefined,origem:'IA',iaChave:iaChaveDe(D,doc)||undefined};
         if(cat&&/^\d+(\.\d+)*\s-\s/.test(cat))rec.planoCod=cat.split(' - ')[0];Object.keys(rec).forEach(k2=>rec[k2]===undefined&&delete rec[k2]);ids.push(await save('lancamentos',rec))}
