@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261103170440';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261103174158';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1259,7 +1259,7 @@ function render(){try{quemTopo()}catch(e){}if(S.semAcesso){document.body.innerHT
   const v=S.ui.view,el=$('#view');
   const fn=(typeof modOffView==='function'&&modOffView(v))?VIEWS.modoff:(VIEWS[v]||VIEWS.inicio);
   el.innerHTML=fn();
-  if(aid&&aid.startsWith('q-')){const n=document.getElementById(aid);if(n){n.focus();try{n.setSelectionRange(sel,sel)}catch(e){}}}
+  if(aid&&(aid.startsWith('q-')||aid==='atd-cli'||aid==='atd-eq')){const n=document.getElementById(aid);if(n){n.focus();try{n.setSelectionRange(sel,sel)}catch(e){}}}
   if(v==='funil')wireKanban();
   if(v==='provaview')wireAlbum();
 }
@@ -5480,7 +5480,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.c
 const ATD_LS='grupoe-atd-demo';
 const ATD_NUM={prime:{nome:'Prime 360',fone:'(47) 99720-4636',cor:'#1f6f4a'},foto:{nome:'Fotografia',fone:'Elton Fotografia',cor:'#7a4fb5'}};
 const ATD_PERTO=['guaramirim','jaraguá do sul','jaragua do sul','joinville','schroeder','corupá','corupa','massaranduba','blumenau','pomerode','são bento do sul','sao bento do sul','rio negrinho','campo alegre','araquari','barra velha','balneário barra do sul','balneario barra do sul','são francisco do sul','sao francisco do sul','gaspar','indaial','timbó','timbo','luiz alves','navegantes','itajaí','itajai','penha','piçarras','picarras','balneário piçarras','garuva','itapoá','itapoa'];
-function atdCfg(){const c=(S.cfg&&S.cfg.atendimento)||{};return {modo:c.modo||'ambos',ini:c.ini||'08:00',fim:c.fim||'18:00',sab:!!c.sab,perto:c.perto||ATD_PERTO.join(', ')}}
+function atdCfg(){const c=(S.cfg&&S.cfg.atendimento)||{};return {disp:c.disp||'livre',modo:c.modo||'ambos',ini:c.ini||'08:00',fim:c.fim||'18:00',sab:!!c.sab,perto:c.perto||ATD_PERTO.join(', ')}}
 function atdForaHorario(d){d=d||new Date();const C=atdCfg();const w=d.getDay();if(w===0||(w===6&&!C.sab))return true;const hm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');return hm<C.ini||hm>=C.fim}
 function atdLoad(){if(S.atd)return S.atd;let v=null;try{v=JSON.parse(localStorage.getItem(ATD_LS)||'null')}catch(e){}S.atd=v||atdExemplos();return S.atd}
 function atdSalvar(){try{localStorage.setItem(ATD_LS,JSON.stringify(S.atd))}catch(e){}}
@@ -5535,7 +5535,7 @@ function atdBot(c,txt){const t=String(txt||'').trim(),n=nrm(t);const L=c.lead=c.
   if(c.etapa==='data'){const d=dataDe(t);if(!d)return 'Me passa a data assim, por favor: dia/mês (ex.: 14/11).';L.data=d;const cm=t.replace(/.*\d\s*(em|,|-)\s*/i,'').trim();if(cm&&cm!==t&&!/\d/.test(cm)){L.cidade=cm;return fim()}c.etapa='cidade';return `Anotado: ${fdate(d)}.\n\nE em qual cidade vai ser o evento?`}
   if(c.etapa==='cidade'){L.cidade=t.replace(/^(em|na|no)\s+/i,'');return fim()}
   return null}
-function atdEnviarCliente(txt){const c=atdConv();if(!c||!txt.trim())return;c.msgs.push({de:'cli',t:txt.trim(),em:new Date().toISOString()});
+function atdEnviarCliente(txt){const c=atdConv();if(!c||!txt.trim())return;if(S.ui.atd)S.ui.atd.dcli='';c.msgs.push({de:'cli',t:txt.trim(),em:new Date().toISOString()});
   if(c.status==='bot'){if(window.__HOSTED){atdSalvar();atdResponder(c);return}const r=atdBot(c,txt);if(r)setTimeout(()=>{c.msgs.push({de:'bot',t:r,em:new Date().toISOString()});atdSalvar();render()},700)}
   atdSalvar();render()}
 function atdNovaConversa(num){const A=atdLoad();const id='c'+Date.now().toString(36);const nomes=['Mariana Souza','Carlos Pereira','Ana Paula','Lucas Schmitt','Fernanda Kraus'];
@@ -5584,11 +5584,25 @@ Ações (o sistema executa):
 
 Responda SOMENTE com um JSON, sem nada fora dele:
 {"resposta":"texto para o cliente","acao":"continuar|passar|casamento","dados":{"nome":"","produto":"","data":"AAAA-MM-DD ou vazio","cidade":""}}`}
+/* a IA consulta a agenda do CRM: datas citadas na conversa -> equipamentos livres/ocupados e operadores */
+function atdDatasConversa(c){const out=new Set();if(c.lead&&c.lead.data)out.add(c.lead.data);
+  c.msgs.filter(m=>m.de==='cli').forEach(m=>{const re=/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/g;let x;while((x=re.exec(m.t))){let y=x[3]?+x[3]:new Date().getFullYear();if(y<100)y+=2000;const d=`${y}-${String(+x[2]).padStart(2,'0')}-${String(+x[1]).padStart(2,'0')}`;if(!isNaN(parseD(d))&&+x[2]>=1&&+x[2]<=12&&+x[1]>=1&&+x[1]<=31)out.add(!x[3]&&d<today()?`${y+1}${d.slice(4)}`:d)}});
+  return [...out].filter(d=>d>=today()).slice(-3)}
+function atdAgendaIA(c){const modo=atdCfg().disp;const ds=atdDatasConversa(c);if(!ds.length)return '';
+  const linhas=ds.map(d=>{const ev={};ev[d]=agendaAll().filter(e=>e.data===d);let x;try{x=diaDisp(d,null,ev)}catch(e){return ''}
+    return `${fdate(d)}: `+x.itens.map(i=>`${i.nome.replace(/\s*\(.*\)/,'')} = ${i.livres>0&&(!i.precisaOp||x.opLivres>0)?'LIVRE':'OCUPADO'}`).join('; ')}).filter(Boolean).join('\n');
+  const regra=modo==='nunca'?'NÃO revele esta informação ao cliente: diga que a equipe vai verificar a disponibilidade (seção 6).'
+    :`Esta regra SUBSTITUI a seção 6 da instrução. Use a agenda assim:
+- Equipamento pedido LIVRE na data: diga que o equipamento está disponível na agenda para essa data e que a equipe vai confirmar a locação e enviar os valores. Nunca diga que a data está garantida ou reservada. Continue coletando o que falta (cidade etc.) e encaminhe para a equipe.
+- Equipamento pedido OCUPADO: diga com cordialidade que para essa data esse equipamento já está reservado${modo==='livre'?' e ofereça os outros equipamentos que estão LIVRES nessa data (em lista, um por linha) ou outra data':''}. Se o cliente escolher outro equipamento livre, diga também que a equipe vai confirmar a locação e enviar os valores.
+- Nunca fale de quantidades, de outros clientes ou de eventos marcados.
+- Fotografia e filmagem (Elton) não estão nesta lista: para elas diga que a equipe verifica a agenda.`;
+  return `\n\n=== AGENDA DO CRM (dado interno, atualizado agora) ===\n${linhas}\n${regra}`}
 async function atdIA(c){const mcp=await getMcp();if(!mcp||!window.__HOSTED)return null;
   const msgs=[];c.msgs.forEach(m=>{const role=m.de==='cli'?'user':'assistant';const t=m.de==='eq'?'[atendente humano] '+m.t:m.t;const L=msgs[msgs.length-1];if(L&&L.role===role)L.content+='\n'+t;else msgs.push({role,content:t})});
   if(!msgs.length||msgs[0].role!=='user')msgs.unshift({role:'user',content:'(início da conversa)'});
   if(msgs[msgs.length-1].role!=='user')return null;
-  const sys=atdSystem(c)+(c.nome?`\nNome do cliente no WhatsApp: ${c.nome}.`:'');
+  const sys=atdSystem(c)+(c.nome?`\nNome do cliente no WhatsApp: ${c.nome}.`:'')+atdAgendaIA(c);
   const pede=async extra=>{const r=await mcp.callTool('IA','chat',{system:sys+(extra||''),messages:msgs},{cache:false});const pl=parsePayload(r)||{};const tx=String(pl.texto||'');const m=tx.match(/\{[\s\S]*\}/);if(!m)throw new Error('A IA não respondeu no formato.');return JSON.parse(m[0])};
   let j=await pede();
   /* travas: português, sem preço, sem emoji */
@@ -5611,7 +5625,7 @@ VIEWS.atendimento=()=>{const A=atdLoad();const U=S.ui.atd=S.ui.atd||{f:'todos'};
   const ult=x=>x.msgs[x.msgs.length-1];
   const cnt=k=>A.conv.filter(x=>x.status===k).length;
   const bolha=m=>{const cls=m.de==='cli'?'cli':m.de==='bot'?'bot':'eq';const hr=new Date(m.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    return `<div class="atd-b ${cls}"><div class="atd-q">${m.de==='bot'?(m.ia?'🤖 IA'+(m.modelo?' · '+m.modelo:''):'🤖 Bot'):m.de==='eq'?'👤 '+esc(m.quem||'Equipe')+(m.app?' · pelo app':''):esc(c.nome)}</div><div style="white-space:pre-wrap">${esc(m.t)}</div><div class="atd-h">${hr}</div></div>`};
+    return `<div class="atd-b ${cls}"><div class="atd-q">${m.de==='bot'?(m.ia?'🤖 IA'+(m.modelo?' · '+m.modelo:''):'🤖 Bot'):m.de==='eq'?'👤 '+esc(m.quem||'Equipe')+(m.app?' · pelo app':''):esc(c.nome)}</div><div style="white-space:pre-wrap">${esc(m.t).replace(/\*([^*\n]+)\*/g,'<b>$1</b>')}</div><div class="atd-h">${hr}</div></div>`};
   const st=ATD_ST[c.status]||ATD_ST.bot;
   return `${head('Atendimento WhatsApp','Atendimento',`<button class="btn pri" data-atdnova="prime">+ Simular um cliente</button>`)}
   <div class="atd-demo">🧪 <b>Demonstração.</b> Ainda não está ligado ao WhatsApp: aqui você vê como vai funcionar. Escreva como se fosse o cliente e veja a IA responder (com a sua Instrução Mestra). Quando ligarmos, as conversas de verdade aparecem aqui sozinhas e vocês continuam respondendo pelo app do WhatsApp normalmente.</div>
@@ -5623,12 +5637,13 @@ VIEWS.atendimento=()=>{const A=atdLoad();const U=S.ui.atd=S.ui.atd||{f:'todos'};
       <div style="display:flex;gap:6px;flex-wrap:wrap">${c.status!=='equipe'?`<button class="btn sm pri" data-atdst="equipe">👤 Assumir conversa</button>`:`<button class="btn sm" data-atdst="bot">🤖 Devolver ao bot</button>`}<button class="btn sm" data-atdopp>+ Criar oportunidade</button></div></div>
     <div class="atd-lead"><div><span>Produto</span><b>${esc(c.lead&&c.lead.produto||'—')}</b></div><div><span>Data</span><b>${c.lead&&c.lead.data?fdate(c.lead.data):'—'}</b></div><div><span>Cidade</span><b>${esc(c.lead&&c.lead.cidade||'—')}${c.lead&&c.lead.cidade&&c.num==='prime'&&!atdPerto(c.lead.cidade)?' <em style="color:var(--warn);font-style:normal">(+100 km: mín. 4h)</em>':''}</b></div><div class="atd-disp"><span>Agenda do CRM nesse dia (só a equipe vê)</span><div>${atdDispHTML(c.lead)}</div></div></div>
     <div class="atd-msgs" id="atd-msgs">${c.msgs.map(bolha).join('')}${c._pensando?'<div class="atd-b bot" style="opacity:.7"><div class="atd-q">🤖 IA</div>digitando…</div>':''}${c.msgs.length?'':'<div class="muted" style="text-align:center;padding:30px">Escreva abaixo a primeira mensagem do cliente.</div>'}</div>
-    <div class="atd-send"><div class="atd-sendrow"><input id="atd-cli" placeholder="Escreva como se fosse o CLIENTE…" autocomplete="off"><button class="btn" data-atdcli>Cliente envia</button></div>
-     <div class="atd-sendrow"><input id="atd-eq" placeholder="Responder como EQUIPE (no real, vocês respondem pelo app)…" autocomplete="off"><button class="btn pri" data-atdeq>Equipe responde</button></div></div>`:''}
+    <div class="atd-send"><div class="atd-sendrow"><input id="atd-cli" placeholder="Escreva como se fosse o CLIENTE…" autocomplete="off" value="${esc(U.dcli||'')}"><button class="btn" data-atdcli>Cliente envia</button></div>
+     <div class="atd-sendrow"><input id="atd-eq" placeholder="Responder como EQUIPE (no real, vocês respondem pelo app)…" autocomplete="off" value="${esc(U.deq||'')}"><button class="btn pri" data-atdeq>Equipe responde</button></div></div>`:''}
    </div></div>
   <details class="panel atd-cfg"><summary><b>⚙️ Como o bot vai trabalhar</b> <span class="muted">(regras — dá para mudar a qualquer hora)</span></summary>
    <div class="fgrid" style="margin-top:10px">
     <div class="field full"><label>Quando o bot responde</label><select data-atdcfg="modo">${[['ambos','Primeiro contato durante o dia + atendimento completo fora do horário'],['primeiro','Só o primeiro contato (triagem) e passa para vocês'],['fora','Só fora do horário']].map(([k,l])=>`<option value="${k}" ${C.modo===k?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field full"><label>A IA consulta a agenda do CRM e…</label><select data-atdcfg="disp">${[['livre','diz se está livre na agenda (a equipe confirma a locação e os valores) e, se estiver ocupado, oferece os livres (recomendado)'],['sim','diz se está livre ou ocupado, sem oferecer outros'],['nunca','nunca fala de disponibilidade (a equipe confirma)']].map(([k,l])=>`<option value="${k}" ${C.disp===k?'selected':''}>${l}</option>`).join('')}</select></div>
     <div class="field"><label>Horário comercial: início</label><input type="time" data-atdcfg="ini" value="${C.ini}"></div>
     <div class="field"><label>Fim</label><input type="time" data-atdcfg="fim" value="${C.fim}"></div>
     <div class="field full"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-atdcfg="sab" ${C.sab?'checked':''} style="width:auto"> Sábado é horário comercial</label></div>
@@ -5644,10 +5659,11 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
   const c=atdConv();if(!c)return;
   if(d.atdst){c.status=d.atdst;if(d.atdst==='bot'&&c.etapa==='fim')c.etapa='menu';atdSalvar();toast(d.atdst==='equipe'?'Conversa com vocês: o bot não responde mais aqui.':'O bot voltou a atender esta conversa.');render();return}
   if(t.hasAttribute('data-atdcli')){const i=$('#atd-cli');atdEnviarCliente(i.value);return}
-  if(t.hasAttribute('data-atdeq')){const i=$('#atd-eq');if(!i.value.trim())return;c.msgs.push({de:'eq',quem:(typeof usuarioAtual==='function'&&usuarioAtual())||'Equipe',t:i.value.trim(),em:new Date().toISOString()});c.status='equipe';atdSalvar();render();return}
+  if(t.hasAttribute('data-atdeq')){const i=$('#atd-eq');if(!i.value.trim())return;if(S.ui.atd)S.ui.atd.deq='';c.msgs.push({de:'eq',quem:(typeof usuarioAtual==='function'&&usuarioAtual())||'Equipe',t:i.value.trim(),em:new Date().toISOString()});c.status='equipe';atdSalvar();render();return}
   if(t.hasAttribute('data-atdopp')){const L=c.lead||{};toast(`Na versão ligada, isto cria a oportunidade "${c.nome}${L.produto?' - '+L.produto:''}${L.data?' - '+fdate(L.data):''}${L.cidade?' - '+L.cidade:''}" em Oportunidades.`);return}});
 document.addEventListener('keydown',e=>{if(e.key!=='Enter'||!e.target)return;if(e.target.id==='atd-cli'){e.preventDefault();atdEnviarCliente(e.target.value)}else if(e.target.id==='atd-eq'){e.preventDefault();const b=document.querySelector('[data-atdeq]');if(b)b.click()}});
 document.addEventListener('change',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.atdcfg;if(!k)return;const v=e.target.type==='checkbox'?e.target.checked:e.target.value;cfgSet('atendimento',{...((S.cfg&&S.cfg.atendimento)||{}),[k]:v});toast('Regra salva.')});
+document.addEventListener('input',e=>{const id=e.target&&e.target.id;if((id==='atd-cli'||id==='atd-eq')&&S.ui.atd)S.ui.atd[id==='atd-cli'?'dcli':'deq']=e.target.value});
 setInterval(()=>{const m=document.getElementById('atd-msgs');if(m&&!m.dataset.f){m.dataset.f=1;m.scrollTop=m.scrollHeight}},300);
 /* ---- atalho do celular: botão flutuante 📷 (ler conta / conferir fatura) e abertura direta pelo ícone do app ---- */
 function iaAtalhoOk(){return !!window.__HOSTED&&S.mode==='db'&&!S.semAcesso&&!modOffView('finap')}
