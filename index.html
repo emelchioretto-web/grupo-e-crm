@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261103183631';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261103184220';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4732,7 +4732,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 },true);
 
 /* ===== Galeria do cliente (galeria.html no GitHub Pages + Firestore) ===== */
-const GAL_BASE='https://emelchioretto-web.github.io/grupo-e-crm/galeria.html';
+const GAL_BASE='https://cliente.elton.art.br/galeria.html';
 const pvLink=(p,cid)=>GAL_BASE+'#'+p.galeria+(cid?'.'+cid:'');
 /* link que vai para o cliente: sempre a galeria do CRM; link antigo da Alboom nunca é usado */
 const pvLinkCli=(p,cid)=>(window.__HOSTED&&p&&p.galeria)?pvLink(p,cid):(p&&p.link&&!/alboom/i.test(p.link)?p.link:'');
@@ -5724,7 +5724,7 @@ document.addEventListener('change',e=>{const k=e.target&&e.target.dataset&&e.tar
 document.addEventListener('input',e=>{const id=e.target&&e.target.id;if((id==='atd-cli'||id==='atd-eq')&&S.ui.atd)S.ui.atd[id==='atd-cli'?'dcli':'deq']=e.target.value});
 setInterval(()=>{const m=document.getElementById('atd-msgs');if(m&&!m.dataset.f){m.dataset.f=1;m.scrollTop=m.scrollHeight}},300);
 /* ===== Área do cliente (fotografia): cada cliente tem um link pessoal com galerias, contratos, agenda e financeiro ===== */
-const PORTAL_BASE_DEF='https://emelchioretto-web.github.io/grupo-e-crm/cliente/#';
+const PORTAL_BASE_DEF='https://cliente.elton.art.br/#';
 function portalBase(){return (S.cfg&&S.cfg.portalBase)||PORTAL_BASE_DEF}
 function portalLink(c){return c&&c.portal&&c.portal.slug?portalBase()+c.portal.slug:''}
 function portalSlug(c){const n=nrm([c.nome,c.sobrenome].filter(Boolean).join(' ')||'cliente').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').split('-').slice(0,2).join('-')||'cliente';
