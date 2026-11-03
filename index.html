@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261103180056';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261103181042';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1470,7 +1470,7 @@ function propHTML(p){const E=cfg().estudio||{};const c=S.data.contatos.find(x=>x
 <style>
 @page{size:A4;margin:14mm 12mm}
 *{box-sizing:border-box}body{font-family:"Helvetica Neue",Arial,sans-serif;color:#222;font-size:11.5px;margin:0;background:#f2f2f2}
-.pg{max-width:800px;margin:20px auto;background:#fff;padding:28px 30px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.pg{max-width:800px;min-height:1131px;margin:20px auto;background:#fff;padding:28px 30px;box-shadow:0 2px 12px rgba(0,0,0,.08);display:flex;flex-direction:column}.pg .foot{margin-top:auto;padding-top:22px}
 .bar{max-width:800px;margin:14px auto 0;display:flex;gap:8px;justify-content:flex-end}.bar button{font:inherit;font-size:13px;padding:8px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer}.bar .pri{background:#1f6f4a;color:#fff;border-color:#1f6f4a}
 .top{display:grid;grid-template-columns:1fr 220px;gap:10px;align-items:start}
 .emp{text-align:center}.emp img{max-height:92px;max-width:240px;object-fit:contain}.emp .nm{font-weight:700;font-size:13px;margin:8px 0 4px}.emp div{line-height:1.55}
@@ -1484,8 +1484,8 @@ td{padding:12px 6px;border-bottom:1px solid #eee;vertical-align:middle}.it ul{ma
 .cond{white-space:pre-wrap;line-height:1.55}
 .rod{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 14px;margin-top:14px;align-items:center}.rod b{font-weight:700}
 .foot{text-align:center;color:#777;font-size:10px;margin-top:22px}
-@media print{body{background:#fff}.pg{box-shadow:none;margin:0;padding:0;max-width:none}.bar{display:none}tr{page-break-inside:avoid}}
-@media(max-width:640px){.top{grid-template-columns:1fr}.num{text-align:center}.cols{grid-template-columns:1fr}.pg{padding:16px}.tot{width:100%}}
+@media print{body{background:#fff}.pg{box-shadow:none;margin:0;padding:0;max-width:none;min-height:0;display:block}.pg .foot{margin-top:22px}.bar{display:none}tr{page-break-inside:avoid}}
+@media(max-width:640px){.pg{min-height:0}.top{grid-template-columns:1fr}.num{text-align:center}.cols{grid-template-columns:1fr}.pg{padding:16px}.tot{width:100%}}
 </style></head><body>
 <div class="bar"><button onclick="window.close()">Fechar</button><button class="pri" onclick="window.print()">Imprimir / Salvar PDF</button></div>
 <div class="pg">
