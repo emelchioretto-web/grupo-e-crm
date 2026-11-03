@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261102110131';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261103090357';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1021,7 +1021,7 @@ const COLS=Object.keys(SCHEMAS);const XCOLS=['fichas','anexos','emails','indisp'
 
 /* ================= store ================= */
 const S={mode:'loading',db:null,data:Object.fromEntries([...COLS,...XCOLS].map(c=>[c,[]])),loaded:new Set(),
-  ui:{view:'inicio',filter:{},q:{},cal:{y:new Date().getFullYear(),m:new Date().getMonth(),mode:innerWidth<700?'lista':'mes',tipos:Object.fromEntries(Object.keys(TIPOS).map(t=>[t,true])),src:{eventos:true,projetos:true,oportunidades:false,contas:false,tarefas:true,aniversarios:false}},fin:{tipo:'receber',st:'aberto'},lim:{}}};
+  ui:{view:'inicio',filter:{},q:{},cal:{y:new Date().getFullYear(),m:new Date().getMonth(),mode:innerWidth<700?'lista':'mes',tipos:Object.fromEntries(Object.keys(TIPOS).map(t=>[t,true])),src:{eventos:true,projetos:true,oportunidades:false,contas:false,tarefas:true,aniversarios:false}},fin:{tipo:'receber',st:'aberto',per:'mes'},lim:{}}};
 const LS='grupoe-crm-local';
 function persistLocal(){try{localStorage.setItem(LS,JSON.stringify(S.data))}catch(e){}}
 async function initStore(){
@@ -1365,7 +1365,7 @@ function genericList(col){
     if(P.st==='Ativos')rows=rows.filter(r=>r.ativo!==false);else if(P.st==='Inativos')rows=rows.filter(r=>r.ativo===false);
     if(P.emp!=='Todas')rows=rows.filter(r=>prodEmp(r).includes(P.emp));
     pfx=`<div class="toolbar" style="gap:10px"><div class="seg">${[['Ativos',r=>r.ativo!==false],['Inativos',r=>r.ativo===false],['Todos',r=>1]].map(([k,fn])=>`<button data-prodst="${k}" class="${P.st===k?'on':''}">${k} <span style="opacity:.7">${cnt(fn)}</span></button>`).join('')}</div><div class="seg">${['Todas','Prime 360','Fotografia e Filmagem'].map(k=>`<button data-prodemp="${k}" class="${P.emp===k?'on':''}">${k==='Todas'?'Todas as empresas':k}</button>`).join('')}</div></div>`}
-  if(col==='pedidos'){const P=S.ui.pedPer||(S.ui.pedPer={per:'todos',base:'venda',de:'',ate:''});const t=today(),n=new Date(),y=n.getFullYear(),m=n.getMonth(),dw=n.getDay(),D=(a,b,c)=>iso(new Date(a,b,c));
+  if(col==='pedidos'){const P=S.ui.pedPer||(S.ui.pedPer={per:'mes',base:'venda',de:'',ate:''});const t=today(),n=new Date(),y=n.getFullYear(),m=n.getMonth(),dw=n.getDay(),D=(a,b,c)=>iso(new Date(a,b,c));
     const R={todos:null,semana:[D(y,m,n.getDate()-dw),D(y,m,n.getDate()-dw+6)],mes:[D(y,m,1),D(y,m+1,0)],m3:[D(y,m-2,1),D(y,m+1,0)],m6:[D(y,m-5,1),D(y,m+1,0)],ano:[D(y,0,1),D(y,11,31)],outro:[P.de||'0000-01-01',P.ate||'9999-12-31']}[P.per];
     const dOf=p=>String(P.base==='evento'?(p.dataEvento||''):(p.emissao||p.criadoEm||'')).slice(0,10);
     if(R)rows=rows.filter(p=>{const d=dOf(p);return d&&d>=R[0]&&d<=R[1]});
@@ -2071,7 +2071,7 @@ function wireKanban(){
 }
 
 /* ---- relatórios ---- */
-S.ui.rel={regime:'competencia',periodo:'ultimo',de:'',ate:''};
+S.ui.rel={regime:'competencia',periodo:'mes',de:'',ate:''};
 function relRange(){
   const R=S.ui.rel,n=new Date(),y=n.getFullYear(),m=n.getMonth();
   const r=(a,b)=>[iso(a),iso(b)];
@@ -2195,7 +2195,7 @@ VIEWS.relresv=()=>{
    <tfoot><tr><td><b>Saldo</b></td>${bal.map(v=>`<td class="r"><b class="num ${v<0?'money-out':'money-in'}">${brl(v)}</b></td>`).join('')}<td class="r"><b class="num ${bt<0?'money-out':'money-in'}">${brl(bt)}</b></td></tr></tfoot></table></div></section>`);
 };
 /* ---- fluxo de caixa ---- */
-S.ui.fx2={ag:'mes',per:'todos'};
+S.ui.fx2={ag:'mes',per:'1m'};
 VIEWS.relfluxo=()=>{
   const X=S.ui.fx2,t=today(),cc=contaCalc(),cn=((S.finCfg||{}).contas)||{};
   const bancoHoje=bancos().reduce((a,b)=>a+((cc[b.id]||{}).saldoHoje||0),0)-movPagos().filter(l=>(l.dataPagamento||l.vencimento||'')===t).reduce((a,l)=>a+(l.tipo==='pagar'?-1:1)*(+l.valor||0),0);
@@ -2298,7 +2298,7 @@ function payDifRender(l){const box=$('#pay-difbox'),info=$('#pay-dif');if(!box)r
       :`<div class="field" style="margin:0"><label for="pay-difcat">Conta a lançar a diferença</label>${sel}</div><div class="full muted" style="font-size:12px;grid-column:1/-1">${T.tipo==='desconto'?`Conta quitada com <b>${brl(-d)}</b> de desconto.`:`Pago <b>${brl(d)}</b> a mais (juros/multa).`}</div>`}</div>`}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-paydif]');if(!t)return;e.preventDefault();S.ui.payDif.tipo=t.dataset.paydif;const id=($('[data-paysave]')||{}).dataset;const l=id&&S.data.lancamentos.find(x=>x.id===id.paysave);if(l)payDifRender(l)});
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='pay-difcat')S.ui.payDif.cat=e.target.value;if(e.target&&e.target.id==='pay-prox')S.ui.payDif.prox=e.target.value});
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-pedper],[data-pedbase]');if(!t)return;e.preventDefault();const P=S.ui.pedPer||(S.ui.pedPer={per:'todos',base:'venda'});if(t.dataset.pedper)P.per=t.dataset.pedper;if(t.dataset.pedbase)P.base=t.dataset.pedbase;S.ui.lim.pedidos=100;render()});
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-pedper],[data-pedbase]');if(!t)return;e.preventDefault();const P=S.ui.pedPer||(S.ui.pedPer={per:'mes',base:'venda'});if(t.dataset.pedper)P.per=t.dataset.pedper;if(t.dataset.pedbase)P.base=t.dataset.pedbase;S.ui.lim.pedidos=100;render()});
 document.addEventListener('change',e=>{const t=e.target;if(!t||!['ped-de','ped-ate'].includes(t.id))return;const P=S.ui.pedPer;if(!P)return;P[t.id==='ped-de'?'de':'ate']=t.value;render()});
 /* ---- pedido sem compromisso na agenda: cria o compromisso (vai para a Google Agenda e abre como compromisso) ---- */
 function pedAgendaDados(p){return {titulo:p.titulo||'',data:p.dataEvento,hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',local:pedLocal(p),tipo:TIPOS[p.tipoAgenda]?p.tipoAgenda:tipoAg2(p),contatoId:p.contatoId||'',responsavel:p.responsavel||'',participantes:p.participantes||[]}}
@@ -2400,7 +2400,7 @@ function bancosSet(fn){finCfgSave(c=>{c.bancos=fn(c.bancos)})}
 const FL_MODES={ar:{t:'Contas a receber',tipo:'receber',pago:false,nova:'Nova conta a receber'},arp:{t:'Contas recebidas',tipo:'receber',pago:true},ap:{t:'Contas a pagar',tipo:'pagar',pago:false,nova:'Nova conta a pagar'},app:{t:'Contas pagas',tipo:'pagar',pago:true}};
 S.ui.fl={};
 function finListView(mode){
-  const M=FL_MODES[mode],F=S.ui.fl[mode]||(S.ui.fl[mode]={per:'todos',pp:100,pg:1,forma:'',usuario:'',conta:'',q:''}),t=today();
+  const M=FL_MODES[mode],F=S.ui.fl[mode]||(S.ui.fl[mode]={per:'mes',pp:100,pg:1,forma:'',usuario:'',conta:'',q:''}),t=today();
   /* programado: já baixado (ex.: cartão parcelado) mas a data do dinheiro ainda não chegou → continua em A receber/A pagar até o dia */
   const prog=l=>!!l.pago&&String(l.dataPagamento||'').slice(0,10)>t;
   const base=S.data.lancamentos.filter(l=>l.tipo===M.tipo&&!l.transf&&(M.pago?(!!l.pago&&!prog(l)):(!l.pago||prog(l))));
@@ -4049,7 +4049,7 @@ document.addEventListener('submit',async e=>{if(e.target.id!=='indForm')return;e
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-gorel]');if(!t)return;closeModal();S.ui.rd.mes=(S.ui.dispData||today()).slice(0,7);S.ui.rd.modo='mes';go(t.dataset.gorel)});
 /* ================= contas bancárias no estilo extrato (Alboom) ================= */
 const CB_OLD=VIEWS.contasbanc;S.ui.cb=S.ui.cb||{tipo:'Todos'};
-S.ui.cbx={conta:'',per:'ano',de:'',ate:'',q:'',pg:1};
+S.ui.cbx={conta:'',per:'mes',de:'',ate:'',q:'',pg:1};
 const iniciais=n=>String(n||'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('')||'—';
 VIEWS.fintrans=()=>{
   const m=contaCalc(),B=bancos().filter(b=>b.ativo!==false||Math.abs(m[b.id].saldoHoje)>0.005),X=S.ui.cbx;
