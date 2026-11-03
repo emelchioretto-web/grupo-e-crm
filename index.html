@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261103155952';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261103162446';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -617,6 +617,28 @@ a.btn{color:inherit;text-decoration:none}
 .nav .count{font-size:12px;line-height:20px}
 .brand{cursor:pointer}.brand.logo{display:flex;justify-content:center;align-items:center;padding:20px 16px;min-height:96px;background:#000}
 .brand.logo img{max-width:100%;max-height:84px;object-fit:contain}
+/* atendimento */
+.atd-demo{background:#fff6e0;border:1px solid #e8c46a;border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:10px;line-height:1.5}
+.atd-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.atd-wrap{display:grid;grid-template-columns:320px minmax(0,1fr);gap:12px;min-height:560px}
+.atd-list{background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:72vh}
+.atd-it{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}
+.atd-it:hover{background:var(--bg-2,#f4f5f2)}.atd-it.on{background:var(--accent-soft,#e7f2ec)}
+.atd-av{width:38px;height:38px;border-radius:50%;color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.atd-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.atd-pv{font-size:12.5px;color:var(--muted,#6b716d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.atd-tag{font-size:11px;font-weight:600;background:var(--bg-2,#f1f2ef);border-radius:8px;padding:1px 7px}
+.atd-h{font-size:11px;color:var(--muted,#888)}
+.atd-chat{background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-width:0;max-height:72vh}
+.atd-top{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.atd-lead{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px;padding:10px 14px;background:var(--bg-2,#f6f7f4);border-bottom:1px solid var(--line);font-size:13px}
+.atd-lead span{display:block;font-size:11px;color:var(--muted,#777);text-transform:uppercase;letter-spacing:.04em}.atd-disp{grid-column:1/-1}
+.atd-msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:#efeae2;min-height:220px}
+.atd-b{max-width:78%;padding:7px 10px 4px;border-radius:10px;font-size:14px;box-shadow:0 1px 1px rgba(0,0,0,.08);color:#111}
+.atd-b.cli{align-self:flex-start;background:#fff}.atd-b.bot{align-self:flex-end;background:#d9fdd3}.atd-b.eq{align-self:flex-end;background:#cfe3ff}
+.atd-q{font-size:11px;font-weight:700;opacity:.65;margin-bottom:2px}.atd-b .atd-h{text-align:right;margin-top:2px}
+.atd-send{border-top:1px solid var(--line);padding:10px;display:grid;gap:6px}.atd-sendrow{display:flex;gap:6px}.atd-sendrow input{flex:1;min-width:0}
+.atd-cfg{margin-top:12px;padding:12px 14px}.atd-cfg summary{cursor:pointer}
+@media(max-width:820px){.atd-sendrow{flex-wrap:wrap}.atd-sendrow input{flex:1 1 100%}.atd-sendrow .btn{flex:1}.atd-wrap{grid-template-columns:1fr}.atd-list{max-height:240px}.atd-lead{grid-template-columns:1fr 1fr}.atd-b{max-width:90%}}
 </style>
 
 <div class="app" id="app">
@@ -1250,6 +1272,7 @@ const NAV=[
   {g:'Relacionamento'},
   {v:'contatos',l:'Contatos',i:'user'},
   {v:'dupcont',l:'Duplicados',sub:1,cnt:()=>dupGroups().filter(g=>g.forte).length,alt:1},
+  {v:'atendimento',l:'Atendimento',i:'wa',cnt:()=>{try{return atdLoad().conv.filter(c=>c.status==='aguardando').length}catch(e){return 0}},alt:1},
   {v:'emails',l:'E-mails',i:'mail',cnt:()=>emNaoEnviados()},
   {v:'oportunidades',l:'Oportunidades',i:'chat',cnt:()=>S.data.oportunidades.filter(o=>ABERTAS.includes(o.etapa)).length},
   {v:'funil',l:'Funil de vendas',sub:1},
@@ -5453,6 +5476,111 @@ document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.c
   if(cur&&!confirm('Trocar a logo do menu? (Cancelar mantém a atual)'))return;
   const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=async()=>{const f=i.files[0];if(!f)return;
     try{const A=await getAssets();if(!A)throw new Error('Envio de imagem indisponível aqui.');toast('Enviando a logo…');const r=await A.upload(f);const url=r.url||r.id;if(!url)throw new Error('Não consegui enviar a imagem.');cfgSet('logoMenu',url);brandAplicar();toast('Logo do menu atualizada.')}catch(er){toast(String(er.message||er),true)}};i.click()},true);
+/* ===== Atendimento WhatsApp (DEMONSTRAÇÃO: simula o bot e a equipe; ainda não ligado ao WhatsApp) ===== */
+const ATD_LS='grupoe-atd-demo';
+const ATD_NUM={prime:{nome:'Prime 360',fone:'(47) 99720-4636',cor:'#1f6f4a'},foto:{nome:'Fotografia',fone:'Elton Fotografia',cor:'#7a4fb5'}};
+const ATD_PERTO=['guaramirim','jaraguá do sul','jaragua do sul','joinville','schroeder','corupá','corupa','massaranduba','blumenau','pomerode','são bento do sul','sao bento do sul','rio negrinho','campo alegre','araquari','barra velha','balneário barra do sul','balneario barra do sul','são francisco do sul','sao francisco do sul','gaspar','indaial','timbó','timbo','luiz alves','navegantes','itajaí','itajai','penha','piçarras','picarras','balneário piçarras','garuva','itapoá','itapoa'];
+function atdCfg(){const c=(S.cfg&&S.cfg.atendimento)||{};return {modo:c.modo||'ambos',ini:c.ini||'08:00',fim:c.fim||'18:00',sab:!!c.sab,perto:c.perto||ATD_PERTO.join(', ')}}
+function atdForaHorario(d){d=d||new Date();const C=atdCfg();const w=d.getDay();if(w===0||(w===6&&!C.sab))return true;const hm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');return hm<C.ini||hm>=C.fim}
+function atdLoad(){if(S.atd)return S.atd;let v=null;try{v=JSON.parse(localStorage.getItem(ATD_LS)||'null')}catch(e){}S.atd=v||atdExemplos();return S.atd}
+function atdSalvar(){try{localStorage.setItem(ATD_LS,JSON.stringify(S.atd))}catch(e){}}
+function atdHora(minAtras){const d=new Date(Date.now()-minAtras*60000);return d.toISOString()}
+function atdExemplos(){const eq=(cfg().equipamentos||[]).map(e=>e.nome.replace(/\s*\(.*\)/,''));const e1=eq[0]||'Cabine de fotos',e2=eq[1]||'Espelho mágico';const dt=addDays(today(),25),dt2=addDays(today(),40);
+  const BR=s=>fdate(s);
+  return {sel:'c1',conv:[
+  {id:'c1',num:'prime',nome:'Juliana Martins',fone:'47999990001',status:'bot',etapa:'cidade',lead:{produto:e1,data:dt,cidade:''},msgs:[
+    {de:'cli',t:'Oi, boa tarde! Queria saber valor da '+e1.toLowerCase(),em:atdHora(9)},
+    {de:'bot',t:'Olá, Juliana! Obrigado pelo contato com a Prime 360.\n\nComo posso te ajudar?\n\n1 - Já sou cliente\n2 - Quero ser cliente\n3 - Sou cerimonial ou fornecedor',em:atdHora(9)},
+    {de:'cli',t:'2',em:atdHora(8)},
+    {de:'bot',t:'Perfeito! Qual é a data do evento?',em:atdHora(8)},
+    {de:'cli',t:BR(dt),em:atdHora(6)},
+    {de:'bot',t:'Anotado: '+BR(dt)+'.\n\nE em qual cidade vai ser o evento?',em:atdHora(6)}]},
+  {id:'c2',num:'prime',nome:'Cerimonial Bella Festa',fone:'47999990002',status:'aguardando',etapa:'fim',lead:{produto:e2,data:dt2,cidade:'Florianópolis'},msgs:[
+    {de:'cli',t:'Boa noite, sou do Cerimonial Bella Festa',em:atdHora(60*14)},
+    {de:'bot',t:'Olá! Obrigado pelo contato com a Prime 360.\n\nComo posso te ajudar?\n\n1 - Já sou cliente\n2 - Quero ser cliente\n3 - Sou cerimonial ou fornecedor',em:atdHora(60*14)},
+    {de:'cli',t:'3. Tenho um casamento dia '+BR(dt2)+' em Florianópolis, querem o '+e2.toLowerCase(),em:atdHora(60*14-2)},
+    {de:'bot',t:'Obrigado! Anotei: '+e2+', '+BR(dt2)+', Florianópolis.\n\nPara eventos a mais de 100 km de Guaramirim, a contratação mínima é de 4 horas.\n\nNosso horário de atendimento já encerrou. Assim que abrirmos, alguém da equipe verifica a disponibilidade e te responde.',em:atdHora(60*14-2)}]},
+  {id:'c3',num:'foto',nome:'Rafael e Bianca',fone:'47999990003',status:'equipe',etapa:'fim',lead:{produto:'Casamento',data:addDays(today(),300),cidade:'Jaraguá do Sul'},msgs:[
+    {de:'cli',t:'Olá! Vamos casar ano que vem e queríamos um orçamento de fotografia',em:atdHora(60*26)},
+    {de:'bot',t:'Olá! Que alegria receber vocês.\n\nPara eu encaminhar certinho:\n\n1 - Casamento\n2 - Ensaio\n3 - Já sou cliente',em:atdHora(60*26)},
+    {de:'cli',t:'1',em:atdHora(60*25)},
+    {de:'bot',t:'Qual é a data do casamento?',em:atdHora(60*25)},
+    {de:'cli',t:fdate(addDays(today(),300))+' em Jaraguá do Sul',em:atdHora(60*25)},
+    {de:'bot',t:'Obrigado! O Elton já vai falar com vocês.',em:atdHora(60*25)},
+    {de:'eq',quem:'Elton',app:true,t:'Oi Rafael e Bianca! Tudo bem? Que bom que entraram em contato, vou te mandar nossa apresentação',em:atdHora(60*24)}]}]}}
+function atdConv(){const A=atdLoad();return A.conv.find(c=>c.id===A.sel)||A.conv[0]}
+const ATD_ST={bot:['🤖 Bot atendendo','#1f6f4a'],aguardando:['🙋 Esperando vocês','#c27a00'],equipe:['👤 Vocês assumiram','#2a5db0']};
+function atdDispHTML(L){if(!L||!L.data)return '<span class="muted">sem data ainda</span>';
+  const ev={};ev[L.data]=agendaAll().filter(e=>e.data===L.data);let d;try{d=diaDisp(L.data,null,ev)}catch(e){return ''}
+  const ks=L.produto?eqDoTexto(L.produto):[];const its=ks.length?d.itens.filter(i=>ks.includes(i.chave)):[];
+  if(!its.length)return `<span class="muted">${d.livresEq} equipamento(s) livres no dia${d.pedidos.length?' · '+d.pedidos.length+' evento(s) já marcados':''}</span>`;
+  return its.map(i=>{const ok=i.livres>0&&(!i.precisaOp||d.opLivres>0);return `<b style="color:${ok?'var(--ok)':'var(--danger)'}">${ok?'✅ Livre':'❌ Ocupado'}</b> · ${esc(i.nome)}: ${i.livres} de ${i.qtd} livre(s)${i.precisaOp?` · ${d.opLivres} operador(es) livre(s)`:''}`}).join('<br>')}
+function atdPerto(cid){const n=nrm(cid||'');if(!n)return true;return atdCfg().perto.split(',').map(x=>nrm(x.trim())).filter(Boolean).some(x=>n.includes(x))}
+/* o "cérebro" de demonstração: segue as regras do atendimento (o de verdade usa o Claude com estas mesmas regras) */
+function atdBot(c,txt){const t=String(txt||'').trim(),n=nrm(t);const L=c.lead=c.lead||{};const fora=atdForaHorario();const nm=(c.nome||'').split(' ')[0];
+  const dataDe=s=>{const m=String(s).match(/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/);if(!m)return '';let y=m[3]?+m[3]:new Date().getFullYear();if(y<100)y+=2000;const d=`${y}-${String(+m[2]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}`;return d<today()&&!m[3]?`${y+1}${d.slice(4)}`:d};
+  const fim=()=>{c.etapa='fim';c.status='aguardando';const r=[`Obrigado! Anotei: ${[L.produto,L.data?fdate(L.data):'',L.cidade].filter(Boolean).join(', ')}.`];
+    if(c.num==='prime'&&L.cidade&&!atdPerto(L.cidade))r.push('Para eventos a mais de 100 km de Guaramirim, a contratação mínima é de 4 horas.');
+    r.push(fora?'Nosso horário de atendimento já encerrou. Assim que abrirmos, alguém da equipe verifica a disponibilidade e te responde.':'Vou verificar a disponibilidade e um atendente já entra em contato com você.');return r.join('\n\n')};
+  if(c.etapa==='inicio'){c.etapa='menu';return c.num==='prime'?`Olá${nm?', '+nm:''}! Obrigado pelo contato com a Prime 360.\n\nComo posso te ajudar?\n\n1 - Já sou cliente\n2 - Quero ser cliente\n3 - Sou cerimonial ou fornecedor`:`Olá${nm?', '+nm:''}! Que alegria receber sua mensagem.\n\nPara eu encaminhar certinho:\n\n1 - Casamento\n2 - Ensaio\n3 - Já sou cliente`}
+  if(c.etapa==='menu'){
+    if(c.num==='prime'&&/^1\b|ja sou cliente/.test(n)||c.num==='foto'&&/^3\b|ja sou cliente/.test(n)){c.etapa='fim';c.status='aguardando';return fora?'Certo! Nosso horário já encerrou, mas amanhã cedo alguém da equipe te responde.':'Certo! Já vou chamar alguém da equipe para falar com você.'}
+    if(c.num==='foto'){L.produto=/^2\b|ensaio/.test(n)?'Ensaio':'Casamento'}
+    else{const ks=eqDoTexto(t);if(ks.length){const e=(cfg().equipamentos||[]).find(x=>x.chave===ks[0]);L.produto=e?e.nome.replace(/\s*\(.*\)/,''):L.produto}}
+    const d=dataDe(t);if(d)L.data=d;
+    if(c.num==='prime'&&!L.produto){c.etapa='produto';return 'Perfeito! Qual equipamento ou serviço você procura?\n\n'+(cfg().equipamentos||[]).slice(0,8).map(e=>'• '+e.nome.replace(/\s*\(.*\)/,'')).join('\n')}
+    if(!L.data){c.etapa='data';return 'Perfeito! Qual é a data do evento?'}
+    c.etapa='cidade';return 'E em qual cidade vai ser o evento?'}
+  if(c.etapa==='produto'){const ks=eqDoTexto(t);const e=ks.length&&(cfg().equipamentos||[]).find(x=>x.chave===ks[0]);L.produto=e?e.nome.replace(/\s*\(.*\)/,''):t;const d=dataDe(t);if(d)L.data=d;if(!L.data){c.etapa='data';return 'Ótimo! Qual é a data do evento?'}c.etapa='cidade';return 'E em qual cidade vai ser o evento?'}
+  if(c.etapa==='data'){const d=dataDe(t);if(!d)return 'Me passa a data assim, por favor: dia/mês (ex.: 14/11).';L.data=d;const cm=t.replace(/.*\d\s*(em|,|-)\s*/i,'').trim();if(cm&&cm!==t&&!/\d/.test(cm)){L.cidade=cm;return fim()}c.etapa='cidade';return `Anotado: ${fdate(d)}.\n\nE em qual cidade vai ser o evento?`}
+  if(c.etapa==='cidade'){L.cidade=t.replace(/^(em|na|no)\s+/i,'');return fim()}
+  return null}
+function atdEnviarCliente(txt){const c=atdConv();if(!c||!txt.trim())return;c.msgs.push({de:'cli',t:txt.trim(),em:new Date().toISOString()});
+  if(c.status==='bot'){const r=atdBot(c,txt);if(r)setTimeout(()=>{c.msgs.push({de:'bot',t:r,em:new Date().toISOString()});atdSalvar();render()},700)}
+  atdSalvar();render()}
+function atdNovaConversa(num){const A=atdLoad();const id='c'+Date.now().toString(36);const nomes=['Mariana Souza','Carlos Pereira','Ana Paula','Lucas Schmitt','Fernanda Kraus'];
+  A.conv.unshift({id,num,nome:nomes[A.conv.length%nomes.length],fone:'4799999'+String(1000+A.conv.length).slice(-4),status:'bot',etapa:'inicio',lead:{},msgs:[]});A.sel=id;atdSalvar();render();setTimeout(()=>{const i=$('#atd-cli');if(i)i.focus()},50)}
+VIEWS.atendimento=()=>{const A=atdLoad();const U=S.ui.atd=S.ui.atd||{f:'todos'};const C=atdCfg();
+  const lista=A.conv.filter(c=>U.f==='todos'||c.num===U.f||c.status===U.f);const c=atdConv();
+  const ult=x=>x.msgs[x.msgs.length-1];
+  const cnt=k=>A.conv.filter(x=>x.status===k).length;
+  const bolha=m=>{const cls=m.de==='cli'?'cli':m.de==='bot'?'bot':'eq';const hr=new Date(m.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="atd-b ${cls}"><div class="atd-q">${m.de==='bot'?'🤖 Bot':m.de==='eq'?'👤 '+esc(m.quem||'Equipe')+(m.app?' · pelo app':''):esc(c.nome)}</div><div style="white-space:pre-wrap">${esc(m.t)}</div><div class="atd-h">${hr}</div></div>`};
+  const st=ATD_ST[c.status]||ATD_ST.bot;
+  return `${head('Atendimento WhatsApp','Atendimento',`<button class="btn" data-atdnova="prime">+ Simular cliente Prime 360</button><button class="btn" data-atdnova="foto">+ Simular cliente Fotografia</button>`)}
+  <div class="atd-demo">🧪 <b>Demonstração.</b> Ainda não está ligado ao WhatsApp: aqui você vê como vai funcionar. Escreva como se fosse o cliente e veja o bot responder. Quando ligarmos, as conversas de verdade aparecem aqui sozinhas e vocês continuam respondendo pelo app do WhatsApp normalmente.</div>
+  <div class="atd-chips">${[['todos','Todas'],['prime','Prime 360'],['foto','Fotografia'],['aguardando',`🙋 Esperando vocês (${cnt('aguardando')})`],['bot',`🤖 Com o bot (${cnt('bot')})`],['equipe',`👤 Com vocês (${cnt('equipe')})`]].map(([k,l])=>`<button class="btn sm${U.f===k?' pri':''}" data-atdf="${k}">${l}</button>`).join('')}</div>
+  <div class="atd-wrap">
+   <div class="atd-list">${lista.map(x=>{const s=ATD_ST[x.status]||ATD_ST.bot;const u=ult(x);return `<button class="atd-it${x.id===c.id?' on':''}" data-atdsel="${x.id}"><div style="display:flex;gap:8px;align-items:center"><span class="atd-av" style="background:${ATD_NUM[x.num].cor}">${esc((x.nome||'?')[0])}</span><div style="min-width:0;flex:1"><div style="display:flex;justify-content:space-between;gap:6px"><b class="atd-nm">${esc(x.nome)}</b><span class="atd-h">${u?new Date(u.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''}</span></div><div class="atd-pv">${u?esc(u.t.split('\n')[0]):'nova conversa'}</div><div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap"><span class="atd-tag" style="color:${s[1]}">${s[0]}</span><span class="atd-tag">${ATD_NUM[x.num].nome}</span></div></div></div></button>`}).join('')||'<div class="muted" style="padding:14px">Nenhuma conversa aqui.</div>'}</div>
+   <div class="atd-chat">${c?`
+    <div class="atd-top"><div style="min-width:0"><b style="font-size:16px">${esc(c.nome)}</b> <span class="muted" style="font-size:12.5px">· ${ATD_NUM[c.num].nome}</span><div style="font-size:12.5px;color:${st[1]};font-weight:600">${st[0]}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${c.status!=='equipe'?`<button class="btn sm pri" data-atdst="equipe">👤 Assumir conversa</button>`:`<button class="btn sm" data-atdst="bot">🤖 Devolver ao bot</button>`}<button class="btn sm" data-atdopp>+ Criar oportunidade</button></div></div>
+    <div class="atd-lead"><div><span>Produto</span><b>${esc(c.lead&&c.lead.produto||'—')}</b></div><div><span>Data</span><b>${c.lead&&c.lead.data?fdate(c.lead.data):'—'}</b></div><div><span>Cidade</span><b>${esc(c.lead&&c.lead.cidade||'—')}${c.lead&&c.lead.cidade&&c.num==='prime'&&!atdPerto(c.lead.cidade)?' <em style="color:var(--warn);font-style:normal">(+100 km: mín. 4h)</em>':''}</b></div><div class="atd-disp"><span>Agenda do CRM nesse dia (só a equipe vê)</span><div>${atdDispHTML(c.lead)}</div></div></div>
+    <div class="atd-msgs" id="atd-msgs">${c.msgs.map(bolha).join('')||'<div class="muted" style="text-align:center;padding:30px">Escreva abaixo a primeira mensagem do cliente.</div>'}</div>
+    <div class="atd-send"><div class="atd-sendrow"><input id="atd-cli" placeholder="Escreva como se fosse o CLIENTE…" autocomplete="off"><button class="btn" data-atdcli>Cliente envia</button></div>
+     <div class="atd-sendrow"><input id="atd-eq" placeholder="Responder como EQUIPE (no real, vocês respondem pelo app)…" autocomplete="off"><button class="btn pri" data-atdeq>Equipe responde</button></div></div>`:''}
+   </div></div>
+  <details class="panel atd-cfg"><summary><b>⚙️ Como o bot vai trabalhar</b> <span class="muted">(regras — dá para mudar a qualquer hora)</span></summary>
+   <div class="fgrid" style="margin-top:10px">
+    <div class="field full"><label>Quando o bot responde</label><select data-atdcfg="modo">${[['ambos','Primeiro contato durante o dia + atendimento completo fora do horário'],['primeiro','Só o primeiro contato (triagem) e passa para vocês'],['fora','Só fora do horário']].map(([k,l])=>`<option value="${k}" ${C.modo===k?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><label>Horário comercial: início</label><input type="time" data-atdcfg="ini" value="${C.ini}"></div>
+    <div class="field"><label>Fim</label><input type="time" data-atdcfg="fim" value="${C.fim}"></div>
+    <div class="field full"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-atdcfg="sab" ${C.sab?'checked':''} style="width:auto"> Sábado é horário comercial</label></div>
+    <div class="field full"><label>Cidades até 100 km de Guaramirim (fora desta lista o bot avisa do mínimo de 4 horas)</label><textarea data-atdcfg="perto" rows="3">${esc(C.perto)}</textarea></div>
+    <div class="field full muted" style="font-size:12.5px;line-height:1.6">Regras fixas: o bot <b>não promete disponibilidade nem preço</b> (só coleta nome, produto, data e cidade e passa para vocês) · não pede telefone nem horário · não repete pergunta já respondida · deixa linha em branco entre as frases · <b>se alguém da equipe responder pelo app, o bot para naquela conversa</b>.</div>
+   </div></details>`};
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-atdsel],[data-atdf],[data-atdst],[data-atdcli],[data-atdeq],[data-atdnova],[data-atdopp]');if(!t)return;e.preventDefault();const d=t.dataset;const A=atdLoad();
+  if(d.atdsel){A.sel=d.atdsel;atdSalvar();render();return}
+  if(d.atdf){S.ui.atd.f=d.atdf;render();return}
+  if(d.atdnova){atdNovaConversa(d.atdnova);return}
+  const c=atdConv();if(!c)return;
+  if(d.atdst){c.status=d.atdst;if(d.atdst==='bot'&&c.etapa==='fim')c.etapa='menu';atdSalvar();toast(d.atdst==='equipe'?'Conversa com vocês: o bot não responde mais aqui.':'O bot voltou a atender esta conversa.');render();return}
+  if(t.hasAttribute('data-atdcli')){const i=$('#atd-cli');atdEnviarCliente(i.value);return}
+  if(t.hasAttribute('data-atdeq')){const i=$('#atd-eq');if(!i.value.trim())return;c.msgs.push({de:'eq',quem:(typeof usuarioAtual==='function'&&usuarioAtual())||'Equipe',t:i.value.trim(),em:new Date().toISOString()});c.status='equipe';atdSalvar();render();return}
+  if(t.hasAttribute('data-atdopp')){const L=c.lead||{};toast(`Na versão ligada, isto cria a oportunidade "${c.nome}${L.produto?' - '+L.produto:''}${L.data?' - '+fdate(L.data):''}${L.cidade?' - '+L.cidade:''}" em Oportunidades.`);return}});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter'||!e.target)return;if(e.target.id==='atd-cli'){e.preventDefault();atdEnviarCliente(e.target.value)}else if(e.target.id==='atd-eq'){e.preventDefault();const b=document.querySelector('[data-atdeq]');if(b)b.click()}});
+document.addEventListener('change',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.atdcfg;if(!k)return;const v=e.target.type==='checkbox'?e.target.checked:e.target.value;cfgSet('atendimento',{...((S.cfg&&S.cfg.atendimento)||{}),[k]:v});toast('Regra salva.')});
+setInterval(()=>{const m=document.getElementById('atd-msgs');if(m&&!m.dataset.f){m.dataset.f=1;m.scrollTop=m.scrollHeight}},300);
 /* ---- atalho do celular: botão flutuante 📷 (ler conta / conferir fatura) e abertura direta pelo ícone do app ---- */
 function iaAtalhoOk(){return !!window.__HOSTED&&S.mode==='db'&&!S.semAcesso&&!modOffView('finap')}
 function iaAtalhoSheet(){if(!iaAtalhoOk())return;
