@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104093810';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104095413';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -811,8 +811,6 @@ const SCHEMAS={
       {k:'categoria',l:'Categoria',t:'select',get o(){return ['',...cfg().categorias.filter(c=>c.ativo!==false).map(c=>c.nome)]},tab:0},
       {k:'origem',l:'Origem da oportunidade',t:'select',get o(){return ['',...cfg().origens]},tab:0},
       {k:'indicadoPor',l:'Indicado por',t:'combo',full:1,tab:0},
-      {k:'descricao',l:'Descrição',t:'area',full:1,tab:0},
-      {k:'valor',l:'Valor estimado (R$)',t:'money',tab:0},{k:'fechamento',l:'Data de fechamento',t:'date',tab:0},
       {k:'vendedor',l:'Responsável',t:'pessoa',def:'Elton Melchioretto',tab:0},{k:'responsavel',l:'Delegar a',t:'pessoa',tab:0},
       {k:'dataEvento',l:'Data do evento',t:'date',tab:0},{k:'horaEvento',l:'Hora do evento',t:'time',tab:0},
       {k:'tipoEvento',l:'Tipo de evento',t:'select',o:['','Casamento','15 anos','Aniversário','Corporativo','Formatura','Infantil','Outro'],tab:0},{k:'convidados',l:'Convidados',t:'number',tab:0},
@@ -2922,8 +2920,8 @@ function fieldHTML(f,rec){
   if(f.t==='check')return `<div class="field check ${f.full?'full':''}"><input type="checkbox" id="${id}" ${v?'checked':''}><label for="${id}">${f.l}</label></div>`;
   let input;
   if(f.t==='select'){const opts=(v&&!f.o.includes(String(v)))?[String(v),...f.o]:f.o;input=`<select id="${id}">${opts.map(o=>`<option value="${esc(o)}" ${String(v??'')===o?'selected':''}>${esc(f.ol&&f.ol[o]?f.ol[o]:(o||'—'))}</option>`).join('')}</select>`}
-  else if(f.t==='ref'&&S.data[f.ref].length>150){const cur=S.data[f.ref].find(r=>r.id===v);input=`<input id="${id}" list="dl-${f.k}" value="${cur?esc(refLabel(f.ref,cur)):''}" placeholder="Digite para buscar…" autocomplete="off"><datalist id="dl-${f.k}">${S.data[f.ref].map(r=>`<option value="${esc(refLabel(f.ref,r))}">`).join('')}</datalist>`}
-  else if(f.t==='ref'){const list=[...S.data[f.ref]].sort((a,b)=>SCHEMAS[f.ref].labelOf(a).localeCompare(SCHEMAS[f.ref].labelOf(b),'pt-BR'));input=`<select id="${id}"><option value="">— selecione —</option>${list.map(r=>`<option value="${r.id}" ${v===r.id?'selected':''}>${esc(SCHEMAS[f.ref].labelOf(r))}</option>`).join('')}</select>`}
+  else if(f.t==='ref'&&S.data[f.ref].length>150){const cur=S.data[f.ref].find(r=>r.id===v);input=`<input id="${id}" list="dl-${f.k}" value="${cur?esc(refLabel(f.ref,cur)):''}" placeholder="Digite para buscar…" autocomplete="off"><datalist id="dl-${f.k}">${S.data[f.ref].map(r=>`<option value="${esc(refLabel(f.ref,r))}">`).join('')}</datalist>`+(f.ref==='contatos'?qcBtn(id):'')}
+  else if(f.t==='ref'){const list=[...S.data[f.ref]].sort((a,b)=>SCHEMAS[f.ref].labelOf(a).localeCompare(SCHEMAS[f.ref].labelOf(b),'pt-BR'));input=`<select id="${id}"><option value="">— selecione —</option>${list.map(r=>`<option value="${r.id}" ${v===r.id?'selected':''}>${esc(SCHEMAS[f.ref].labelOf(r))}</option>`).join('')}</select>`+(f.ref==='contatos'?qcBtn(id):'')}
   else if(f.t==='multi'){const sel=Array.isArray(v)?v:(f.dv?f.dv(rec):[]);input=`<div class="pchips" id="${id}">${f.o.map(x=>`<label class="pchip"><input type="checkbox" value="${esc(x)}" ${sel.includes(x)?'checked':''}><span>${esc(x)}</span></label>`).join('')}</div>`}
   else if(f.t==='pessoas'){const sel=Array.isArray(v)?v:[];const vals=[...new Set([...cfg().equipe.filter(m=>m.ativo!==false).map(m=>m.nome),...sel])];input=`<div class="pchips" id="${id}">${vals.map(x=>`<label class="pchip"><input type="checkbox" value="${esc(x)}" ${sel.includes(x)?'checked':''}><span>${esc(x)}</span></label>`).join('')}</div>`}
   else if(f.t==='pessoa'){const vals=[...new Set([...cfg().equipe.filter(m=>m.ativo!==false).map(m=>m.nome)])];input=`<input id="${id}" list="dl-${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}" autocomplete="off"><datalist id="dl-${f.k}">${vals.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`}
@@ -5818,6 +5816,20 @@ document.addEventListener('input',e=>{const t=e.target;if(!t)return;
 document.addEventListener('focusin',e=>{const t=e.target;if(!t||!(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&(!t.type||t.type==='text'||t.type==='search'))))return;
   if(t.hasAttribute('data-money')||/mail|fone|celular|cpf|cnpj|cep|codigo|num|link|url|senha|chave/i.test(t.id+' '+(t.name||'')+' '+(t.placeholder||'')))return;
   if(!t.hasAttribute('spellcheck'))t.setAttribute('spellcheck','true');t.setAttribute('lang','pt-BR');t.setAttribute('autocorrect','on');if(!t.hasAttribute('autocapitalize'))t.setAttribute('autocapitalize','sentences')});
+/* adição rápida de contato dentro de qualquer formulário (oportunidade, proposta, pedido…): só nome, WhatsApp e e-mail; o resto depois */
+function qcBtn(id){return `<div style="margin-top:6px"><button type="button" class="btn sm" data-qcadd="${id}">${ic('plus',13)} Adição rápida de contato</button></div><div class="qc-box" id="qc-${id}" hidden style="margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:8px;background:var(--bg-2,#f6f7f4)">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px"><input class="search" data-qc="nome" placeholder="Nome e sobrenome *"><input class="search" data-qc="celular" inputmode="tel" placeholder="WhatsApp"><input class="search" data-qc="email" type="email" placeholder="E-mail"></div>
+  <div style="display:flex;gap:6px"><button type="button" class="btn sm pri" data-qcsave="${id}">Salvar contato</button><button type="button" class="btn sm" data-qcadd="${id}">Cancelar</button></div></div>`}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-qcadd],[data-qcsave]');if(!t)return;e.preventDefault();e.stopPropagation();
+  if(t.dataset.qcadd){const b=document.getElementById('qc-'+t.dataset.qcadd);if(b){b.hidden=!b.hidden;if(!b.hidden){b.style.display='grid';const n=b.querySelector('[data-qc="nome"]');if(n)n.focus()}else b.style.display='none'}return}
+  const id=t.dataset.qcsave,b=document.getElementById('qc-'+id),el=document.getElementById(id);if(!b||!el)return;const g=k=>(b.querySelector(`[data-qc="${k}"]`)||{}).value.trim();
+  const nome=g('nome');if(!nome){toast('Digite o nome do contato.',true);return}const [pn,...rest]=nome.split(/\s+/);
+  const ja=S.data.contatos.find(c=>nrm(SCHEMAS.contatos.labelOf(c))===nrm(nome)||(g('celular')&&String(c.celular||'').replace(/\D/g,'').endsWith(g('celular').replace(/\D/g,'').slice(-8))));
+  if(ja&&!confirm(`Já existe "${SCHEMAS.contatos.labelOf(ja)}". Usar esse contato? (Cancelar cria um novo)`)){}else if(ja){qcSet(el,ja);b.hidden=true;b.style.display='none';return}
+  t.disabled=true;try{const cid=await save('contatos',{nome:pn,sobrenome:rest.join(' '),celular:g('celular'),email:g('email'),categoria:'Proposta'});let c=null;for(let i=0;i<20&&!c;i++){c=S.data.contatos.find(x=>x.id===cid);if(!c)await sleep(100)}
+    qcSet(el,c||{id:cid,nome:pn,sobrenome:rest.join(' ')});b.hidden=true;b.style.display='none';b.querySelectorAll('input').forEach(i=>i.value='');toast('Contato criado. Depois é só completar o cadastro.')}catch(er){failWrite(er)}finally{t.disabled=false}},true);
+function qcSet(el,c){if(el.tagName==='SELECT'){let o=[...el.options].find(x=>x.value===c.id);if(!o){o=document.createElement('option');o.value=c.id;o.textContent=SCHEMAS.contatos.labelOf(c);el.appendChild(o)}el.value=c.id}
+  else{const lb=refLabel('contatos',c);const dl=el.list;if(dl&&![...dl.options].some(o=>o.value===lb)){const o=document.createElement('option');o.value=lb;dl.appendChild(o)}el.value=lb}el.dispatchEvent(new Event('change',{bubbles:true}))}
 /* ---- atalho do celular: botão flutuante 📷 (ler conta / conferir fatura) e abertura direta pelo ícone do app ---- */
 function iaAtalhoOk(){return !!window.__HOSTED&&S.mode==='db'&&!S.semAcesso&&!modOffView('finap')}
 function iaAtalhoSheet(){if(!iaAtalhoOk())return;
