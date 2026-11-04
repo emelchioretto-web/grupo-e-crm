@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104134049';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104134715';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2738,7 +2738,7 @@ function finListView(mode){
   const dk=l=>((M.pago||prog(l))?(l.dataPagamento||l.vencimento):l.vencimento)||'';
   let rows=base;if(F.forma)rows=rows.filter(l=>(l.forma||'')===F.forma);if(F.usuario)rows=rows.filter(l=>(l.usuario||'')===F.usuario);if(F.conta)rows=rows.filter(l=>(l.conta||'')===F.conta);
   if(F.per&&F.per!=='todos'){const [a,b]=finRange(F);rows=rows.filter(l=>{const d=dk(l);return F.per==='vencidas'?(!l.pago&&d<t):(d>=a&&d<=b)})}
-  const q=(F.q||'').toLowerCase().trim();if(q)rows=rows.filter(l=>[l.aid,l.descricao,contatoNome(l.contatoId),l.categoria,l.conta,l.forma,l.doc,l.pedidoId?'#'+String(l.pedidoId).replace('pd-',''):'',dk(l)].join(' ').toLowerCase().includes(q));
+  const q=(F.q||'').toLowerCase().trim();if(q)rows=rows.filter(l=>[l.aid,l.descricao,contatoNome(l.contatoId),l.categoria,l.conta,l.forma,l.doc,l.pedidoId?'#'+String(l.pedidoId).replace('pd-',''):'',(()=>{const pd=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoId);return pd?'#'+pd.num+' '+pd.num+' '+(pd.titulo||''):''})(),dk(l)].join(' ').toLowerCase().includes(q));
   rows=[...rows].sort((a,b)=>M.pago?dk(b).localeCompare(dk(a)):dk(a).localeCompare(dk(b)));
   const nAll=rows.length,pp=F.pp||100,nPg=Math.max(1,Math.ceil(nAll/pp)),pgN=Math.min(F.pg||1,nPg),tot=rows.reduce((s,l)=>s+(+l.valor||0),0);
   const page=rows.slice((pgN-1)*pp,pgN*pp),totPg=page.reduce((s,l)=>s+(+l.valor||0),0);
