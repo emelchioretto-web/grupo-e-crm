@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104103517';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104104118';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -3209,7 +3209,7 @@ function eqDoProduto(pid,desc){const pr=pid&&S.data.produtos.find(x=>x.id===pid)
 function usoDoDia(data,ignorarId,evPorData){const eq=cfg().equipamentos||[];const uso={};eq.forEach(e=>uso[e.chave]=[]);
   const evs=(evPorData?evPorData[data]||[]:agendaAll().filter(e=>e.data===data));const porPed={};const semEq=[];
   evs.forEach(e=>{const pid=e._ped?e.id:e.pedidoId;if(ignorarId&&pid===ignorarId)return;const p=pid?S.data.pedidos.find(x=>x.id===pid):null;if(p&&p.contratoStatus==='Cancelado')return;
-    let ks=e._ped&&p?eqDoPedido(p):eqDoTexto(e.titulo||'');if(!ks.length){if(p)semEq.push(p);return}
+    let ks=p?[...new Set([...eqDoPedido(p),...(e._ped?[]:eqDoTexto(e.titulo||''))])]:eqDoTexto(e.titulo||'');if(p&&porPed[p.id])return;if(!ks.length){if(p)semEq.push(p);return}
     const ref=p||{id:e.id,titulo:e.titulo,horaEvento:e.hora,num:''};ks.forEach(k=>{if(uso[k])uso[k].push(ref)});if(p)porPed[p.id]=1});
   semEq.forEach(p=>{if(porPed[p.id])return;porPed[p.id]=1;eqDoPedido(p).forEach(k=>{if(uso[k])uso[k].push(p)})});
   return uso}
