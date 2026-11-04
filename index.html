@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104130201';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104132427';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2426,9 +2426,13 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 document.addEventListener('change',e=>{const t=e.target;if(!t||!['ped-de','ped-ate'].includes(t.id))return;const P=S.ui.pedPer;if(!P)return;P[t.id==='ped-de'?'de':'ate']=t.value;render()});
 /* ---- pedido sem compromisso na agenda: cria o compromisso (vai para a Google Agenda e abre como compromisso) ---- */
 function pedAgendaDados(p){return {titulo:p.titulo||'',data:p.dataEvento,hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',local:pedLocal(p),tipo:TIPOS[p.tipoAgenda]?p.tipoAgenda:tipoAg2(p),contatoId:p.contatoId||'',responsavel:p.responsavel||'',participantes:p.participantes||[]}}
+/* nomes dos equipamentos do pedido (combo → os produtos de dentro), para um compromisso por equipamento */
+function pedEquipNomes(p){const out=[];(p.itens||[]).forEach(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);if(pr&&pr.pacote&&pr.pacote.length)pr.pacote.forEach(x=>{const c=S.data.produtos.find(y=>y.id===x.produtoId);if(c)for(let k=0;k<Math.max(1,+x.qtd||1);k++)out.push(c.nome)})});return out}
 async function pedAgendaGarantir(p){if(!p||!p.dataEvento||p.contratoStatus==='Cancelado'||pedStatus(p)==='Cancelado')return null;
   const ex=(S.data.agenda||[]).find(a=>a.pedidoId===p.id&&!a.cancelado);if(ex)return ex.id;
-  const b=opBloco(p.notas);const rec={...pedAgendaDados(p),pedidoId:p.id,origem:'Pedido',notas:b?b.txt:''};return await save('agenda',rec)}
+  const b=opBloco(p.notas);const base={...pedAgendaDados(p),pedidoId:p.id,origem:'Pedido',notas:b?b.txt:''};const eqs=pedEquipNomes(p);
+  if(eqs.length>1){let id0=null;for(const nm of eqs){const id=await save('agenda',{...base,titulo:base.titulo+' - '+nm,eqSufixo:nm});if(!id0)id0=id}return id0}
+  return await save('agenda',base)}
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-edit="pedidos"][data-id]');if(!t||S.ui.view!=='agenda'||t.closest('.modal'))return;
   e.preventDefault();e.stopPropagation();const p=S.data.pedidos.find(x=>x.id===t.dataset.id);if(!p)return;
   try{const id=await pedAgendaGarantir(p);let a=null;for(let i=0;i<20&&!a;i++){a=(S.data.agenda||[]).find(x=>x.id===id);if(!a)await sleep(150)}if(a)openForm('agenda',a);else openPedido(p.id)}catch(err){openPedido(p.id)}},true);
@@ -2436,7 +2440,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 const _savePedAg=save;save=async function(col,rec){const id=await _savePedAg(col,rec);try{if(col==='pedidos'){const pid=typeof id==='string'?id:rec.id;setTimeout(async()=>{const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;
     const L=(S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&a.origem==='Pedido'&&!a.cancelado);
     if(!L.length){if(S.dono&&p.dataEvento&&p.dataEvento>=today())await pedAgendaGarantir(p);return}
-    const D=pedAgendaDados(p);for(const a of L){const ch={};['titulo','data','hora','horaFim','local','tipo'].forEach(k=>{if((D[k]||'')!==(a[k]||'')&&D[k])ch[k]=D[k]});if(Object.keys(ch).length)await patch('agenda',a.id,ch)}},1200)}}catch(e){}return id};
+    const D0=pedAgendaDados(p);for(const a of L){const D={...D0,titulo:D0.titulo+(a.eqSufixo?' - '+a.eqSufixo:'')};const ch={};['titulo','data','hora','horaFim','local','tipo'].forEach(k=>{if((D[k]||'')!==(a[k]||'')&&D[k])ch[k]=D[k]});if(Object.keys(ch).length)await patch('agenda',a.id,ch)}},1200)}}catch(e){}return id};
 /* uma vez: acerta a categoria (cor) dos compromissos que vieram de pedidos, pela regra nova (produtos da Prime 360 → Toten/Cabine/Hashtag) */
 async function agTipoCorrigir(){if(S._agTipoFix||!S.dono||cfg().agTipoFix2||!S.loaded||!['pedidos','agenda','produtos'].every(c=>S.loaded.has(c)))return;S._agTipoFix=1;cfgSet('agTipoFix2',new Date().toISOString());let n=0;
   for(const a of (S.data.agenda||[]).filter(x=>x.pedidoId&&!x.cancelado)){const p=S.data.pedidos.find(x=>x.id===a.pedidoId);if(!p)continue;const t=TIPOS[p.tipoAgenda]?p.tipoAgenda:tipoAg2(p);if(t&&t!==a.tipo){try{await patch('agenda',a.id,{tipo:t});n++}catch(e){}}}
@@ -5872,10 +5876,11 @@ function agVerificar(){const t=today();const atv=p=>p.contratoStatus!=='Cancelad
   const semAg=pedF.filter(p=>atv(p)&&!AG.some(a=>a.pedidoId===p.id));
   const dataDif=AG.filter(a=>{if(!a.pedidoId||a.origem!=='Pedido')return false;const p=S.data.pedidos.find(x=>x.id===a.pedidoId);return p&&atv(p)&&p.dataEvento&&p.dataEvento!==a.data});
   const canc=AG.filter(a=>{if(!a.pedidoId)return false;const p=S.data.pedidos.find(x=>x.id===a.pedidoId);return p&&!atv(p)});
-  const grp={};AG.filter(a=>a.pedidoId).forEach(a=>{const k=a.pedidoId+'|'+a.data+'|'+nrm(a.titulo||'');(grp[k]=grp[k]||[]).push(a)});const dup=Object.values(grp).filter(v=>v.length>1);
+  const grp={};AG.filter(a=>a.pedidoId).forEach(a=>{const k=a.pedidoId+'|'+a.data+'|'+nrm(a.titulo||'');(grp[k]=grp[k]||[]).push(a)});const dup=Object.values(grp).filter(v=>{if(v.length<2)return false;const p=S.data.pedidos.find(x=>x.id===v[0].pedidoId);const neq=p?Math.max(1,eqDoPedido(p).length,(p.itens||[]).reduce((a,i)=>a+Math.max(1,+i.qtd||1),0)):1;return v.length>neq}).map(v=>{const p=S.data.pedidos.find(x=>x.id===v[0].pedidoId);const neq=p?Math.max(1,eqDoPedido(p).length,(p.itens||[]).reduce((a,i)=>a+Math.max(1,+i.qtd||1),0)):1;return v.slice(0,v.length).map((a,k)=>Object.assign(a,{_sobra:k>=neq}))});
+  const semNome=Object.values(grp).filter(v=>{if(v.length<2||v.some(a=>a.eqSufixo))return false;const p=S.data.pedidos.find(x=>x.id===v[0].pedidoId);return p&&pedEquipNomes(p).length>=v.length}).map(v=>{const p=S.data.pedidos.find(x=>x.id===v[0].pedidoId);const nm=pedEquipNomes(p);return v.map((a,k)=>Object.assign(a,{_novoSuf:nm[k]}))});
   let alvos=[];try{alvos=gcAlvos()}catch(e){}
   const semG=alvos.filter(e=>!(e.gcal&&e.gcal.id));const desat=alvos.filter(e=>e.gcal&&e.gcal.id&&(()=>{try{return e.gcal.sig!==gcSig(gcDados(e))}catch(_){return false}})());
-  return {semAg,dataDif,canc,dup,semG,desat,total:semAg.length+dataDif.length+canc.length+dup.length+semG.length+desat.length}}
+  return {semAg,dataDif,canc,dup,semNome,semG,desat,total:semAg.length+dataDif.length+canc.length+dup.length+semNome.length+semG.length+desat.length}}
 function agVerModal(){const R=agVerificar();const ped=id=>{const p=S.data.pedidos.find(x=>x.id===id);return p?`Pedido ${p.num||''}`:''};
   const sec=(tit,desc,L,fmt)=>`<section style="border:1px solid var(--line);border-radius:10px;padding:10px 12px"><div style="display:flex;gap:8px;align-items:center"><b>${tit}</b>${L.length?badge(String(L.length),'--danger'):badge('ok','--ok')}</div><div class="muted" style="font-size:12px;margin:2px 0 6px">${desc}</div>${L.length?`<div style="display:grid;gap:3px;font-size:13px;max-height:180px;overflow:auto">${L.map(fmt).join('')}</div>`:''}</section>`;
   const linA=a=>`<div><span class="num">${fdate(a.data)}${a.hora?' '+esc(a.hora):''}</span> · ${esc(a.titulo||'')} <span class="muted">${ped(a.pedidoId)}</span></div>`;
@@ -5884,7 +5889,8 @@ function agVerModal(){const R=agVerificar();const ped=id=>{const p=S.data.pedido
    ${sec('Pedidos sem compromisso na agenda','Ficam fora da agenda e da Google Agenda da equipe.',R.semAg,p=>`<div><span class="num">${fdate(p.dataEvento)}${p.horaEvento?' '+esc(p.horaEvento):''}</span> · ${esc(p.titulo||'')} <span class="muted">Pedido ${p.num||''}</span></div>`)}
    ${sec('Data diferente da do pedido','O compromisso está num dia e o pedido em outro.',R.dataDif,a=>{const p=S.data.pedidos.find(x=>x.id===a.pedidoId);return `<div>${esc(a.titulo||'')}: agenda <b class="num">${fdate(a.data)}</b> · pedido <b class="num">${fdate(p.dataEvento)}</b> <span class="muted">${ped(a.pedidoId)}</span></div>`})}
    ${sec('Compromissos de pedido cancelado','O pedido foi cancelado mas o compromisso continua.',R.canc,linA)}
-   ${sec('Repetidos','Mesmo pedido, mesmo dia e mesmo título mais de uma vez.',R.dup,v=>`<div>${v.length}× ${linA(v[0])}</div>`)}
+   ${sec('Repetidos','Mesmo pedido, mesmo dia e mesmo título mais vezes do que o número de equipamentos do pedido (combo com 2 equipamentos pode ter 2 compromissos).',R.dup,v=>`<div>${v.length}× ${linA(v[0])}</div>`)}
+   ${sec('Combos sem o nome do equipamento no título','Cada compromisso do combo ganha o nome do seu equipamento (ex.: "… - Cabine I" e "… - Spinner I").',R.semNome,v=>`<div>${esc(v[0].titulo||'')} → ${v.map(a=>esc(a._novoSuf)).join(' / ')} <span class="muted">${ped(v[0].pedidoId)} · ${fdate(v[0].data)}</span></div>`)}
    ${sec('Ainda não estão na Google Agenda','Existem no CRM, mas a equipe não vê no celular.',R.semG,linA)}
    ${sec('Mudaram no CRM e não foram atualizados na Google','Hora, local, título ou dados de operação diferentes.',R.desat,linA)}
   </div><footer><button class="btn" data-close>Fechar</button><span class="sp"></span>${R.total?`<button class="btn pri" data-agverfix>${ic('check',15)} Corrigir tudo</button>`:''}</footer></div></div>`}
@@ -5894,7 +5900,8 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   try{for(const p of R.semAg){try{if(await pedAgendaGarantir(p))n++}catch(_){}}
     for(const a of R.dataDif){const p=S.data.pedidos.find(x=>x.id===a.pedidoId);try{await patch('agenda',a.id,{data:p.dataEvento,hora:p.horaEvento||a.hora||''});n++}catch(_){}}
     for(const a of R.canc){try{await removeRec('agenda',a.id);n++}catch(_){}}
-    for(const v of R.dup){for(const a of v.slice(1)){try{await removeRec('agenda',a.id);n++}catch(_){}}}
+    for(const v of R.dup){for(const a of v.filter(x=>x._sobra)){try{await removeRec('agenda',a.id);n++}catch(_){}}}
+    for(const v of R.semNome){for(const a of v){if(!a._novoSuf)continue;const base=String(a.titulo||'').replace(/\s+-\s+$/,'');try{await patch('agenda',a.id,{titulo:base+' - '+a._novoSuf,eqSufixo:a._novoSuf});n++}catch(_){}}}
     await sleep(800);toast(`${n} ajuste(s) feitos. Enviando para a Google Agenda…`);GC_RUN=false;await gcSync(false);
   }catch(er){toast(String(er.message||er),true)}agVerModal()});
 /* ---- atalho do celular: botão flutuante 📷 (ler conta / conferir fatura) e abertura direta pelo ícone do app ---- */
