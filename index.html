@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104104118';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104104550';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -5844,7 +5844,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 function qcSet(el,c){if(el.tagName==='SELECT'){let o=[...el.options].find(x=>x.value===c.id);if(!o){o=document.createElement('option');o.value=c.id;o.textContent=SCHEMAS.contatos.labelOf(c);el.appendChild(o)}el.value=c.id}
   else{const lb=refLabel('contatos',c);const dl=el.list;if(dl&&![...dl.options].some(o=>o.value===lb)){const o=document.createElement('option');o.value=lb;dl.appendChild(o)}el.value=lb}el.dispatchEvent(new Event('change',{bubbles:true}))}
 /* caixas de texto crescem até caber o texto todo (sem barra de rolagem) */
-function taAjustar(t){if(!t||t.tagName!=='TEXTAREA'||t.closest('.atd-send'))return;t.style.height='auto';t.style.overflowY='hidden';t.style.height=Math.min(Math.max(t.scrollHeight+2,60),900)+'px'}
+function taAjustar(t){if(!t||t.tagName!=='TEXTAREA'||t.closest('.atd-send')||/^ct/i.test(t.id||'')||t.hasAttribute('data-noauto'))return;t.style.height='auto';const h=t.scrollHeight+2,max=700;t.style.height=Math.min(Math.max(h,60),max)+'px';t.style.overflowY=h>max?'auto':'hidden'}
 document.addEventListener('input',e=>{if(e.target&&e.target.tagName==='TEXTAREA')taAjustar(e.target)});
 setInterval(()=>{document.querySelectorAll('#modalRoot textarea').forEach(t=>{if(t.offsetParent===null)return;if(!t.dataset.ta||t.scrollHeight>t.clientHeight+2){t.dataset.ta='1';taAjustar(t)}})},300);
 /* ---- atalho do celular: botão flutuante 📷 (ler conta / conferir fatura) e abertura direta pelo ícone do app ---- */
