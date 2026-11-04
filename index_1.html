@@ -87,7 +87,7 @@ function render(){const g=D.galerias||[],c=D.contratos||[],ag=D.agenda||[],ap=D.
     body=`<h2>Seu perfil</h2><div class="card"><div style="display:grid;gap:8px"><div><span class="muted">Nome</span><br><b>${esc(D.nome)}</b></div>${P.email?`<div><span class="muted">E-mail</span><br><b>${esc(P.email)}</b></div>`:''}${P.celular?`<div><span class="muted">Celular</span><br><b>${esc(P.celular)}</b></div>`:''}${P.cidade?`<div><span class="muted">Cidade</span><br><b>${esc(P.cidade)}</b></div>`:''}</div>
      ${wa?`<div style="margin-top:14px"><a class="btn pri" href="${wa}" target="_blank" rel="noopener">💬 Pedir alteração pelo WhatsApp</a></div>`:''}</div>`}
   const waF=E.wa?`<a href="https://wa.me/${E.wa}" target="_blank" rel="noopener">💬 Falar com a gente</a>`:'';
-  document.getElementById('root').innerHTML=`<div class="app"><aside class="side"><div class="logo"><img src="${LOGO}" alt="${esc(E.nome||'')}"></div>
+  document.getElementById('root').innerHTML=`<div class="app"><aside class="side"><div class="logo"><img src="${D.logo||LOGO}" alt="${esc(E.nome||'')}" style="${D.logo?'filter:none':''}"></div>
    <nav class="nav">${nav.map(([k,i,l,n])=>`<button class="${tab===k?'on':''}" onclick="ir('${k}')"><span>${i}</span>${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</nav>
    <div class="foot">${esc(E.nome||'')}<br>${waF}</div></aside><main>${body}
    <p class="muted" style="font-size:12px;margin-top:26px">Atualizado em ${new Date(D.atualizadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})} · ${esc(E.nome||'')}${E.wa?` · <a href="https://wa.me/${E.wa}" target="_blank" rel="noopener">WhatsApp</a>`:''}</p></main></div>`}

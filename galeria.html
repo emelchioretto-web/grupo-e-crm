@@ -129,7 +129,7 @@ async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncod
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 
 firebase.initializeApp(window.FIREBASE_CONFIG);const db=firebase.firestore();
-const [TOKEN,CID0]=decodeURIComponent((location.hash||'').slice(1)).split('.');
+const [_HMAIN,PSLUG]=decodeURIComponent((location.hash||'').slice(1)).split('~');const [TOKEN,CID0]=(_HMAIN||'').split('.');
 const G={g:null,cid:CID0||'',r:{},view:'todas',lim:120,lb:-1,pg:0,altEd:false};
 let saveT=null;
 function salvar(ch,ja){Object.assign(G.r,ch);clearTimeout(saveT);const f=()=>db.doc(`galerias/${TOKEN}/respostas/${G.cid}`).set({...G.r,em:new Date().toISOString()},{merge:true}).catch(e=>toast('Não consegui salvar agora. Verifique a internet.'));if(ja)return f();saveT=setTimeout(f,700)}
@@ -161,7 +161,7 @@ const cli=()=>(G.g.clientes||{})[G.cid]||{};
 const prazo=()=>cli().prazo||G.g.prazo||'';
 const pausada=()=>!G.r.ok&&prazo()&&prazo()<hoje();
 const somenteVer=()=>G.g.tipo==='Visualização'||G.g.somenteVer||!!G.r.ok||pausada();
-function topo(extra){const g=G.g;const w=(g.empresa||{}).wa;return `<div class="top"><div class="wrap"><h1 class="display">${esc(g.nome||'')}<small>${esc(G.r.nome||'')}${prazo()&&!G.r.ok?' · prazo até '+fdate(prazo()):''}</small></h1>${extra||''}
+function topo(extra){const g=G.g;const w=(g.empresa||{}).wa;return `<div class="top"><div class="wrap">${PSLUG?`<a class="btn sm" href="https://cliente.elton.art.br/#${encodeURIComponent(PSLUG)}/galerias" title="Voltar para a sua área do cliente" style="text-decoration:none">← Minha área</a>`:''}<h1 class="display">${esc(g.nome||'')}<small>${esc(G.r.nome||'')}${prazo()&&!G.r.ok?' · prazo até '+fdate(prazo()):''}</small></h1>${extra||''}
   <button class="btn sm" data-a="instr">${ic('info',15)} Instruções</button>${w?`<a class="btn sm ok" href="https://wa.me/${w}?text=${encodeURIComponent('Olá! Sobre a galeria "'+(g.nome||'')+'":')}" target="_blank" rel="noopener">${ic('wa',15)} Ajuda</a>`:''}</div></div>`}
 function aviso(){if(G.r.ok&&G.g.tipo==='Álbum'&&Object.keys(G.r.alt||{}).length)return `<div class="banner warn"><b>Alterações enviadas em ${fdate(G.r.ok)}.</b> Estamos fazendo os ajustes; você vai receber o álbum de novo para aprovar.</div>`;
   if(G.r.ok)return `<div class="banner ok"><b>${G.g.tipo==='Álbum'?'Álbum aprovado':'Seleção concluída'} em ${fdate(G.r.ok)}.</b> Obrigado! Se precisar mudar algo, fale com a gente pelo WhatsApp.</div>`;
