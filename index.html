@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104095413';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104103517';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -886,6 +886,7 @@ const SCHEMAS={
       {k:'ativo',l:'Disponível para venda (ativo)',t:'check',def:true},
       {k:'emLista',l:'Aparece na lista de preços',t:'check',def:true},
       {k:'descricao',l:'Descrição (vai para o contrato)',t:'area',full:1},
+      {k:'pacote',l:'Equipamentos dentro deste combo (saem da disponibilidade junto)',t:'pacote',full:1},
       {k:'custos',l:'Custos do produto (entram automaticamente nos pedidos)',t:'custos',full:1}
     ],
     filters:{field:'categoria',opts:()=>['Todos',...[...new Set(S.data.produtos.map(p=>p.categoria).filter(Boolean))].sort((a,b)=>S.data.produtos.filter(p=>p.categoria===b).length-S.data.produtos.filter(p=>p.categoria===a).length)]},
@@ -1469,7 +1470,7 @@ function propHTML(p){const E=cfg().estudio||{};const c=S.data.contatos.find(x=>x
   const dono=(o&&(o.responsavel||o.vendedor))||p.vendedor||'';
   const dias=p.validade&&p.criadoEm?Math.max(1,Math.round((parseD(p.validade)-parseD(p.criadoEm.slice(0,10)))/864e5)):15;
   const end=[E.endereco,E.bairro?' - '+E.bairro:'',E.cidade?', '+E.cidade:'',E.uf?' - '+E.uf:'',E.cep?', '+E.cep:''].join('');
-  const linhas=t=>String(t||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).map(x=>`<li>${esc(x.replace(/^[*•\-]\s*/,''))}</li>`).join('');
+  const linhas=t=>String(t||'').split(/\n/).map(x=>x.trim()).map((x,i,arr)=>!x?'':/^[*•\-]/.test(x)?`<li>${esc(x.replace(/^[*•\-]\s*/,''))}</li>`:`<li class="tt">${esc(x)}</li>`).join('');
   const mI=!p.ocultarItens,mT=!p.ocultarTotais;
   const its=(p.itens||[]).map(i=>{const pr=i.produtoId?S.data.produtos.find(x=>x.id===i.produtoId):null;const nm=i.desc||(pr&&pr.nome)||'Item';const cod=pr&&pr.codigo;const ds=i.descricao||(pr&&pr.descricao)||'';const q=+i.qtd||1,v=+i.valor||0,dc=+i.descPct||0;
     return `<tr class="it"><td><b>${esc(nm)}</b>${cod?` <span class="cod">(${esc(cod)})</span>`:''}${ds?`<ul>${linhas(ds)}</ul>`:''}</td>${mI?`<td class="r">${brl(v)}</td><td class="r">${dc?String(dc).replace('.',',')+'%':''}</td>`:''}<td class="r">${q}</td>${mI?`<td class="r">${brl(q*v*(1-dc/100))}</td>`:''}</tr>`}).join('');
@@ -1486,7 +1487,7 @@ function propHTML(p){const E=cfg().estudio||{};const c=S.data.contatos.find(x=>x
 .box{border:1px solid #ddd;border-radius:6px;padding:12px 14px;margin-top:16px}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}.lb{font-weight:700;margin-top:8px}.lb:first-child{margin-top:0}
 table{width:100%;border-collapse:collapse;margin-top:18px}th{text-align:left;font-weight:700;border-bottom:1px solid #ccc;padding:8px 6px}th.r,td.r{text-align:right;white-space:nowrap}
-td{padding:12px 6px;border-bottom:1px solid #eee;vertical-align:middle}.it ul{margin:6px 0 0;padding:0;list-style:none;font-size:10.5px;color:#444;line-height:1.6}.it ul li:before{content:"* "}
+td{padding:12px 6px;border-bottom:1px solid #eee;vertical-align:middle}.it ul{margin:6px 0 0;padding:0;list-style:none;font-size:10.5px;color:#444;line-height:1.6}.it ul li:before{content:"* "}.it ul li.tt{font-weight:700;color:#222;margin-top:8px}.it ul li.tt:first-child{margin-top:0}.it ul li.tt:before{content:""}
 .cod{font-size:10.5px;color:#555}
 .tot{width:300px;margin:10px 0 0 auto}.tot div{display:flex;justify-content:space-between;padding:7px 6px;border-bottom:1px solid #eee}.tot .g{font-weight:700;font-size:13px}
 .cond{white-space:pre-wrap;line-height:1.55}
@@ -2450,13 +2451,17 @@ setInterval(()=>{try{pedAgendaTodos()}catch(e){}},30000);
 /* ---- datas em que o freelancer não pode → compromisso "Folga" na agenda (vai para a Google Agenda e para a agenda dele) ---- */
 function indTipoFolga(){const k=Object.keys(TIPOS||{});return k.includes('Pessoal')?'Pessoal':(k.includes('Sem Agenda')?'Sem Agenda':k[0]||'')}
 let IND_RUN=false;
+/* indisponibilidade que já passou sai da lista sozinha; a "Folga" que ela criou continua na agenda como histórico */
+let IND_LIMPA=0;async function indLimpar(){if(!S.dono||S.mode!=='db'||!S.loaded||!S.loaded.has('indisp')||Date.now()-IND_LIMPA<10*60*1000)return;IND_LIMPA=Date.now();const t=today();
+  for(const x of (S.data.indisp||[]).filter(y=>y.de&&((y.ate&&y.ate>=y.de)?y.ate:y.de)<t)){try{await S.db.collection('indisp').doc(x.id).delete()}catch(e){}}}
+setInterval(()=>{indLimpar().catch(()=>{})},60*1000);
 async function indAgendaSync(){if(IND_RUN||!S.dono||S.mode!=='db'||!S.loaded||!['indisp','agenda'].every(c=>S.loaded.has(c)))return;IND_RUN=true;
   try{const t=today(),ont=addDays(t,-1),quer={};
     (S.data.indisp||[]).forEach(x=>{if(!x.pessoa||!x.de)return;const ate=(x.ate&&x.ate>=x.de)?x.ate:x.de;if(ate<ont)return;let d=x.de<ont?ont:x.de,n=0;while(d<=ate&&n<62){quer[x.id+'|'+d]={x,d};d=addDays(d,1);n++}});
     const tem={};(S.data.agenda||[]).filter(a=>a.origem==='Indisp'&&!a.cancelado).forEach(a=>{tem[a.indispId+'|'+a.data]=a});
     for(const k of Object.keys(quer)){if(tem[k])continue;const {x,d}=quer[k];
       await save('agenda',{titulo:'Folga - '+x.pessoa+(x.motivo?' ('+x.motivo+')':''),data:d,hora:'07:00',horaFim:'23:00',tipo:indTipoFolga(),participantes:[x.pessoa],responsavel:x.pessoa,notas:(x.pessoa+' não pode trabalhar neste dia'+(x.motivo?': '+x.motivo:'')+'.'),origem:'Indisp',indispId:x.id})}
-    for(const k of Object.keys(tem)){if(quer[k])continue;const a=tem[k];if(a.data<ont)continue;await patch('agenda',a.id,{cancelado:true,canceladoPor:'Indisponibilidade removida',canceladoEm:new Date().toISOString()});
+    for(const k of Object.keys(tem)){if(quer[k])continue;const a=tem[k];if(a.data<t)continue;await patch('agenda',a.id,{cancelado:true,canceladoPor:'Indisponibilidade removida',canceladoEm:new Date().toISOString()});
       try{if(a.gcal&&a.gcal.id){const mcp=await getMcp();if(mcp)await mcp.callTool(GC,'delete_event',{eventId:a.gcal.id,calendarId:a.gcal.cal||gcCfg().agenda||'primary',notificationLevel:gcNotif()},{cache:false})}}catch(e){}}
   }catch(e){}IND_RUN=false}
 setInterval(()=>{try{indAgendaSync()}catch(e){}},60000);
@@ -2928,6 +2933,8 @@ function fieldHTML(f,rec){
   else if(f.t==='combo'){const vals=[...new Set(S.data[M?M.col:'produtos'].map(r=>r[f.k]).filter(Boolean))].sort();input=`<input id="${id}" list="dl-${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}"><datalist id="dl-${f.k}">${vals.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`}
   else if(f.t==='area')input=`<textarea id="${id}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
   else if(f.t==='items')return `<div class="field full"><label>${f.l}</label>${itemsEditor(v||[])}</div>`;
+  else if(f.t==='pacote'){const sel=new Set((rec.pacote||[]).map(x=>x.produtoId));const L=S.data.produtos.filter(p=>p.id!==rec.id&&p.ativo!==false&&!(p.pacote&&p.pacote.length)&&!/^(combo|kit)\b/i.test(p.nome||'')&&(prodEmp(p).includes('Prime 360')||sel.has(p.id))).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+    return `<details class="field full" ${sel.size||/combo|kit/i.test((rec.nome||'')+' '+(rec.categoria||''))?'open':''}><summary style="cursor:pointer;font-weight:600;font-size:12.5px">${f.l} ${sel.size?`<span class="muted">· ${sel.size} marcado(s)</span>`:''}</summary><div class="pchips" id="f-pacote" style="margin-top:8px">${L.map(p=>`<label class="pchip"><input type="checkbox" value="${p.id}" ${sel.has(p.id)?'checked':''}><span>${esc(p.nome)}</span></label>`).join('')||'<span class="muted">Nenhum equipamento cadastrado.</span>'}</div></details>`}
   else if(f.t==='custos')return `<div class="field full"><label>${f.l}</label>${custosEditor(rec)}</div>`;
   else{const type={money:'number',number:'number',date:'date',time:'time',email:'email',tel:'tel',url:'url'}[f.t]||'text';input=f.t==='money'?`<input id="${id}" type="text" data-money inputmode="decimal" value="${esc(moneyFmt(v))}" placeholder="${esc(f.ph||'0,00')}">`:`<input id="${id}" type="${type}" value="${esc(v)}" placeholder="${esc(f.ph||'')}">`}
   const ga=(f.grp?` data-grp="${esc(f.grp.join('|'))}"`:'')+(f.lg?` data-lg='${esc(JSON.stringify({_:f.l,...f.lg}))}'`:'');
@@ -3018,6 +3025,7 @@ async function submitForm(){
     if(f.newOnly&&rec.id&&!(typeof f.newOnly==='function'&&f.newOnly(rec)))return;if(f.hide&&f.hide(rec||{}))return;
     if(f.t==='items'){out[f.k]=readItems();return}
     if(f.t==='custos')return;
+    if(f.t==='pacote'){const el=document.getElementById('f-pacote');if(el){const old=Object.fromEntries((rec.pacote||[]).map(x=>[x.produtoId,x]));out.pacote=[...el.querySelectorAll('input:checked')].map(i=>old[i.value]||{produtoId:i.value,qtd:1})}return}
     const el=document.getElementById('f-'+f.k);if(!el)return;
     if(f.t==='pessoas'||f.t==='multi'){out[f.k]=[...el.querySelectorAll('input:checked')].map(i=>i.value);return}
     let v=f.t==='check'?el.checked:el.value;
@@ -3192,7 +3200,12 @@ function eqDoTexto(t){t=nrm(t);const out=[];(cfg().equipamentos||[]).forEach(e=>
   /* "totem game" não é totem: se achou um equipamento mais específico com o mesmo começo, tira o genérico */
   if(out.includes('totemgame')&&out.includes('totem')&&!/tote[mn](?! ?game)/.test(t.replace(/tote[mn] ?game/g,'')))out.splice(out.indexOf('totem'),1);
   if(out.includes('premios')&&out.includes('cabine')&&!/cabine(?! de (pr[eê]mios|vento))/.test(t))out.splice(out.indexOf('cabine'),1);return out}
-function eqDoPedido(p){const ks=new Set(eqDoTexto((p.categoria||'')+' '+(p.titulo||'')));(p.itens||[]).forEach(i=>eqDoTexto(nameOf('produtos',i.produtoId)||i.desc||'').forEach(k=>ks.add(k)));return [...ks]}
+function eqDoPedido(p){const ks=new Set(eqDoTexto((p.categoria||'')+' '+(p.titulo||'')));(p.itens||[]).forEach(i=>{eqDoProduto(i.produtoId,i.desc).forEach(k=>ks.add(k))});return [...ks]}
+/* equipamentos de um item: combo → os produtos dentro dele; sem lista, os títulos da descrição (linhas sem "*") */
+function eqDoProduto(pid,desc){const pr=pid&&S.data.produtos.find(x=>x.id===pid);const out=new Set(eqDoTexto((pr&&pr.nome)||desc||''));
+  if(pr&&pr.pacote&&pr.pacote.length){pr.pacote.forEach(x=>{const c=S.data.produtos.find(y=>y.id===x.produtoId);if(c)eqDoTexto(c.nome||'').forEach(k=>out.add(k))})}
+  else if(pr&&/combo|kit/i.test((pr.nome||'')+' '+(pr.categoria||''))&&pr.descricao){String(pr.descricao).split('\n').map(l=>l.trim()).filter(l=>l&&!/^[*•\-]/.test(l)).forEach(l=>eqDoTexto(l).forEach(k=>out.add(k)))}
+  return [...out]}
 function usoDoDia(data,ignorarId,evPorData){const eq=cfg().equipamentos||[];const uso={};eq.forEach(e=>uso[e.chave]=[]);
   const evs=(evPorData?evPorData[data]||[]:agendaAll().filter(e=>e.data===data));const porPed={};const semEq=[];
   evs.forEach(e=>{const pid=e._ped?e.id:e.pedidoId;if(ignorarId&&pid===ignorarId)return;const p=pid?S.data.pedidos.find(x=>x.id===pid):null;if(p&&p.contratoStatus==='Cancelado')return;
@@ -5830,6 +5843,10 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     qcSet(el,c||{id:cid,nome:pn,sobrenome:rest.join(' ')});b.hidden=true;b.style.display='none';b.querySelectorAll('input').forEach(i=>i.value='');toast('Contato criado. Depois é só completar o cadastro.')}catch(er){failWrite(er)}finally{t.disabled=false}},true);
 function qcSet(el,c){if(el.tagName==='SELECT'){let o=[...el.options].find(x=>x.value===c.id);if(!o){o=document.createElement('option');o.value=c.id;o.textContent=SCHEMAS.contatos.labelOf(c);el.appendChild(o)}el.value=c.id}
   else{const lb=refLabel('contatos',c);const dl=el.list;if(dl&&![...dl.options].some(o=>o.value===lb)){const o=document.createElement('option');o.value=lb;dl.appendChild(o)}el.value=lb}el.dispatchEvent(new Event('change',{bubbles:true}))}
+/* caixas de texto crescem até caber o texto todo (sem barra de rolagem) */
+function taAjustar(t){if(!t||t.tagName!=='TEXTAREA'||t.closest('.atd-send'))return;t.style.height='auto';t.style.overflowY='hidden';t.style.height=Math.min(Math.max(t.scrollHeight+2,60),900)+'px'}
+document.addEventListener('input',e=>{if(e.target&&e.target.tagName==='TEXTAREA')taAjustar(e.target)});
+setInterval(()=>{document.querySelectorAll('#modalRoot textarea').forEach(t=>{if(t.offsetParent===null)return;if(!t.dataset.ta||t.scrollHeight>t.clientHeight+2){t.dataset.ta='1';taAjustar(t)}})},300);
 /* ---- atalho do celular: botão flutuante 📷 (ler conta / conferir fatura) e abertura direta pelo ícone do app ---- */
 function iaAtalhoOk(){return !!window.__HOSTED&&S.mode==='db'&&!S.semAcesso&&!modOffView('finap')}
 function iaAtalhoSheet(){if(!iaAtalhoOk())return;
