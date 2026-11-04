@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104092317';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104092941';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -533,7 +533,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .field.check input{width:17px;height:17px;accent-color:var(--accent)}
 .field .err{font-size:12px;color:var(--danger)}
 .items-ed{display:grid;gap:8px}
-.items-ed .ir{display:grid;grid-template-columns:minmax(0,3fr) 70px minmax(0,1.3fr) minmax(0,1.2fr) 30px;gap:8px;align-items:center}
+.items-ed .ir{display:grid;grid-template-columns:minmax(0,3fr) 64px minmax(0,1.2fr) 64px minmax(0,1.1fr) 30px;gap:8px;align-items:center}
 .items-ed .ir.h{font-size:11.5px;color:var(--muted);font-weight:600}
 .cr input{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 8px;min-width:0}
 .ir textarea[data-idsc]{grid-column:1/-1;width:100%;min-height:38px;border:1px dashed var(--line);background:var(--surface);border-radius:6px;padding:6px 8px;font-size:12.5px;color:var(--muted);resize:vertical}
@@ -566,7 +566,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   .ev{font-size:0;padding:0;height:6px}
   .ev .h{display:none}
   .agenda-list .dgrp{grid-template-columns:minmax(0,1fr)}
-  .items-ed .ir{grid-template-columns:minmax(0,1fr) 60px minmax(0,1fr) 30px}
+  .items-ed .ir{grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr) 52px 30px}
   .items-ed .ir .sub-t{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -757,7 +757,7 @@ const badge=(t,c)=>t?`<span class="badge" style="--c:var(${c||'--idle'})">${esc(
 const nameOf=(col,id)=>{if(!id)return '';const r=S.data[col].find(x=>x.id===id);return r?SCHEMAS[col].labelOf(r):''};
 const contatoNome=id=>nameOf('contatos',id);
 const cLink=id=>{const n=contatoNome(id);return n?`<button class="clink" data-contato="${id}">${esc(n)}</button>`:''};
-const pedidoTotal=p=>Math.max(0,(p.itens||[]).reduce((s,i)=>s+(+i.qtd||0)*(+i.valor||0),0)-(+p.desconto||0));
+const pedidoTotal=p=>Math.max(0,(p.itens||[]).reduce((s,i)=>s+(+i.qtd||0)*(+i.valor||0)*(1-(+i.descPct||0)/100),0)-(+p.desconto||0)+(+p.outrasDespesas||0));
 
 const SCHEMAS={
   contatos:{label:'Contatos',one:'contato',gender:'o',
@@ -804,20 +804,28 @@ const SCHEMAS={
     ]},
   oportunidades:{label:'Oportunidades',one:'oportunidade',gender:'a',
     labelOf:r=>r.titulo||'(sem título)',
+    tabs:['Informação básica','Progresso','Evento'],
     fields:[
-      {k:'titulo',l:'Título',req:1,full:1,ph:'Casamento Ana & Natan'},
-      {k:'contatoId',l:'Contato',t:'ref',ref:'contatos'},
-      {k:'etapa',l:'Etapa do funil',t:'select',o:ETAPAS.map(e=>e[0]),get ol(){return Object.fromEntries(ETAPAS.map(e=>[e[0],etapaNome(e[0])]))},req:1},
-      {k:'categoria',l:'Categoria',t:'select',get o(){return ['',...cfg().categorias.filter(c=>c.ativo!==false).map(c=>c.nome)]}},
-      {k:'vendedor',l:'Vendedor',t:'pessoa',def:'Elton Melchioretto'},{k:'responsavel',l:'Delegado a',t:'pessoa'},
-      {k:'proximaAcao',l:'Próxima ação',t:'date'},{k:'fechamento',l:'Data de fechamento',t:'date'},
-      {k:'indicadoPor',l:'Indicado por',t:'combo'},
-      {k:'tipoEvento',l:'Tipo de evento',t:'select',o:['','Casamento','15 anos','Aniversário','Corporativo','Formatura','Infantil','Outro']},
-      {k:'valor',l:'Valor estimado (R$)',t:'money'},
-      {k:'dataEvento',l:'Data do evento',t:'date'},{k:'previsao',l:'Previsão de fechamento',t:'date'},
-      {k:'origem',l:'Origem',t:'select',get o(){return ['',...cfg().origens]}},
-      {k:'local',l:'Local do evento'},{k:'motivoPerda',l:'Motivo da perda',t:'select',o:['','Desistência','Venda Perdida','Data Indisponível','Suspenso','Preço','Sem resposta','Evento já passou']},
-      {k:'notas',l:'Anotações',t:'area',full:1}
+      {k:'titulo',l:'Nome',req:1,full:1,ph:'Casamento Ana & Natan',tab:0},
+      {k:'contatoId',l:'Contato',t:'ref',ref:'contatos',full:1,tab:0},
+      {k:'categoria',l:'Categoria',t:'select',get o(){return ['',...cfg().categorias.filter(c=>c.ativo!==false).map(c=>c.nome)]},tab:0},
+      {k:'origem',l:'Origem da oportunidade',t:'select',get o(){return ['',...cfg().origens]},tab:0},
+      {k:'indicadoPor',l:'Indicado por',t:'combo',full:1,tab:0},
+      {k:'descricao',l:'Descrição',t:'area',full:1,tab:0},
+      {k:'valor',l:'Valor estimado (R$)',t:'money',tab:0},{k:'fechamento',l:'Data de fechamento',t:'date',tab:0},
+      {k:'vendedor',l:'Responsável',t:'pessoa',def:'Elton Melchioretto',tab:0},{k:'responsavel',l:'Delegar a',t:'pessoa',tab:0},
+      {k:'tags',l:'Tags',full:1,ph:'separe por vírgula',tab:0},
+      {k:'etapa',l:'Etapa do funil',t:'select',o:ETAPAS.map(e=>e[0]),get ol(){return Object.fromEntries(ETAPAS.map(e=>[e[0],etapaNome(e[0])]))},req:1,tab:1},
+      {k:'prioridade',l:'Prioridade',t:'select',o:['','Alta','Média','Baixa'],def:'Média',tab:1},
+      {k:'proximaAcao',l:'Próxima ação',t:'date',tab:1},{k:'previsao',l:'Previsão de fechamento',t:'date',tab:1},
+      {k:'motivoPerda',l:'Motivo da perda',t:'select',o:['','Desistência','Venda Perdida','Data Indisponível','Suspenso','Preço','Sem resposta','Evento já passou'],tab:1},
+      {k:'notas',l:'Obs',t:'area',full:1,tab:1},
+      {k:'tarefas',l:'Tarefas',t:'area',full:1,ph:'Uma tarefa por linha',tab:1},
+      {k:'tipoEvento',l:'Tipo de evento',t:'select',o:['','Casamento','15 anos','Aniversário','Corporativo','Formatura','Infantil','Outro'],tab:2},
+      {k:'dataEvento',l:'Data do evento',t:'date',tab:2},{k:'horaEvento',l:'Horário',t:'time',tab:2},
+      {k:'local',l:'Local do evento',full:1,ph:'Cresol',tab:2},
+      {k:'cidade',l:'Cidade',ph:'Jaraguá do Sul',tab:2},{k:'uf',l:'Estado',ph:'SC',tab:2},
+      {k:'convidados',l:'Convidados',t:'number',tab:2}
     ],
     filters:{field:'etapa',opts:['Todas','Em aberto','Venda efetivada','Perdida']},
     search:r=>[r.num,r.titulo,contatoNome(r.contatoId),r.tipoEvento,r.categoria,r.origem,r.vendedor,r.indicadoPor,r.dataEvento].join(' '),
@@ -843,7 +851,8 @@ const SCHEMAS={
       {k:'dataEvento',l:'Data do evento',t:'date'},{k:'horaEvento',l:'Horário',t:'time'},{k:'validade',l:'Válida até',t:'date',get def(){return addDays(today(),15)}},
       {k:'local',l:'Local (cidade / estado)',ph:'Itajaí • Santa Catarina'},{k:'convidados',l:'Convidados',t:'number'},
       {k:'itens',l:'Itens',t:'items',full:1},
-      {k:'desconto',l:'Desconto (R$)',t:'money'},
+      {k:'desconto',l:'Desconto (R$)',t:'money'},{k:'outrasDespesas',l:'Outras despesas (R$)',t:'money'},
+      {k:'ocultarItens',l:'Esconder o preço de cada item',t:'check'},{k:'ocultarTotais',l:'Esconder os totais',t:'check'},
       {k:'vendedor',l:'Vendedor',t:'pessoa',def:'Elton Melchioretto'},
       {k:'status',l:'Status',t:'select',o:['Rascunho','Enviada','Aceita','Recusada'],def:'Rascunho'},
       {k:'condicoes',l:'Condições de pagamento',t:'area',full:1,get def(){return cfg().termos.condicoes}},
@@ -1463,9 +1472,10 @@ function propHTML(p){const E=cfg().estudio||{};const c=S.data.contatos.find(x=>x
   const dias=p.validade&&p.criadoEm?Math.max(1,Math.round((parseD(p.validade)-parseD(p.criadoEm.slice(0,10)))/864e5)):15;
   const end=[E.endereco,E.bairro?' - '+E.bairro:'',E.cidade?', '+E.cidade:'',E.uf?' - '+E.uf:'',E.cep?', '+E.cep:''].join('');
   const linhas=t=>String(t||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).map(x=>`<li>${esc(x.replace(/^[*•\-]\s*/,''))}</li>`).join('');
+  const mI=!p.ocultarItens,mT=!p.ocultarTotais;
   const its=(p.itens||[]).map(i=>{const pr=i.produtoId?S.data.produtos.find(x=>x.id===i.produtoId):null;const nm=i.desc||(pr&&pr.nome)||'Item';const cod=pr&&pr.codigo;const ds=i.descricao||(pr&&pr.descricao)||'';const q=+i.qtd||1,v=+i.valor||0,dc=+i.descPct||0;
-    return `<tr class="it"><td><b>${esc(nm)}</b>${cod?` <span class="cod">(${esc(cod)})</span>`:''}${ds?`<ul>${linhas(ds)}</ul>`:''}</td><td class="r">${brl(v)}</td><td class="r">${dc?dc+'%':''}</td><td class="r">${q}</td><td class="r">${brl(q*v*(1-dc/100))}</td></tr>`}).join('');
-  const sub=(p.itens||[]).reduce((s,i)=>s+(+i.qtd||1)*(+i.valor||0)*(1-(+i.descPct||0)/100),0);const desc=+p.desconto||0;const tot=Math.max(0,sub-desc);
+    return `<tr class="it"><td><b>${esc(nm)}</b>${cod?` <span class="cod">(${esc(cod)})</span>`:''}${ds?`<ul>${linhas(ds)}</ul>`:''}</td>${mI?`<td class="r">${brl(v)}</td><td class="r">${dc?String(dc).replace('.',',')+'%':''}</td>`:''}<td class="r">${q}</td>${mI?`<td class="r">${brl(q*v*(1-dc/100))}</td>`:''}</tr>`}).join('');
+  const sub=(p.itens||[]).reduce((s,i)=>s+(+i.qtd||1)*(+i.valor||0)*(1-(+i.descPct||0)/100),0);const desc=+p.desconto||0,od=+p.outrasDespesas||0;const tot=Math.max(0,sub-desc+od);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proposta ${esc(String(p.num||''))} - ${esc(p.titulo||'')}</title>
 <style>
 @page{size:A4;margin:14mm 12mm}
@@ -1497,8 +1507,8 @@ td{padding:12px 6px;border-bottom:1px solid #eee;vertical-align:middle}.it ul{ma
   <div><div class="lb">Oportunidade</div><div>${o&&o.num?'#'+esc(String(o.num))+' • ':''}${esc((o&&o.titulo)||p.titulo||'')}</div>
    <div class="lb">Data</div><div>${fd2(p.dataEvento||(o&&o.dataEvento)||'')}${hora?' '+esc(hora):''}</div>
    <div class="lb">Local</div><div>${esc(local)||'—'}</div>${conv?`<div class="lb">Convidados</div><div>${esc(String(conv))}</div>`:''}</div></div>
- <table><thead><tr><th>Produto</th><th class="r">Preço Unitário</th><th class="r">Desc %</th><th class="r">Qtd.</th><th class="r">Preço Total</th></tr></thead><tbody>${its||'<tr><td colspan="5" style="color:#888">Nenhum produto.</td></tr>'}</tbody></table>
- <div class="tot"><div><span>Total dos Produtos</span><span>${brl(sub)}</span></div>${desc?`<div><span>Desconto</span><span>− ${brl(desc)}</span></div>`:''}<div class="g"><span>Total</span><span>${brl(tot)}</span></div></div>
+ <table><thead><tr><th>Produto</th>${mI?'<th class="r">Preço Unitário</th><th class="r">Desc %</th>':''}<th class="r">Qtd.</th>${mI?'<th class="r">Preço Total</th>':''}</tr></thead><tbody>${its||'<tr><td colspan="5" style="color:#888">Nenhum produto.</td></tr>'}</tbody></table>
+ ${mT?`<div class="tot"><div><span>Total dos Produtos</span><span>${brl(sub)}</span></div>${od?`<div><span>Outras despesas</span><span>${brl(od)}</span></div>`:''}${desc?`<div><span>Desconto${sub?' ('+String(Math.round(desc/sub*10000)/100).replace('.',',')+'%)':''}</span><span>− ${brl(desc)}</span></div>`:''}<div class="g"><span>Total</span><span>${brl(tot)}</span></div></div>`:''}
  ${p.condicoes?`<div class="box"><div class="lb">Condições de Pagamento</div><div class="cond">${esc(p.condicoes)}</div></div>`:''}
  ${p.mensagem?`<div class="box"><div class="lb">Condições gerais</div><div class="cond">${esc(p.mensagem)}</div></div>`:''}
  <div class="rod"><b>Válido por</b><span>${dias} dias${p.validade?' (até '+fdate(p.validade)+')':''}</span><b>Emitido por</b><span>${esc(p.vendedor||dono||'')}</span></div>
@@ -1533,8 +1543,10 @@ VIEWS.opp=()=>{
       ${c&&(c.celular||c.fone)?`<span class="num muted" style="font-size:12px">${ic('phone',13)} ${esc(c.celular||c.fone)}</span>`:''}${c&&c.cidade?`<span class="muted" style="font-size:12px">${ic('pin',13)} ${esc([c.cidade,c.uf].filter(Boolean).join(' · '))}</span>`:''}</div>
      <div style="border-top:1px solid var(--line);padding-top:12px" class="kv">
       <b>Data</b><span class="num">${fdate(o.dataEvento)||'—'}${o.horaEvento?' '+esc(o.horaEvento):''}${dw?` <span class="muted">(${dw})</span>`:''}</span>
-      <b>Local</b><span>${esc(o.local||'—')}</span>
-      <b>Convidados</b><span>${esc(o.convidados||'—')}</span></div>
+      <b>Local</b><span>${esc(o.local||'—')}${o.cidade||o.uf?`<div class="muted" style="font-size:12.5px">${ic('pin',12)} ${esc([o.cidade,o.uf].filter(Boolean).join(' • '))}</div>`:''}</span>
+      <b>Convidados</b><span>${esc(o.convidados||'—')}</span>
+      ${(()=>{if(!o.dataEvento)return '';const ops=S.data.oportunidades.filter(x=>x.id!==o.id&&x.dataEvento===o.dataEvento&&ABERTAS.includes(x.etapa));const peds=S.data.pedidos.filter(p=>p.dataEvento===o.dataEvento&&p.contratoStatus!=='Cancelado'&&pedStatus(p)!=='Cancelado');if(!ops.length&&!peds.length)return '';
+        return `<b>Conflito</b><span style="display:grid;gap:3px">${peds.map(p=>`<button class="clink" style="text-align:left" data-edit="pedidos" data-id="${p.id}">${badge('Pedido '+(p.num||''),'--danger')} ${esc(p.titulo||'')}</button>`).join('')}${ops.map(x=>`<button class="clink" style="text-align:left" data-oppopen="${x.id}">${badge('#'+(x.num||''),'--warn')} ${esc(x.titulo||'')}</button>`).join('')}</span>`})()}</div>
      <div style="border-top:1px solid var(--line);padding-top:12px" class="kv">
       <b>Etapa</b><span>${badge(aberta?etapaNome(o.etapa):o.etapa,ETAPA_COR[o.etapa])}</span>
       <b>Progresso</b><span style="display:flex;gap:6px;align-items:center"><button class="icon-btn" title="Etapa anterior" data-oppstep="-1" ${idx<=0?'disabled':''}>−</button><span class="track" style="flex:1;height:6px;--c:var(${ETAPA_COR[o.etapa]||'--info'})"><i style="width:${pct}%"></i></span><button class="icon-btn" title="Próxima etapa" data-oppstep="1" ${!aberta?'disabled':''}>+</button></span></div>
@@ -2935,13 +2947,13 @@ const pedCustoTotal=p=>(p.custos||[]).length?sumV(p.custos):null;
 function itemRow(i){
   const prods=[...S.data.produtos].filter(p=>p.ativo!==false||p.id===i.produtoId).sort(SCHEMAS.produtos.sort);
   const prd=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const pdesc=(prd&&prd.descricao)||'';
-  return `<div class="ir" data-item data-desc="${esc(i.desc||'')}" data-pid="${esc(i.produtoId||'')}" data-pdesc="${esc(pdesc)}"><select data-ip><option value="">${i.desc&&!i.produtoId?esc(i.desc):'— produto ou serviço —'}</option>${prods.map(p=>`<option value="${p.id}" ${p.id===i.produtoId?'selected':''}>${esc(p.nome)}</option>`).join('')}</select><input data-iq type="number" min="0" step="1" value="${esc(i.qtd??1)}" aria-label="Quantidade"><input data-iv data-money inputmode="decimal" value="${esc(moneyFmt(i.valor??''))}" aria-label="Valor unitário" placeholder="Valor"><span class="num sub-t" data-isub>${brl((+i.qtd||0)*(+i.valor||0))}</span><button type="button" class="icon-btn del" data-irm title="Remover item">${ic('x',14)}</button><textarea data-idsc rows="${Math.min(8,Math.max(2,String(i.descricao||pdesc).split('\n').length))}" placeholder="Descrição do item (vai para o contrato). Vem do cadastro do produto; mude aqui só se este pedido for diferente.">${esc(i.descricao||pdesc)}</textarea></div>`;
+  return `<div class="ir" data-item data-desc="${esc(i.desc||'')}" data-pid="${esc(i.produtoId||'')}" data-pdesc="${esc(pdesc)}"><select data-ip><option value="">${i.desc&&!i.produtoId?esc(i.desc):'— produto ou serviço —'}</option>${prods.map(p=>`<option value="${p.id}" ${p.id===i.produtoId?'selected':''}>${esc(p.nome)}</option>`).join('')}</select><input data-iq type="number" min="0" step="1" value="${esc(i.qtd??1)}" aria-label="Quantidade"><input data-iv data-money inputmode="decimal" value="${esc(moneyFmt(i.valor??''))}" aria-label="Valor unitário" placeholder="Valor"><input data-idp inputmode="decimal" value="${esc(i.descPct?String(i.descPct).replace('.',','):'')}" aria-label="Desconto do item em %" placeholder="0"><span class="num sub-t" data-isub>${brl((+i.qtd||0)*(+i.valor||0)*(1-(+i.descPct||0)/100))}</span><button type="button" class="icon-btn del" data-irm title="Remover item">${ic('x',14)}</button><textarea data-idsc rows="${Math.min(8,Math.max(2,String(i.descricao||pdesc).split('\n').length))}" placeholder="Descrição do item (vai para o contrato). Vem do cadastro do produto; mude aqui só se este pedido for diferente.">${esc(i.descricao||pdesc)}</textarea></div>`;
 }
 function itemsEditor(items){
-  return `<div class="items-ed" id="itemsEd"><div class="ir h"><span>Produto / serviço</span><span>Qtd</span><span>Valor unit.</span><span class="sub-t">Subtotal</span><span></span></div><div id="itemRows" style="display:grid;gap:8px">${(items.length?items:[{qtd:1}]).map(itemRow).join('')}</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn sm" data-iadd>${ic('plus',14)} Adicionar item</button><div class="tot" style="margin-left:auto">Total do pedido <b id="itemsTot">—</b></div></div></div>`;
+  return `<div class="items-ed" id="itemsEd"><div class="ir h"><span>Produto / serviço</span><span>Qtd</span><span>Valor unit.</span><span>Desc %</span><span class="sub-t">Subtotal</span><span></span></div><div id="itemRows" style="display:grid;gap:8px">${(items.length?items:[{qtd:1}]).map(itemRow).join('')}</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn sm" data-iadd>${ic('plus',14)} Adicionar item</button><div class="tot" style="margin-left:auto">Total <b id="itemsTot">—</b></div></div></div>`;
 }
-function readItems(){return $$('#itemRows [data-item]').map(r=>{const o={produtoId:$('[data-ip]',r).value,qtd:+$('[data-iq]',r).value||0,valor:moneyParse($('[data-iv]',r).value)};const pr=o.produtoId&&S.data.produtos.find(x=>x.id===o.produtoId);if(r.dataset.desc&&(!o.produtoId||(pr&&pr.nome!==r.dataset.desc&&r.dataset.pid===o.produtoId)))o.desc=r.dataset.desc;const ds=(($('[data-idsc]',r)||{}).value||'').trim();const pd=String((pr&&pr.descricao)||'').trim();if(ds&&ds!==pd)o.descricao=ds;return o}).filter(i=>i.produtoId||i.valor)}
-function updItemsTotal(){if(!$('#itemsEd'))return;$$('#itemRows [data-item]').forEach(r=>{$('[data-isub]',r).textContent=brl((+$('[data-iq]',r).value||0)*moneyParse($('[data-iv]',r).value))});const d=moneyParse($('#f-desconto')?.value||'');$('#itemsTot').textContent=brl(Math.max(0,readItems().reduce((s,i)=>s+i.qtd*i.valor,0)-d))}
+function readItems(){return $$('#itemRows [data-item]').map(r=>{const o={produtoId:$('[data-ip]',r).value,qtd:+$('[data-iq]',r).value||0,valor:moneyParse($('[data-iv]',r).value)};{const dp=parseFloat(String(($('[data-idp]',r)||{}).value||'').replace(',','.'))||0;if(dp>0)o.descPct=Math.min(100,dp)}const pr=o.produtoId&&S.data.produtos.find(x=>x.id===o.produtoId);if(r.dataset.desc&&(!o.produtoId||(pr&&pr.nome!==r.dataset.desc&&r.dataset.pid===o.produtoId)))o.desc=r.dataset.desc;const ds=(($('[data-idsc]',r)||{}).value||'').trim();const pd=String((pr&&pr.descricao)||'').trim();if(ds&&ds!==pd)o.descricao=ds;return o}).filter(i=>i.produtoId||i.valor)}
+function updItemsTotal(){if(!$('#itemsEd'))return;$$('#itemRows [data-item]').forEach(r=>{const dp=parseFloat(String(($('[data-idp]',r)||{}).value||'').replace(',','.'))||0;$('[data-isub]',r).textContent=brl((+$('[data-iq]',r).value||0)*moneyParse($('[data-iv]',r).value)*(1-dp/100))});const d=moneyParse($('#f-desconto')?.value||''),od=moneyParse($('#f-outrasDespesas')?.value||'');$('#itemsTot').textContent=brl(Math.max(0,readItems().reduce((s,i)=>s+i.qtd*i.valor*(1-(+i.descPct||0)/100),0)-d+od))}
 
 function relRows(list,col,fmt){return list.length?`<div class="list-rows">${list.map(r=>`<div class="lr" style="grid-template-columns:86px minmax(0,1fr) auto"><span class="num muted">${fmt.d(r)}</span><button type="button" class="t" data-edit="${col}" data-id="${r.id}">${esc(SCHEMAS[col].labelOf(r))}</button><span>${fmt.r(r)}</span></div>`).join('')}</div>`:`<span class="muted" style="font-size:13px">Nenhum.</span>`}
 const byDate=k=>(a,b)=>(b[k]||'').localeCompare(a[k]||'');
@@ -3544,7 +3556,7 @@ document.addEventListener('click',async e=>{
   if(d.propprint){printProposta(d.propprint);return}
   if(d.propclone){const p=S.data.propostas.find(x=>x.id===d.propclone);if(!p)return;const {id,num,criadoEm,atualizadoEm,enviadaEm,visualizadaEm,origemId,importadoEm,totalAlboom,...rest}=p;openForm('propostas',{...rest,status:'Rascunho',titulo:(p.titulo||'')+' (cópia)'});return}
   if(d.propdel){armDelete(t,async()=>{try{await removeRec('propostas',d.propdel);toast('Proposta excluída')}catch(err){failWrite(err)}});return}
-  if(d.novaprop){const o=S.data.oportunidades.find(x=>x.id===d.novaprop);if(o)openForm('propostas',{oportunidadeId:o.id,contatoId:o.contatoId,titulo:o.titulo,dataEvento:o.dataEvento,horaEvento:o.horaEvento||'',local:o.local||'',convidados:o.convidados||'',vendedor:o.vendedor||'Elton Melchioretto',itens:o.valor?[{produtoId:'',desc:o.categoria||o.titulo,qtd:1,valor:+o.valor}]:[]});return}
+  if(d.novaprop){const o=S.data.oportunidades.find(x=>x.id===d.novaprop);if(o)openForm('propostas',{oportunidadeId:o.id,contatoId:o.contatoId,titulo:o.titulo,dataEvento:o.dataEvento,horaEvento:o.horaEvento||'',local:[o.local,o.cidade,o.uf].filter(Boolean).join(' • '),convidados:o.convidados||'',vendedor:o.vendedor||'Elton Melchioretto',itens:o.valor?[{produtoId:'',desc:o.categoria||o.titulo,qtd:1,valor:+o.valor}]:[]});return}
   if(d.propwa){const p=S.data.propostas.find(x=>x.id===d.propwa);if(!p)return;const c=S.data.contatos.find(x=>x.id===p.contatoId)||{};const n=waNum(c);window.open('https://wa.me/'+(n||'')+'?text='+encodeURIComponent(propTexto(p)),'_blank');await patch('propostas',p.id,{status:p.status==='Rascunho'||!p.status?'Enviada':p.status,enviadaEm:p.enviadaEm||new Date().toISOString()});if(p.oportunidadeId){const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);if(o&&['Lead','Contato feito'].includes(o.etapa))await patch('oportunidades',o.id,{etapa:'Proposta enviada',propostaEnviada:today()})}return}
   if(d.propcopy){const p=S.data.propostas.find(x=>x.id===d.propcopy);if(!p)return;try{await navigator.clipboard.writeText(propTexto(p));toast('Texto da proposta copiado')}catch(err){toast('Não foi possível copiar',true)}return}
   if(d.propped){const p=S.data.propostas.find(x=>x.id===d.propped);if(!p)return;const o=p.oportunidadeId&&S.data.oportunidades.find(x=>x.id===p.oportunidadeId);
@@ -3638,7 +3650,7 @@ document.addEventListener('input',e=>{
   if(t.dataset.pvq!==undefined){S.ui.pv.q=t.value;render();return}
   if(t.dataset.flq){const F=S.ui.fl[t.dataset.flq];F.q=t.value;F.pg=1;render();return}
   if(t.dataset.search){S.ui.q[t.dataset.search]=t.value;if(t.dataset.search==='fin')S.ui.fin.pg=1;S.ui.lim[t.dataset.search]=100;render();return}
-  if(t.closest('#itemsEd')||t.id==='f-desconto')updItemsTotal();
+  if(t.closest('#itemsEd')||t.id==='f-desconto'||t.id==='f-outrasDespesas')updItemsTotal();
 });
 document.addEventListener('change',e=>{
   if(e.target.dataset&&e.target.dataset.pdup){const inp=e.target,pid=inp.dataset.pdup,files=[...inp.files];inp.value='';const pd=S.data.pedidos.find(x=>x.id===pid)||{};(async()=>{const A=await getAssets();if(!A){toast('O envio de arquivos só funciona no CRM publicado, para quem pode editar.',true);return}
@@ -5791,7 +5803,7 @@ document.addEventListener('change',async e=>{const t=e.target;if(!(t.matches&&t.
   try{const A=await getAssets();if(!A){toast('Envio de imagens indisponível neste acesso.',true);return}toast('Enviando a logo…');const r=await A.upload(f);const v=r.url||r.id;if(!v)throw new Error('Não consegui enviar.');idLogoSalvar(t.dataset.idlogo,v);toast('Logo salva.');render()}catch(er){toast(String(er.message||er),true)}});
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-idlogodel]');if(!t)return;idLogoSalvar(t.dataset.idlogodel,'');render()});
 /* desconto em % ao lado do desconto em R$ (os dois se acompanham) */
-function descSub(){try{return readItems().reduce((s,i)=>s+(+i.qtd||0)*(+i.valor||0),0)}catch(e){return 0}}
+function descSub(){try{return readItems().reduce((s,i)=>s+(+i.qtd||0)*(+i.valor||0)*(1-(+i.descPct||0)/100),0)}catch(e){return 0}}
 function descPctPrep(){const d=document.getElementById('f-desconto');if(!d||document.getElementById('f-descpct'))return;const sub=descSub(),v=moneyParse(d.value||'');
   const w=document.createElement('div');w.style.cssText='display:flex;gap:8px;align-items:center';d.parentNode.insertBefore(w,d);
   const pc=document.createElement('input');pc.id='f-descpct';pc.inputMode='decimal';pc.placeholder='%';pc.style.cssText='width:90px;flex:none';pc.value=sub&&v?String(Math.round(v/sub*10000)/100).replace('.',','):'';
