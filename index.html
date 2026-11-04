@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104092941';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104093810';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -804,7 +804,7 @@ const SCHEMAS={
     ]},
   oportunidades:{label:'Oportunidades',one:'oportunidade',gender:'a',
     labelOf:r=>r.titulo||'(sem título)',
-    tabs:['Informação básica','Progresso','Evento'],
+    tabs:['Informação básica','Progresso'],
     fields:[
       {k:'titulo',l:'Nome',req:1,full:1,ph:'Casamento Ana & Natan',tab:0},
       {k:'contatoId',l:'Contato',t:'ref',ref:'contatos',full:1,tab:0},
@@ -814,6 +814,11 @@ const SCHEMAS={
       {k:'descricao',l:'Descrição',t:'area',full:1,tab:0},
       {k:'valor',l:'Valor estimado (R$)',t:'money',tab:0},{k:'fechamento',l:'Data de fechamento',t:'date',tab:0},
       {k:'vendedor',l:'Responsável',t:'pessoa',def:'Elton Melchioretto',tab:0},{k:'responsavel',l:'Delegar a',t:'pessoa',tab:0},
+      {k:'dataEvento',l:'Data do evento',t:'date',tab:0},{k:'horaEvento',l:'Hora do evento',t:'time',tab:0},
+      {k:'tipoEvento',l:'Tipo de evento',t:'select',o:['','Casamento','15 anos','Aniversário','Corporativo','Formatura','Infantil','Outro'],tab:0},{k:'convidados',l:'Convidados',t:'number',tab:0},
+      {k:'local',l:'Local do evento',full:1,ph:'Ex.: Cresol, Salão Paroquial…',tab:0},
+      {k:'cidade',l:'Cidade',ph:'Jaraguá do Sul',tab:0},{k:'uf',l:'Estado',ph:'Santa Catarina',tab:0},
+      {k:'pais',l:'País',ph:'Brasil',get def(){return 'Brasil'},tab:0},
       {k:'tags',l:'Tags',full:1,ph:'separe por vírgula',tab:0},
       {k:'etapa',l:'Etapa do funil',t:'select',o:ETAPAS.map(e=>e[0]),get ol(){return Object.fromEntries(ETAPAS.map(e=>[e[0],etapaNome(e[0])]))},req:1,tab:1},
       {k:'prioridade',l:'Prioridade',t:'select',o:['','Alta','Média','Baixa'],def:'Média',tab:1},
@@ -821,11 +826,6 @@ const SCHEMAS={
       {k:'motivoPerda',l:'Motivo da perda',t:'select',o:['','Desistência','Venda Perdida','Data Indisponível','Suspenso','Preço','Sem resposta','Evento já passou'],tab:1},
       {k:'notas',l:'Obs',t:'area',full:1,tab:1},
       {k:'tarefas',l:'Tarefas',t:'area',full:1,ph:'Uma tarefa por linha',tab:1},
-      {k:'tipoEvento',l:'Tipo de evento',t:'select',o:['','Casamento','15 anos','Aniversário','Corporativo','Formatura','Infantil','Outro'],tab:2},
-      {k:'dataEvento',l:'Data do evento',t:'date',tab:2},{k:'horaEvento',l:'Horário',t:'time',tab:2},
-      {k:'local',l:'Local do evento',full:1,ph:'Cresol',tab:2},
-      {k:'cidade',l:'Cidade',ph:'Jaraguá do Sul',tab:2},{k:'uf',l:'Estado',ph:'SC',tab:2},
-      {k:'convidados',l:'Convidados',t:'number',tab:2}
     ],
     filters:{field:'etapa',opts:['Todas','Em aberto','Venda efetivada','Perdida']},
     search:r=>[r.num,r.titulo,contatoNome(r.contatoId),r.tipoEvento,r.categoria,r.origem,r.vendedor,r.indicadoPor,r.dataEvento].join(' '),
@@ -1543,7 +1543,7 @@ VIEWS.opp=()=>{
       ${c&&(c.celular||c.fone)?`<span class="num muted" style="font-size:12px">${ic('phone',13)} ${esc(c.celular||c.fone)}</span>`:''}${c&&c.cidade?`<span class="muted" style="font-size:12px">${ic('pin',13)} ${esc([c.cidade,c.uf].filter(Boolean).join(' · '))}</span>`:''}</div>
      <div style="border-top:1px solid var(--line);padding-top:12px" class="kv">
       <b>Data</b><span class="num">${fdate(o.dataEvento)||'—'}${o.horaEvento?' '+esc(o.horaEvento):''}${dw?` <span class="muted">(${dw})</span>`:''}</span>
-      <b>Local</b><span>${esc(o.local||'—')}${o.cidade||o.uf?`<div class="muted" style="font-size:12.5px">${ic('pin',12)} ${esc([o.cidade,o.uf].filter(Boolean).join(' • '))}</div>`:''}</span>
+      <b>Local</b><span>${esc(o.local||'—')}${o.cidade||o.uf?`<div class="muted" style="font-size:12.5px">${ic('pin',12)} ${esc([o.cidade,o.uf,o.pais].filter(Boolean).join(' • '))}</div>`:''}</span>
       <b>Convidados</b><span>${esc(o.convidados||'—')}</span>
       ${(()=>{if(!o.dataEvento)return '';const ops=S.data.oportunidades.filter(x=>x.id!==o.id&&x.dataEvento===o.dataEvento&&ABERTAS.includes(x.etapa));const peds=S.data.pedidos.filter(p=>p.dataEvento===o.dataEvento&&p.contratoStatus!=='Cancelado'&&pedStatus(p)!=='Cancelado');if(!ops.length&&!peds.length)return '';
         return `<b>Conflito</b><span style="display:grid;gap:3px">${peds.map(p=>`<button class="clink" style="text-align:left" data-edit="pedidos" data-id="${p.id}">${badge('Pedido '+(p.num||''),'--danger')} ${esc(p.titulo||'')}</button>`).join('')}${ops.map(x=>`<button class="clink" style="text-align:left" data-oppopen="${x.id}">${badge('#'+(x.num||''),'--warn')} ${esc(x.titulo||'')}</button>`).join('')}</span>`})()}</div>
@@ -3556,7 +3556,7 @@ document.addEventListener('click',async e=>{
   if(d.propprint){printProposta(d.propprint);return}
   if(d.propclone){const p=S.data.propostas.find(x=>x.id===d.propclone);if(!p)return;const {id,num,criadoEm,atualizadoEm,enviadaEm,visualizadaEm,origemId,importadoEm,totalAlboom,...rest}=p;openForm('propostas',{...rest,status:'Rascunho',titulo:(p.titulo||'')+' (cópia)'});return}
   if(d.propdel){armDelete(t,async()=>{try{await removeRec('propostas',d.propdel);toast('Proposta excluída')}catch(err){failWrite(err)}});return}
-  if(d.novaprop){const o=S.data.oportunidades.find(x=>x.id===d.novaprop);if(o)openForm('propostas',{oportunidadeId:o.id,contatoId:o.contatoId,titulo:o.titulo,dataEvento:o.dataEvento,horaEvento:o.horaEvento||'',local:[o.local,o.cidade,o.uf].filter(Boolean).join(' • '),convidados:o.convidados||'',vendedor:o.vendedor||'Elton Melchioretto',itens:o.valor?[{produtoId:'',desc:o.categoria||o.titulo,qtd:1,valor:+o.valor}]:[]});return}
+  if(d.novaprop){const o=S.data.oportunidades.find(x=>x.id===d.novaprop);if(o)openForm('propostas',{oportunidadeId:o.id,contatoId:o.contatoId,titulo:o.titulo,dataEvento:o.dataEvento,horaEvento:o.horaEvento||'',local:[o.local,o.cidade,o.uf,o.pais].filter(Boolean).join(' • '),convidados:o.convidados||'',vendedor:o.vendedor||'Elton Melchioretto',itens:o.valor?[{produtoId:'',desc:o.categoria||o.titulo,qtd:1,valor:+o.valor}]:[]});return}
   if(d.propwa){const p=S.data.propostas.find(x=>x.id===d.propwa);if(!p)return;const c=S.data.contatos.find(x=>x.id===p.contatoId)||{};const n=waNum(c);window.open('https://wa.me/'+(n||'')+'?text='+encodeURIComponent(propTexto(p)),'_blank');await patch('propostas',p.id,{status:p.status==='Rascunho'||!p.status?'Enviada':p.status,enviadaEm:p.enviadaEm||new Date().toISOString()});if(p.oportunidadeId){const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);if(o&&['Lead','Contato feito'].includes(o.etapa))await patch('oportunidades',o.id,{etapa:'Proposta enviada',propostaEnviada:today()})}return}
   if(d.propcopy){const p=S.data.propostas.find(x=>x.id===d.propcopy);if(!p)return;try{await navigator.clipboard.writeText(propTexto(p));toast('Texto da proposta copiado')}catch(err){toast('Não foi possível copiar',true)}return}
   if(d.propped){const p=S.data.propostas.find(x=>x.id===d.propped);if(!p)return;const o=p.oportunidadeId&&S.data.oportunidades.find(x=>x.id===p.oportunidadeId);
@@ -5814,6 +5814,10 @@ document.addEventListener('input',e=>{const t=e.target;if(!t)return;
   if(t.id==='f-descpct'){const pct=parseFloat(String(t.value).replace(',','.'))||0;const d=document.getElementById('f-desconto');if(d){d.value=pct?moneyFmt(Math.round(descSub()*pct)/100):'';d.dataset.src='pct';updItemsTotal()}}
   else if(t.id==='f-desconto'){t.dataset.src='rs';const pc=document.getElementById('f-descpct');const sub=descSub(),v=moneyParse(t.value||'');if(pc)pc.value=sub&&v?String(Math.round(v/sub*10000)/100).replace('.',','):''}
   else if(t.closest&&t.closest('#itemsEd')){const d=document.getElementById('f-desconto'),pc=document.getElementById('f-descpct');if(d&&pc&&d.dataset.src==='pct'&&pc.value){const pct=parseFloat(String(pc.value).replace(',','.'))||0;d.value=moneyFmt(Math.round(descSub()*pct)/100);updItemsTotal()}}});
+/* corretor ortográfico em português nos campos de texto (sublinha e sugere; no celular o teclado corrige sozinho) */
+document.addEventListener('focusin',e=>{const t=e.target;if(!t||!(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&(!t.type||t.type==='text'||t.type==='search'))))return;
+  if(t.hasAttribute('data-money')||/mail|fone|celular|cpf|cnpj|cep|codigo|num|link|url|senha|chave/i.test(t.id+' '+(t.name||'')+' '+(t.placeholder||'')))return;
+  if(!t.hasAttribute('spellcheck'))t.setAttribute('spellcheck','true');t.setAttribute('lang','pt-BR');t.setAttribute('autocorrect','on');if(!t.hasAttribute('autocapitalize'))t.setAttribute('autocapitalize','sentences')});
 /* ---- atalho do celular: botão flutuante 📷 (ler conta / conferir fatura) e abertura direta pelo ícone do app ---- */
 function iaAtalhoOk(){return !!window.__HOSTED&&S.mode==='db'&&!S.semAcesso&&!modOffView('finap')}
 function iaAtalhoSheet(){if(!iaAtalhoOk())return;
