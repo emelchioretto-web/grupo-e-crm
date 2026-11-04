@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261104083747';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261104084344';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2425,7 +2425,13 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 const _savePedAg=save;save=async function(col,rec){const id=await _savePedAg(col,rec);try{if(col==='pedidos'){const pid=typeof id==='string'?id:rec.id;setTimeout(async()=>{const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;
     const L=(S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&a.origem==='Pedido'&&!a.cancelado);
     if(!L.length){if(S.dono&&p.dataEvento&&p.dataEvento>=today())await pedAgendaGarantir(p);return}
-    const D=pedAgendaDados(p);for(const a of L){const ch={};['titulo','data','hora','horaFim','local'].forEach(k=>{if((D[k]||'')!==(a[k]||'')&&D[k])ch[k]=D[k]});if(Object.keys(ch).length)await patch('agenda',a.id,ch)}},1200)}}catch(e){}return id};
+    const D=pedAgendaDados(p);for(const a of L){const ch={};['titulo','data','hora','horaFim','local','tipo'].forEach(k=>{if((D[k]||'')!==(a[k]||'')&&D[k])ch[k]=D[k]});if(Object.keys(ch).length)await patch('agenda',a.id,ch)}},1200)}}catch(e){}return id};
+/* uma vez: acerta a categoria (cor) dos compromissos que vieram de pedidos, pela regra nova (produtos da Prime 360 → Toten/Cabine/Hashtag) */
+async function agTipoCorrigir(){if(S._agTipoFix||!S.dono||cfg().agTipoFix2||!S.loaded||!['pedidos','agenda','produtos'].every(c=>S.loaded.has(c)))return;S._agTipoFix=1;cfgSet('agTipoFix2',new Date().toISOString());let n=0;
+  for(const a of (S.data.agenda||[]).filter(x=>x.pedidoId&&!x.cancelado)){const p=S.data.pedidos.find(x=>x.id===a.pedidoId);if(!p)continue;const t=TIPOS[p.tipoAgenda]?p.tipoAgenda:tipoAg2(p);if(t&&t!==a.tipo){try{await patch('agenda',a.id,{tipo:t});n++}catch(e){}}}
+  for(const a of (S.data.agenda||[]).filter(x=>!x.pedidoId&&!x.cancelado&&x.origem==='Google'&&x.tipo==='Evento')){const t=gcTipoDe(a.titulo);if(t&&t!==a.tipo&&t!=='Evento'){try{await patch('agenda',a.id,{tipo:t});n++}catch(e){}}}
+  if(n)toast(`Agenda: ${n} compromisso(s) foram para a categoria certa (cor).`)}
+setInterval(()=>{try{agTipoCorrigir()}catch(e){}},8000);
 /* uma vez: cria o compromisso dos pedidos futuros que ainda não têm (assim vão para a Google Agenda da equipe) */
 async function pedAgendaTodos(){if(S._pedAgT||!S.dono||cfg().pedAg1||!S.loaded||!['pedidos','agenda'].every(c=>S.loaded.has(c)))return;S._pedAgT=1;cfgSet('pedAg1',new Date().toISOString());let n=0;
   for(const p of S.data.pedidos.filter(p=>p.dataEvento&&p.dataEvento>=today())){try{const tem=(S.data.agenda||[]).some(a=>a.pedidoId===p.id);if(!tem&&await pedAgendaGarantir(p))n++}catch(e){}}
