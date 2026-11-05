@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261105114053';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261105131830';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4936,6 +4936,7 @@ async function gcImportar(silent){if(S._gcImp||(silent&&!S.dono)||S.mode!=='db'|
   try{const mcp=await getMcp();if(!mcp)return;const ini=new Date(Date.now()-30*864e5).toISOString(),fim=new Date(Date.now()+400*864e5).toISOString();
     const r=await mcp.callTool(GC,'list_events',{calendarId:cal,timeMin:ini,timeMax:fim},{cache:false});const P=parsePayload(r)||{};const L=P.items||[];
     const porId={};(S.data.agenda||[]).forEach(a=>{if(a.gcal&&a.gcal.id)porId[a.gcal.id]=a});const nomeEst=(cfg().estudio||{}).nome||'';
+    {const hj=today();S._gcOrfaos=L.filter(ev=>ev.status!=='cancelled'&&!porId[ev.id]&&nomeEst&&String(ev.description||'').includes('— '+nomeEst)&&(gcHoraDe(ev.start).data||'')>=hj).map(ev=>({id:ev.id,cal,titulo:ev.summary||'',data:gcHoraDe(ev.start).data,hora:gcHoraDe(ev.start).hora}));S._gcOrfEm=Date.now()}
     for(const ev of L){const a=porId[ev.id];
       if(ev.status==='cancelled'){if(a&&!a.cancelado){await patch('agenda',a.id,{cancelado:true,canceladoPor:'Google Agenda',canceladoEm:new Date().toISOString(),gcal:{...a.gcal,apagadoGoogle:true}});rem++}continue}
       const I=gcHoraDe(ev.start),F=gcHoraDe(ev.end);if(!I.data)continue;let horaFim=F.hora||'';
@@ -4956,7 +4957,7 @@ async function gcImportar(silent){if(S._gcImp||(silent&&!S.dono)||S.mode!=='db'|
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-gcimp]');if(!t)return;e.preventDefault();e.stopPropagation();gcImportar(false)},true);
 (function gcImpAuto(){const t=()=>{try{gcImportar(true)}catch(e){}};setTimeout(t,50000);setInterval(t,5*60*1000)})();
 
-(function gcAuto(){const tick=()=>{try{if(!S.dono||S.mode!=='db'||!S.loaded||!S.loaded.has('agenda'))return;if(gcCfg().auto)gcSync(true);else gcSync(true,null,true)}catch(e){}};setTimeout(tick,40000);setInterval(tick,5*60*1000)})();
+(function gcAuto(){const tick=()=>{try{if(!S.dono||S.mode!=='db'||!S.loaded||!S.loaded.has('agenda'))return;if(gcCfg().auto||gcGeral())gcSync(true);else gcSync(true,null,true)}catch(e){}};setTimeout(tick,40000);setInterval(tick,5*60*1000)})();
 /* mudou um compromisso que já está na Google Agenda (inclusive pelos dados de operação vindos do pedido): atualiza lá também */
 const GC_FILA=new Set();let GC_T=null;function gcFila(id){GC_FILA.add(id);clearTimeout(GC_T);GC_T=setTimeout(async function vai(){if(GC_RUN){GC_T=setTimeout(vai,4000);return}const ids=[...GC_FILA];GC_FILA.clear();for(const i of ids){try{await gcSync(true,i)}catch(e){}}},3000)}
 const _saveGc=save;save=async function(col,rec){const id=await _saveGc(col,rec);try{if(col==='agenda'&&S.mode==='db'){const k=typeof id==='string'?id:rec.id;const ev=(S.data.agenda||[]).find(x=>x.id===k)||rec;if(gcCfg().auto||(ev&&ev.gcal&&ev.gcal.id))gcFila(k)}}catch(e){}return id};
@@ -6163,7 +6164,7 @@ function agVerificar(){const t=today();const atv=p=>p.contratoStatus!=='Cancelad
   const semNome=Object.values(grp).filter(v=>{if(v.length<2||v.some(a=>a.eqSufixo))return false;const p=S.data.pedidos.find(x=>x.id===v[0].pedidoId);return p&&pedEquipNomes(p).length>=v.length}).map(v=>{const p=S.data.pedidos.find(x=>x.id===v[0].pedidoId);const nm=pedEquipNomes(p);return v.map((a,k)=>Object.assign(a,{_novoSuf:nm[k]}))});
   let alvos=[];try{alvos=gcAlvos()}catch(e){}
   const semG=alvos.filter(e=>!(e.gcal&&e.gcal.id));const desat=alvos.filter(e=>e.gcal&&e.gcal.id&&(()=>{try{return e.gcal.sig!==gcSig(gcDados(e))}catch(_){return false}})());
-  return {semAg,dataDif,canc,dup,semNome,semG,desat,total:semAg.length+dataDif.length+canc.length+dup.length+semNome.length+semG.length+desat.length}}
+  return {semAg,dataDif,canc,dup,semNome,semG,desat,orf:(S._gcOrfaos||[]),total:semAg.length+dataDif.length+canc.length+dup.length+semNome.length+semG.length+desat.length+(S._gcOrfaos||[]).length}}
 function agVerModal(){const R=agVerificar();const ped=id=>{const p=S.data.pedidos.find(x=>x.id===id);return p?`Pedido ${p.num||''}`:''};
   const sec=(tit,desc,L,fmt)=>`<section style="border:1px solid var(--line);border-radius:10px;padding:10px 12px"><div style="display:flex;gap:8px;align-items:center"><b>${tit}</b>${L.length?badge(String(L.length),'--danger'):badge('ok','--ok')}</div><div class="muted" style="font-size:12px;margin:2px 0 6px">${desc}</div>${L.length?`<div style="display:grid;gap:3px;font-size:13px;max-height:180px;overflow:auto">${L.map(fmt).join('')}</div>`:''}</section>`;
   const linA=a=>`<div><span class="num">${fdate(a.data)}${a.hora?' '+esc(a.hora):''}</span> · ${esc(a.titulo||'')} <span class="muted">${ped(a.pedidoId)}</span></div>`;
@@ -6176,15 +6177,17 @@ function agVerModal(){const R=agVerificar();const ped=id=>{const p=S.data.pedido
    ${sec('Combos sem o nome do equipamento no título','Cada compromisso do combo ganha o nome do seu equipamento (ex.: "… - Cabine I" e "… - Spinner I").',R.semNome,v=>`<div>${esc(v[0].titulo||'')} → ${v.map(a=>esc(a._novoSuf)).join(' / ')} <span class="muted">${ped(v[0].pedidoId)} · ${fdate(v[0].data)}</span></div>`)}
    ${sec('Ainda não estão na Google Agenda','Existem no CRM, mas a equipe não vê no celular.',R.semG,linA)}
    ${sec('Mudaram no CRM e não foram atualizados na Google','Hora, local, título ou dados de operação diferentes.',R.desat,linA)}
+   ${sec('Na Google, mas não existem mais no CRM','Eventos que o CRM mandou para a Google e cujo compromisso foi apagado ou trocado no CRM (ex.: pedido refeito com outro número). Corrigir tudo apaga da Google.',R.orf,o=>`<div><span class="num">${fdate(o.data)}${o.hora?' '+esc(o.hora):''}</span> · ${esc(o.titulo)} <span class="muted">só na Google</span></div>`)}${S._gcOrfEm?'':'<div class="muted" style="font-size:12px">Conferindo a Google Agenda…</div>'}
   </div><footer><button class="btn" data-close>Fechar</button><span class="sp"></span>${R.total?`<button class="btn pri" data-agverfix>${ic('check',15)} Corrigir tudo</button>`:''}</footer></div></div>`}
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-agver],[data-agverfix]');if(!t)return;e.preventDefault();
-  if(t.hasAttribute('data-agver')){agVerModal();return}
+  if(t.hasAttribute('data-agver')){agVerModal();(async()=>{try{S._gcImp=0;await gcImportar(false)}catch(_){}if(document.querySelector('[data-agverfix],#modalRoot .modal h3')&&/Verificar agenda/.test(($('#modalRoot h3')||{}).textContent||''))agVerModal()})();return}
   t.disabled=true;t.textContent='Corrigindo…';const R=agVerificar();let n=0;
   try{for(const p of R.semAg){try{if(await pedAgendaGarantir(p))n++}catch(_){}}
     for(const a of R.dataDif){const p=S.data.pedidos.find(x=>x.id===a.pedidoId);try{await patch('agenda',a.id,{data:p.dataEvento,hora:p.horaEvento||a.hora||''});n++}catch(_){}}
     for(const a of R.canc){try{await removeRec('agenda',a.id);n++}catch(_){}}
     for(const v of R.dup){for(const a of v.filter(x=>x._sobra)){try{await removeRec('agenda',a.id);n++}catch(_){}}}
     for(const v of R.semNome){for(const a of v){if(!a._novoSuf)continue;const base=String(a.titulo||'').replace(/\s+-\s+$/,'');try{await patch('agenda',a.id,{titulo:base+' - '+a._novoSuf,eqSufixo:a._novoSuf});n++}catch(_){}}}
+    if((R.orf||[]).length){try{const mcp=await getMcp();for(const o of R.orf){try{await mcp.callTool(GC,'delete_event',{calendarId:o.cal,eventId:o.id},{cache:false});n++}catch(_){}}S._gcOrfaos=[]}catch(_){}}
     await sleep(800);toast(`${n} ajuste(s) feitos. Enviando para a Google Agenda…`);GC_RUN=false;await gcSync(false);
   }catch(er){toast(String(er.message||er),true)}agVerModal()});
 /* ---- atalho do celular: botão flutuante 📷 (ler conta / conferir fatura) e abertura direta pelo ícone do app ---- */
