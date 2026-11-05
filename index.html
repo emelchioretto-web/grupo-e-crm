@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261105090131';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261105094725';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -860,7 +860,7 @@ const SCHEMAS={
       {k:'ocultarItens',l:'Esconder o preço de cada item',t:'check'},{k:'ocultarTotais',l:'Esconder os totais',t:'check'},
       {k:'vendedor',l:'Vendedor',t:'pessoa',def:'Elton Melchioretto'},
       {k:'status',l:'Status',t:'select',o:['Rascunho','Enviada','Aceita','Recusada'],def:'Rascunho'},
-      {k:'condicoes',l:'Condições de pagamento',t:'area',full:1,get def(){return cfg().termos.condicoes}},
+      {k:'condicoes',l:'Condições de pagamento',t:'area',full:1,get def(){return condOpcoes()[0]||''}},
       {k:'mensagem',l:'Mensagem personalizada',t:'area',full:1,get def(){return cfg().termos.mensagem}}
     ],
     filters:{field:'status',opts:['Todas','Rascunho','Enviada','Aceita','Recusada']},
@@ -938,7 +938,7 @@ const SCHEMAS={
       {k:'parcelas',l:'Parcelas',t:'number',ph:'1',tab:1},{k:'primeiroVenc',l:'1º vencimento',t:'date',tab:1},
       {k:'contaDeposito',l:'Depositar em',t:'select',get o(){return ['',...contasNomes()]},tab:1},
       {k:'gerarParcelas',l:'Lançar parcelas em Contas a receber',t:'check',def:true,newOnly:r=>!S.data.lancamentos.some(l=>l.pedidoId===r.id&&l.tipo==='receber'),tab:1},
-      {k:'condicoes',l:'Condições de pagamento',t:'area',full:1,get def(){return cfg().termos.condicoes},tab:1},
+      {k:'condicoes',l:'Condições de pagamento',t:'area',full:1,get def(){return condOpcoes()[0]||''},tab:1},
       {k:'status',l:'Status',t:'select',req:1,o:PED_ST,def:'Pedido Concluído',dv:r=>pedStatus(r),tab:2},
       {k:'concluidoEm',l:'Data de conclusão',t:'date',tab:2},
       {k:'contratoStatus',l:'Status do contrato',t:'select',o:Object.keys(CONTRATO_COR),tab:2},
@@ -1093,7 +1093,7 @@ async function initStore(){
     const oppAuto=()=>{if(S.loaded.has('oportunidades')&&S.loaded.has('propostas'))oppArquivarPassadas().then(()=>propRecusarPassadas()).catch(()=>{});else setTimeout(oppAuto,2000)};setTimeout(oppAuto,5000);
     const fxAuto=()=>{if(!S.dono)return;if(S.loaded.has('contatos')&&S.loaded.has('pedidos'))fxLoad(true).catch(()=>{});else setTimeout(fxAuto,2000)};setTimeout(fxAuto,4000);setInterval(()=>{if(S.dono&&!S.importing&&!S.syncing)fxLoad(true).catch(()=>{})},30*60*1000);
     db.collection('fin').onSnapshot(snap=>{S.finB=Object.fromEntries(snap.docs.map(d=>[d.id,d.data().itens||[]]));rebuildLanc();schedule()},()=>{});
-    db.doc('config/geral').onSnapshot(d=>{S.cfg=d.exists?d.data():{};applyAgCats(cfg().agenda.cats);schedule()},()=>{});
+    db.doc('config/geral').onSnapshot(d=>{S.cfg=d.exists?d.data():{};S._cfgOk=1;applyAgCats(cfg().agenda.cats);schedule()},()=>{});
     db.doc('config/financeiro').onSnapshot(d=>{S.finCfg=d.exists?d.data():{};rebuildLanc();schedule()},()=>{});
     COLS.forEach(c=>{
       db.collection(c).onSnapshot(snap=>{const arr=snap.docs.map(d=>({...d.data(),id:d.id}));if(c==='lancamentos'){S.lancInd=arr;rebuildLanc()}else{S.data[c]=arr;if(c==='contatos'&&S.finB)rebuildLanc()}S.loaded.add(c);schedule()},
@@ -1769,7 +1769,7 @@ VIEWS.pedido=()=>{
   const pc=pedCustoTotal(p);const custo=pc!=null?pc:R.cus.length?sumV(R.cus):(+p.custoAlboom||0);const marg=tot-custo;const pct=v=>tot?' ('+(v/tot*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%)':'';
   const wa=waNum(c);
   const dt=p.dataEvento?(()=>{const d=parseD(p.dataEvento);return fdate(p.dataEvento)+(p.horaEvento?' '+p.horaEvento:'')+(p.horaFimEvento?' às '+p.horaFimEvento:'')+' ('+DSEM[d.getDay()]+')'})():'';
-  const lnk=v=>esc(v||'').replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+  const lnk=v=>esc(v||'').replace(/(https?:\/\/[^\s]+)/g,(m)=>`<a href="${m}" target="_blank" rel="noopener">${m.length>60?(/maps\.(google|app\.goo)|goo\.gl\/maps|google\.com\/maps/.test(m)?'📍 Abrir no Google Maps':m.replace(/^https?:\/\/(www\.)?/,'').slice(0,40)+'…'):m}</a>`);
   const row=(l,v,raw)=>v?`<b>${l}</b><span>${raw?v:esc(v)}</span>`:'';
   const lugar=[p.cidade,p.estado,p.pais].filter(Boolean).join(' • ');
   const left=`<section class="panel ct-card"><header><h3>${esc(p.titulo||'(sem título)')}</h3><div style="margin-left:auto;display:flex;gap:6px">
@@ -2852,7 +2852,7 @@ const CFG_DEF={
   contratos:["Contrato Equipamento de Fotos - Final 2025", "Casamento Álbum e Link", "Contrato Filmagem Evento Normal", "Contrato Filmagem Evento Normal II", "Contrato Fotografia Evento Normal", "Contrato Spinner 360", "Contrato Espelho Mágico", "Contrato Toten", "Contrato Cabine", "Contrato Equipamento de Fotos", "Formatura", "Filmagem", "Termo de uso de Imagem", "Rescisão de contrato com custo", "Rescisão de contrato sem custo", "Rescisão de contrato com custo pagamento total", "Hashtag", "Retirada de álbuns", "Desistência de Produto", "Termo Aditivo - Troca de data", "Termo de Cessão de Direitos", "SPINNER 360", "Aditivo - Adição de serviço"].map((nome,i)=>({nome,ativo:true,templateId:i===0?6610992:''})),
   pedTarefas:[{nome:'Contrato',tarefas:''},{nome:'Simples',tarefas:''}],
   origens:['Indicação de Amigos Clientes','Indicação de Cerimonial','Indicação de Agência','Feira de Noivas','Blog de Noivas','Portal de Noivos','Internet - Google','Internet - Facebook Instagram'],followup:15,
-  termos:{condicoes:'* Sinal de 20% no ato do contrato e saldo de (80%) até 15 dias antes do evento.\n* Sinal de 20% no ato do contrato e saldo de (80%) em parcelas no boleto até 15 dias antes do evento. (max 10x)',mensagem:'Já estão inclusas as despesas de viagem.'},
+  termos:{condicoes:'* Sinal de 20% no ato do contrato e saldo de (80%) até 15 dias antes do evento.\n* Sinal de 20% no ato do contrato e saldo de (80%) em parcelas no boleto até 15 dias antes do evento. (max 10x)\n* Pagamento em até 10x sem juros no cartão de crédito.\n* Pagamento em 28 dias após a emissão da nota fiscal.',mensagem:'Já estão inclusas as despesas de viagem.'},
   funil:{'Lead':{nome:'Contato Web - Fone',dias:5,tarefas:''},'Contato feito':{nome:'Reunião - Orçamento',dias:5,tarefas:''},'Proposta enviada':{nome:'Cliente Decidindo',dias:15,tarefas:''},'Negociação':{nome:'Negociando',dias:5,tarefas:''}}
 };
 S.cfg=null;
@@ -2963,6 +2963,7 @@ function fieldHTML(f,rec){
   else if(f.t==='pessoas'){const sel=Array.isArray(v)?v:[];const vals=[...new Set([...cfg().equipe.filter(m=>m.ativo!==false).map(m=>m.nome),...sel])];input=`<div class="pchips" id="${id}">${vals.map(x=>`<label class="pchip"><input type="checkbox" value="${esc(x)}" ${sel.includes(x)?'checked':''}><span>${esc(x)}</span></label>`).join('')}</div>`}
   else if(f.t==='pessoa'){const vals=[...new Set([...cfg().equipe.filter(m=>m.ativo!==false).map(m=>m.nome)])];input=`<input id="${id}" list="dl-${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}" autocomplete="off"><datalist id="dl-${f.k}">${vals.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`}
   else if(f.t==='combo'){const vals=[...new Set(S.data[M?M.col:'produtos'].map(r=>r[f.k]).filter(Boolean))].sort();input=`<input id="${id}" list="dl-${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}"><datalist id="dl-${f.k}">${vals.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`}
+  else if(f.t==='area'&&f.k==='condicoes'){const ops=condOpcoes();const cur=String(v||'').split('\n').map(s=>s.trim()).filter(Boolean);input=`<div class="cond-ops">${ops.map((o,i)=>`<label class="pchip" style="display:flex;align-items:flex-start;gap:8px;white-space:normal;text-align:left;width:100%"><input type="checkbox" data-condck="${id}" data-i="${i}" ${cur.includes(o)?'checked':''} style="margin-top:2px"><span>${esc(o.replace(/^\*\s*/,''))}</span></label>`).join('')}</div><textarea id="${id}" placeholder="${esc(f.ph||'')}" style="margin-top:6px">${esc(v)}</textarea><div class="muted" style="font-size:12px">Marque as opções que valem para este cliente. Dá para escrever algo a mais na caixa. As opções ficam em Configurações › Termos e condições (uma por linha).</div>`}
   else if(f.t==='area')input=`<textarea id="${id}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
   else if(f.t==='items')return `<div class="field full"><label>${f.l}</label>${itemsEditor(v||[])}</div>`;
   else if(f.t==='pacote'){const sel=new Set((rec.pacote||[]).map(x=>x.produtoId));const L=S.data.produtos.filter(p=>p.id!==rec.id&&p.ativo!==false&&!(p.pacote&&p.pacote.length)&&!/^(combo|kit)\b/i.test(p.nome||'')&&(prodEmp(p).includes('Prime 360')||sel.has(p.id))).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
@@ -3273,7 +3274,7 @@ S.ui.av={opTexto:1,data:1,local:1,eqs:1,cliente:1,pedido:1,notas:1,agenda:0,outr
 function msgEvento(e,nome,canal){const O=S.ui.av;if(O.opTexto&&e.operacao){let t=`Olá *${(nome||'').split(' ')[0]}*! Você está escalado(a) para este evento:\n\n*${e.titulo}*\n\n${e.operacao}`;if(O.extra&&O.extra.trim())t+=`\n\n${O.extra.trim()}`;if(O.agenda)t+=`\n\nAdicione à sua agenda do celular:\n${gcalLink(e)}`;return canal==='email'?emCorpo(t):t+`\n\n${cfg().estudio.nome||''}`}const dw=e.data?DOWL[parseD(e.data).getDay()]:'';const L=[];
   const c=e.contatoId?S.data.contatos.find(x=>x.id===e.contatoId):null;const cn=c?(SCHEMAS.contatos.labelOf(c)):'';const ct=c?(c.celular||c.fone||''):'';
   if(O.data)L.push(`📅 ${fdate(e.data)} (${dw})${e.hora?' às '+e.hora:''}${e.fim?' até '+e.fim:''}`);
-  if(O.local&&e.local)L.push(`📍 ${e.local}\nMapa: https://maps.google.com/?q=${encodeURIComponent(e.local)}`);
+  if(O.local&&e.local)L.push(`📍 ${e.local}\nMapa: ${mapsUrl(e.local)}`);
   if(O.eqs&&e.eqs.length)L.push(`🎛️ Equipamento: ${e.eqs.map(k=>EQ_NOME[k]||k).join(', ')}`);
   if(O.cliente&&cn)L.push(`👤 Cliente: ${cn}${ct?' · '+ct:''}`);
   if(O.pedido&&e.num)L.push(`🧾 Pedido #${e.num}`);
@@ -4690,6 +4691,21 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   if(srcs.length<2&&!(srcs.length===1&&srcs[0]!==nome)){toast('Marque pelo menos duas categorias (ou uma, para renomear).',true);return}if(!nome){toast('Escreva o nome da categoria.',true);return}
   if(!confirm(`Unir ${srcs.join(' + ')} em "${nome}"? Todos os compromissos e pedidos dessas categorias passam para "${nome}".`))return;
   t.disabled=true;t.textContent='Unindo…';try{const r=await agUnir(srcs,nome,cor);closeModal();toast(`Pronto: ${srcs.join(' + ')} agora é "${nome}". ${r.ok} registro(s) atualizado(s)${r.er?`, ${r.er} com erro (rode de novo)`:''}.`);render()}catch(err){t.disabled=false;failWrite(err)}});
+
+/* links do Google Maps mais curtos: sem acentos e com + no lugar de %20 */
+function mapsQ(t){return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[º°ª]/g,'').replace(/[—–]/g,' ').replace(/[^A-Za-z0-9, ]+/g,' ').replace(/\s*,\s*/g,',').replace(/\s+/g,' ').trim().replace(/ /g,'+')}
+function mapsUrl(loc){return 'https://maps.google.com/?q='+mapsQ(loc)}
+function mapsCurto(u){const m=String(u).match(/^https?:\/\/(?:www\.)?(?:maps\.google\.com\/|google\.com\/maps)\/?\?q=([^\s&#]+)(.*)$/);if(!m)return u;let q;try{q=decodeURIComponent(m[1].replace(/\+/g,' '))}catch(e){return u}const r='https://maps.google.com/?q='+mapsQ(q);return r.length<u.length?r:u}
+function mapsTxt(t){return typeof t==='string'?t.replace(/https?:\/\/(?:www\.)?(?:maps\.google\.com\/|google\.com\/maps)\/?\?q=[^\s]+/g,mapsCurto):t}
+{const _s2=save;save=async function(col,rec,...r){if((col==='pedidos'||col==='agenda')&&rec){const o={...rec};['notas','obs','dadosOp','descricao','local'].forEach(k=>{if(typeof o[k]==='string')o[k]=mapsTxt(o[k])});rec=o}return _s2.call(this,col,rec,...r)}}
+
+/* condições de pagamento: opções para marcar (Configurações › Termos, uma por linha) */
+const COND_NOVAS=['* Pagamento em até 10x sem juros no cartão de crédito.','* Pagamento em 28 dias após a emissão da nota fiscal.'];
+function condOpcoes(){return String(cfg().termos.condicoes||'').split('\n').map(s=>s.trim()).filter(Boolean)}
+/* uma vez: acrescenta as duas opções novas nas condições salvas */
+setInterval(()=>{if(!S.dono||!S.cfg||S.cfg.condNovas1||(S.mode==='db'&&!S._cfgOk))return;const T={...((S.cfg&&S.cfg.termos)||{})};const L=condOpcoes();COND_NOVAS.forEach(x=>{if(!L.some(y=>normTxt(y)===normTxt(x)))L.push(x)});cfgSet('termos',{...T,condicoes:L.join('\n')});cfgSet('condNovas1',new Date().toISOString())},5000);
+document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches||!t.matches('[data-condck]'))return;const ta=document.getElementById(t.dataset.condck);if(!ta)return;const ops=condOpcoes();
+  const marc=[...document.querySelectorAll(`[data-condck="${t.dataset.condck}"]`)].filter(x=>x.checked).map(x=>ops[+x.dataset.i]);const extra=ta.value.split('\n').map(s=>s.trim()).filter(s=>s&&!ops.includes(s));ta.value=[...marc,...extra].join('\n');ta.dispatchEvent(new Event('input',{bubbles:true}))});
 /* ===== Produtos: empresa e ativos ===== */
 const PRIME_RX=/prime ?360|cabine|spinner|espelho|totem|grua|game|\bdj ?\d|pista|plataforma|impressora|combo|instan|hashtag|foto ?mosaico|lambe|neon|glambot|t[uú]nel|\btv ?\d|copo|ursinho|chaveiro|\bim[aâ]\b|plotagem|hora adicional equip/i;
 function prodEmp(p){if(Array.isArray(p.empresas))return p.empresas;return PRIME_RX.test((p.codigo||'')+' '+(p.nome||''))?['Prime 360']:['Fotografia e Filmagem']}
@@ -4761,7 +4777,7 @@ function opDados(r){const ped=r.pedidoId?S.data.pedidos.find(p=>p.id===r.pedidoI
   let equip='';if(pre&&eqDoTexto(pre).length)equip=pre;else{const ks=ped?eqDoPedido(ped):eqDoTexto(tit);equip=ks.map(k=>(typeof EQ_NOME!=='undefined'&&EQ_NOME[k])||k).join(', ')}
   const evento=(pre&&eqDoTexto(pre).length?pos:'')||(ped&&ped.titulo)||pos||tit;
   const locRaw=String(r.local||(ped&&ped.local)||'');const url=(locRaw.match(/https?:\/\/\S+/)||[''])[0];const loc=locRaw.replace(/https?:\/\/\S+/,'').replace(/\s*-\s*-\s*/g,' - ').replace(/^\s*-\s*|\s*-\s*$/g,'').trim();
-  const maps=url||(loc?'https://maps.google.com/?q='+encodeURIComponent(loc):'');
+  const maps=url?mapsCurto(url):(loc?mapsUrl(loc):'');
   const ini=r.hora||(ped&&ped.horaEvento)||'',fim=r.horaFim||'';let dur='';if(ini&&fim){let m=(+fim.slice(0,2)*60+ +fim.slice(3,5))-(+ini.slice(0,2)*60+ +ini.slice(3,5));if(m<0)m+=1440;const h=m/60;dur=` (serão ${String(+h.toFixed(1)).replace('.',',')} hora${h===1?'':'s'})`}
   const c=(r.contatoId||(ped&&ped.contatoId))?S.data.contatos.find(x=>x.id===(r.contatoId||(ped&&ped.contatoId))):null;const cn=c?SCHEMAS.contatos.labelOf(c):'';const ct=c?telFmt(c.celular||c.fone):'';
   const adm=new Set((cfg().equipe||[]).filter(m=>m.tipo==='Administrador').map(m=>m.nome));
