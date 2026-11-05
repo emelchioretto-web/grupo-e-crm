@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261105140628';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261105151025';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4540,7 +4540,8 @@ function extNomeL(l){const p=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoI
 const extDias=(a,b)=>Math.round((parseD(a)-parseD(b))/864e5);
 function extCasar(E){const b=E.banco;const byN={},byC={};bancos().forEach(x=>{byN[x.nome]=x;if(x.codigo)byC[x.codigo]=x});
   const todos=movPagos();const feitos=new Set(todos.flatMap(l=>[l.extKey,...(l.extKeys||[])]).filter(Boolean));const usados=new Set();
-  const pagosB=todos.filter(l=>bancoDe(l,byN,byC)===b);const abertos=S.data.lancamentos.filter(l=>!l.pago&&!l.transf&&(!l.conta||l.conta===b.nome));const mem=cfg().extMem||{};
+  const pagosB=todos.filter(l=>bancoDe(l,byN,byC)===b);const outrosB=bancos().filter(x=>x!==b).map(x=>normTxt(x.nome).split(/[\s-]+/)[0]).filter(w=>w&&w.length>=4&&!normTxt(b.nome).includes(w));const deOutroBanco=l=>{const n=normTxt(extNomeL(l)+' '+(l.contaCod||''));return outrosB.some(w=>n.includes(w))};
+  const abertos=S.data.lancamentos.filter(l=>!l.pago&&!l.transf&&(!l.conta||l.conta===b.nome)&&!deOutroBanco(l));const mem=cfg().extMem||{};
   E.R.forEach(r=>{r.st='novo';r.cands=[];r.sel='';const tp=r.v>0?'receber':'pagar',av=Math.abs(r.v);const nm=r.nome||r.hist;
     if(feitos.has(r.key)){r.st='feito';r.acao='nada';return}
     /* 1) já lançado como pago nesta conta */
@@ -4578,7 +4579,7 @@ async function extAbrir(file){iaEspera('Lendo o extrato');let res;try{res=await 
   if(!b)b=bancos().find(x=>x.id===S.ui.cbx.conta)||bancos()[0];
   S.ext={file:file.name,R:res.R,banco:b,f:'todos',auto:!!(res.conta&&b&&dig(b.numero)===dig(res.conta.conta))};extCasar(S.ext);extModal()}
 const EXT_ST={bateu:['Bateu','--ok'],parecido:['Conferir','--warn'],novo:['Novo','--info'],ja:['Já lançado','--idle'],feito:['Já conciliado','--idle']};
-function extLRot(l){const p=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoId);return `${fdateShort(l.vencimento||l.dataPagamento)} · ${brl(+l.valor)} · ${(contatoNome(l.contatoId)||l.contatoNome||'').slice(0,28)}${p?' · #'+p.num:''} · ${(l.descricao||'').slice(0,40)}`}
+function extLRot(l){const p=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoId);return `${fdateShort(l.vencimento||l.dataPagamento)} · ${brl(+l.valor)} · ${(()=>{const n=(contatoNome(l.contatoId)||l.contatoNome||'').slice(0,28);return n?(l.tipo==='pagar'?'fornecedor ':'cliente ')+n:''})()}${p?' · #'+p.num:''} · ${(l.descricao||'').slice(0,40)}`}
 function extModal(){const E=S.ext;if(!E)return;const R=E.R;const cnt=k=>R.filter(r=>r.st===k).length;const F=E.f;
   const vis=R.filter(r=>F==='todos'||(F==='conf'?r.st==='parecido':r.st===F));const ult=R[R.length-1];const ate=R.reduce((a,r)=>r.d>a?r.d:a,'');
   const sx=R.filter(r=>r.saldo!=null).slice(-1)[0];const sCRM=extSaldoCRM(E.banco,ate);
