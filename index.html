@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261105152105';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261105153312';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4604,7 +4604,7 @@ function extModal(){const E=S.ext;if(!E)return;const R=E.R;const cnt=k=>R.filter
     <div class="seg" style="flex-wrap:wrap">${chip('todos','Todos',R.length)}${chip('bateu','✅ Bateu',cnt('bateu'))}${chip('conf','⚠️ Conferir',cnt('parecido'))}${chip('novo','➕ Novos',cnt('novo'))}${chip('ja','Já lançados',cnt('ja')+cnt('feito'))}</div>
     <div class="tbl-wrap" style="max-height:58vh;overflow:auto"><table class="tbl" style="font-size:13px"><thead><tr><th>Data</th><th>Extrato</th><th class="r">Valor</th><th>Situação</th><th>O que fazer</th></tr></thead><tbody>${vis.map(linha).join('')||'<tr><td colspan="5" class="muted">Nada neste filtro.</td></tr>'}</tbody></table></div>
     ${extFornList()}<p class="muted" style="margin:0;font-size:12px"><b>Bateu</b>: dá baixa na conta em aberto com a data do extrato. <b>Conferir</b>: mesmo valor, mas o nome não confirma; escolha a conta certa. <b>Novo</b>: cria o lançamento já pago e o CRM lembra a categoria para os próximos. <b>Já lançado</b>: só marca como conciliado.</p></div>
-   <footer><span class="muted" style="font-size:12px">Nada é gravado até você clicar em Gravar.</span><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn ok" data-exok>${ic('check',14)} Gravar conciliação</button></footer></div></div>`}
+   <footer><span class="muted" style="font-size:12px">Nada é gravado até você clicar em Gravar. Linhas "Criar" sem categoria nem fornecedor ficam para a próxima vez.</span><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn ok" data-exok>${ic('check',14)} Gravar conciliação</button></footer></div></div>`}
 function extCatSel(r,tp){if(r.forn==null){const M=(cfg().extMem||{})[extMemKey(r)]||{};r.forn=M.forn||''}
   return `<select class="search" data-exc="${r.i}" style="flex:1 1 auto;min-width:160px">${planoOpts(tp).map(o=>`<option value="${esc(o)}" ${o===(r.cat||'')?'selected':''}>${esc(o||'Categoria…')}</option>`).join('')}</select><input class="search" data-exforn="${r.i}" list="ext-forn-l" value="${esc(r.forn||'')}" placeholder="${tp==='pagar'?'Fornecedor':'Cliente'}: ${esc((r.nome||r.hist).slice(0,24))}" style="flex:1 1 100%;min-width:160px;margin-top:4px" title="Deixe vazio para usar o nome do extrato">`}
 function extFornList(){return `<datalist id="ext-forn-l">${[...new Set(S.data.contatos.map(c=>SCHEMAS.contatos.labelOf(c)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`}
@@ -4620,7 +4620,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   if(t.dataset.extabrir!==undefined){const inp=document.createElement('input');inp.type='file';inp.accept='.ofx,.csv,.txt,.pdf,application/pdf,text/csv';inp.onchange=()=>{if(inp.files[0])extAbrir(inp.files[0])};inp.click();return}
   if(!S.ext)return;if(t.dataset.exf){S.ext.f=t.dataset.exf;extModal();return}
   const E=S.ext,b=E.banco;const faltaCat=E.R.filter(r=>r.acao==='criar'&&!r.cat&&r.st!=='feito'&&r.st!=='ja');
-  if(faltaCat.length&&!t.dataset.conf){t.dataset.conf=1;toast(faltaCat.length+' lançamento(s) novo(s) sem categoria. Clique em Gravar de novo para criar assim mesmo.',true);return}
+  const pulados=faltaCat.filter(r=>!(r.forn||'').trim()).length;
   t.disabled=true;t.textContent='Gravando…';const mem={...(cfg().extMem||{})};let nB=0,nC=0,nN=0;const feitosG=new Set();
   const conc=async(l,key)=>{if(l.soBanco){const [,k,aid]=String(l.id).split('~');await finWrite(k,L=>L.map(x=>String(x.aid)===aid?{...x,conciliado:true}:x))}else await save('lancamentos',{...l,conciliado:true,...(key?{extKey:key}:{})})};
   try{for(const r of E.R){if(r.st==='feito'||r.acao==='nada')continue;
@@ -4628,10 +4628,11 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
       if(r.acao==='baixarCartao'&&r.cartao){for(const l of r.cartao){if(feitosG.has(l.id))continue;feitosG.add(l.id);await save('lancamentos',{...l,pago:true,dataPagamento:r.d,conta:b.nome,contaCod:b.codigo||l.contaCod||'',conciliado:true,extKey:r.key+'|'+l.id,extKeys:[r.key]})}nB+=r.cartao.length;continue}
       if(r.acao==='baixar'){const l=r.cands.find(x=>String(x.id)===r.sel);if(!l||feitosG.has(l.id))continue;feitosG.add(l.id);await save('lancamentos',{...l,pago:true,dataPagamento:r.d,conta:b.nome,contaCod:b.codigo||l.contaCod||'',conciliado:true,extKey:r.key,...(r.soma?{extKeys:r.soma.keys}:{})});nB++;continue}
       const mk=extMemKey(r);if(r.acao==='ignorar'){if(r.st==='novo'&&!r.dica)mem[mk]={acao:'ignorar'};continue}
+      if(r.acao==='criar'&&!r.cat&&!(r.forn||'').trim())continue; /* sem categoria nem fornecedor: fica para a próxima importação */
       if(r.acao==='criar'){const tp=r.v>0?'receber':'pagar';const rec={tipo:tp,valor:Math.abs(r.v),vencimento:r.d,emissao:r.d,dataPagamento:r.d,pago:true,conciliado:true,conta:b.nome,descricao:(r.forn||'').trim()||(r.nome?r.nome:r.hist),obs:'Extrato: '+r.hist+(r.doc?' · doc '+r.doc:''),forma:/pix/i.test(r.hist)?'PIX':/cobran|boleto|t[ií]tulo/i.test(r.hist)?'Boleto':/cart/i.test(r.hist)?'Cartão de crédito':'',doc:r.doc||'',categoria:r.cat||'',extKey:r.key,origem:'Extrato'};
         if(b.codigo)rec.contaCod=b.codigo;{const fn=(r.forn||'').trim();const ct=fn&&S.data.contatos.find(c=>normTxt(SCHEMAS.contatos.labelOf(c))===normTxt(fn));if(ct){rec.contatoId=ct.id;rec.contatoNome=SCHEMAS.contatos.labelOf(ct)}else if(fn)rec.contatoNome=fn;else if(r.nome)rec.contatoNome=r.nome}if(r.cat&&/^\d+(\.\d+)*\s-\s/.test(r.cat))rec.planoCod=r.cat.split(' - ')[0];await save('lancamentos',rec);if(r.cat||r.forn)mem[mk]={cat:r.cat||'',...((r.forn||'').trim()?{forn:r.forn.trim()}:{})};nN++}}
     cfgSet('extMem',mem);const sx=E.R.filter(r=>r.saldo!=null).slice(-1)[0];closeModal();S.ext=null;
-    toast(`Conciliação gravada: ${nB} baixa${nB===1?'':'s'}, ${nN} novo${nN===1?'':'s'}, ${nC} conciliado${nC===1?'':'s'}`+(sx?` · saldo CRM ${brl(extSaldoCRM(b,sx.d))} x extrato ${brl(sx.saldo)}`:''));render()}
+    toast(`Conciliação gravada: ${nB} baixa${nB===1?'':'s'}, ${nN} novo${nN===1?'':'s'}, ${nC} conciliado${nC===1?'':'s'}${pulados?` · ${pulados} sem categoria ficaram para depois`:''}`+(sx?` · saldo CRM ${brl(extSaldoCRM(b,sx.d))} x extrato ${brl(sx.saldo)}`:''));render()}
   catch(err){t.disabled=false;t.textContent='Gravar conciliação';failWrite(err)}});
 /* ================= Listas (como as do WhatsApp) + Retornos (funil de interessados por data, com alerta) ================= */
 const LISTAS_PADRAO=[{n:'Prime - Orçamento',c:'#1a5fb4'},{n:'Prime - Cliente',c:'#1a5fb4'},{n:'Prime - Equipe',c:'#1a5fb4'},{n:'Elton - Orçamento',c:'#e8336d'},{n:'Elton - Cliente',c:'#e8336d'},{n:'Cerimonial',c:'#7d8f2a'},{n:'Fornecedor',c:'#9ccf55'}];
