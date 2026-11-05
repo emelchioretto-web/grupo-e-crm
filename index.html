@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261105154746';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261105161102';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -937,7 +937,7 @@ const SCHEMAS={
       {k:'pagamento',l:'Forma de pagamento',t:'select',o:['','PIX','Cartão de crédito','Boleto','Transferência','Dinheiro','Carnê'],tab:1},
       {k:'parcelas',l:'Parcelas',t:'number',ph:'1',tab:1},{k:'primeiroVenc',l:'1º vencimento',t:'date',tab:1},
       {k:'contaDeposito',l:'Depositar em',t:'select',get o(){return ['',...contasNomes()]},tab:1},
-      {k:'gerarParcelas',l:'Lançar parcelas em Contas a receber',t:'check',def:true,newOnly:r=>!S.data.lancamentos.some(l=>l.pedidoId===r.id&&l.tipo==='receber'),tab:1},
+      {k:'pags',l:'Pagamentos',t:'pags',full:1,tab:1},
       {k:'condicoes',l:'Condições de pagamento',t:'area',full:1,get def(){return condOpcoes()[0]||''},tab:1},
       {k:'status',l:'Status',t:'select',req:1,o:PED_ST,def:'Pedido Concluído',dv:r=>pedStatus(r),tab:2},
       {k:'concluidoEm',l:'Data de conclusão',t:'date',tab:2},
@@ -2966,6 +2966,7 @@ function fieldHTML(f,rec){
   else if(f.t==='area'&&f.k==='condicoes'){const ops=condOpcoes();const cur=String(v||'').split('\n').map(s=>s.trim()).filter(Boolean);input=`<div class="cond-ops">${ops.map((o,i)=>`<label class="pchip" style="display:flex;align-items:flex-start;gap:8px;white-space:normal;text-align:left;width:100%"><input type="checkbox" data-condck="${id}" data-i="${i}" ${cur.includes(o)?'checked':''} style="margin-top:2px"><span>${esc(o.replace(/^\*\s*/,''))}</span></label>`).join('')}</div><textarea id="${id}" placeholder="${esc(f.ph||'')}" style="margin-top:6px">${esc(v)}</textarea><div class="muted" style="font-size:12px">Marque as opções que valem para este cliente. Dá para escrever algo a mais na caixa. As opções ficam em Configurações › Termos e condições (uma por linha).</div>`}
   else if(f.t==='area')input=`<textarea id="${id}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
   else if(f.t==='items')return `<div class="field full"><label>${f.l}</label>${itemsEditor(v||[])}</div>`;
+  else if(f.t==='pags')return `<div class="field full"><label>${f.l}</label>${pagsEditor(rec)}</div>`;
   else if(f.t==='pacote'){const sel=new Set((rec.pacote||[]).map(x=>x.produtoId));const L=S.data.produtos.filter(p=>p.id!==rec.id&&p.ativo!==false&&!(p.pacote&&p.pacote.length)&&!/^(combo|kit)\b/i.test(p.nome||'')&&(prodEmp(p).includes('Prime 360')||sel.has(p.id))).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
     return `<details class="field full" ${sel.size||/combo|kit/i.test((rec.nome||'')+' '+(rec.categoria||''))?'open':''}><summary style="cursor:pointer;font-weight:600;font-size:12.5px">${f.l} ${sel.size?`<span class="muted">· ${sel.size} marcado(s)</span>`:''}</summary><div class="pchips" id="f-pacote" style="margin-top:8px">${L.map(p=>`<label class="pchip"><input type="checkbox" value="${p.id}" ${sel.has(p.id)?'checked':''}><span>${esc(p.nome)}</span></label>`).join('')||'<span class="muted">Nenhum equipamento cadastrado.</span>'}</div></details>`}
   else if(f.t==='custos')return `<div class="field full"><label>${f.l}</label>${custosEditor(rec)}</div>`;
@@ -3047,7 +3048,7 @@ function openForm(col,rec={}){
     <div class="mbody">${tabs?`<div class="tabs">${tabs.map((t,i)=>`<button type="button" data-tab="${i}" class="${i===0?'on':''}">${t}</button>`).join('')}</div>`:''}${panes}<div class="err" id="formErr" style="color:var(--danger);font-size:13px" hidden></div></div>
     <footer>${!isNew?`<button type="button" class="btn danger" data-mdel>${ic('trash',15)} Excluir</button>`:''}${col==='pedidos'&&!isNew?`<button type="button" class="btn" data-contract="${rec.id}">${ic('doc',15)} Contrato</button><button type="button" class="btn" style="background:var(--info);border-color:var(--info);color:#fff" data-sign="${rec.id}">${ic('edit',15)} Assinatura digital</button>`:''}<span class="sp"></span><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn pri">Salvar</button></footer>
   </form></div>`;
-  updItemsTotal();pedFormSync();
+  updItemsTotal();pedFormSync();if($('#pagsEd')){if($('#pagsEd').dataset.auto==='1'&&pagsFormTot()>0&&($('#f-primeiroVenc')||{}).value)pagsGerar();else pagsTotUpd()}
   const firstInput=$('#mform .fgrid input:not([type=checkbox]), #mform .fgrid select');
   if(firstInput&&innerWidth>700)setTimeout(()=>firstInput.focus(),30);
 }
@@ -3057,6 +3058,7 @@ async function submitForm(){
   sc.fields.forEach(f=>{
     if(f.newOnly&&rec.id&&!(typeof f.newOnly==='function'&&f.newOnly(rec)))return;if(f.hide&&f.hide(rec||{}))return;
     if(f.t==='items'){out[f.k]=readItems();return}
+    if(f.t==='pags'){out.__pags=pagsLer();return}
     if(f.t==='custos')return;
     if(f.t==='pacote'){const el=document.getElementById('f-pacote');if(el){const old=Object.fromEntries((rec.pacote||[]).map(x=>[x.produtoId,x]));out.pacote=[...el.querySelectorAll('input:checked')].map(i=>old[i.value]||{produtoId:i.value,qtd:1})}return}
     const el=document.getElementById('f-'+f.k);if(!el)return;
@@ -3078,9 +3080,11 @@ async function submitForm(){
   const rec_={on:col==='lancamentos'&&!rec.id&&out.recorrente,f:out.recFreq||'Mensal',n:Math.max(1,parseInt(out.recVezes)||1)};if(col==='lancamentos'){delete out.recorrente;delete out.recFreq;delete out.recVezes}
   if(rec_.on&&rec_.n>1){rec_.base=out.descricao;rec_.grp='rc'+Date.now().toString(36);out.descricao=rec_.base+' (1/'+rec_.n+')';out.recGrupo=rec_.grp}
   if(col==='lancamentos'&&out.categoria&&/^\d+(\.\d+)*\s-\s/.test(out.categoria))out.planoCod=out.categoria.split(' - ')[0];
+  const PAGS=out.__pags;delete out.__pags;if(col==='pedidos'&&PAGS){out.parcelas=PAGS.length||out.parcelas||'';if(PAGS.length)out.primeiroVenc=PAGS.map(x=>x.venc).filter(Boolean).sort()[0]||out.primeiroVenc}
   const btn=$('#mform button[type=submit]');btn.disabled=true;btn.textContent='Salvando…';
   try{
     const id=await save(col,out);
+    if(col==='pedidos'&&PAGS){try{const k=await pagsSalvar(rec.id||id,out,PAGS);if(k)toast(k)}catch(e){failWrite(e)}}
     if(rec_.on&&rec_.n>1&&out.vencimento){const grp=rec_.grp;for(let i=1;i<rec_.n;i++){const d=parseD(out.vencimento);if(rec_.f==='Mensal')d.setMonth(d.getMonth()+i);else if(rec_.f==='Anual')d.setFullYear(d.getFullYear()+i);else d.setDate(d.getDate()+i*(rec_.f==='Semanal'?7:15));await save('lancamentos',{...out,vencimento:iso(d),pago:false,dataPagamento:'',recGrupo:grp,descricao:rec_.base+' ('+(i+1)+'/'+rec_.n+')'})}toast(rec_.n+' lançamentos criados')}
     if(col==='pedidos'&&!rec.id){
       const total=pedidoTotal(out);const n=Math.max(1,parseInt(out.parcelas)||1);
@@ -4744,6 +4748,40 @@ function lancBusca(l,q){q=normTxt(String(q||'').trim());if(!q)return true;const 
   const hay=normTxt([l.aid,l.descricao,l.obs,contatoNome(l.contatoId),l.contatoNome,l.fornecedor,l.categoria,l.conta,l.forma,l.doc,pd?'#'+pd.num+' '+pd.num+' '+(pd.titulo||''):'',
     brl(v),vb,vb.replace('.',','),Math.trunc(v),fdate(l.vencimento),fdate(l.emissao),fdate(l.dataPagamento),typeof dk==='function'?dk(l):''].filter(x=>x!=null&&x!=='').join(' '));
   return q.split(/\s+/).every(w=>hay.includes(w))}
+
+/* ===== Pagamentos do pedido (igual ao Alboom): entrada e saldo em datas diferentes, cada um com forma, documento, obs e pago ===== */
+const PAG_FORMAS=['PIX','Transferência','Boleto','Cartão de crédito','Dinheiro','Carnê'];
+function pagsDe(pid){return pid?S.data.lancamentos.filter(l=>l.pedidoId===pid&&l.tipo==='receber').sort((a,b)=>(a.vencimento||'').localeCompare(b.vencimento||'')):[]}
+function pagRowHTML(x){const fs=[...new Set([...PAG_FORMAS,x.forma].filter(Boolean))];return `<tr data-pag="${esc(x.id||'')}"><td><input type="date" data-pv value="${esc(x.venc||'')}"></td><td><select data-pf>${['',...fs].map(o=>`<option ${o===(x.forma||'')?'selected':''}>${esc(o)}</option>`).join('')}</select></td><td><input data-pd value="${esc(x.doc||'')}" placeholder="nº"></td><td><input data-po value="${esc(x.obs||'')}" placeholder="ex.: entrada"></td><td><input data-pval inputmode="decimal" value="${x.valor!=null&&x.valor!==''?esc(brl(+x.valor).replace(/^R\$\s?/,'')):''}" style="text-align:right"></td><td style="text-align:center"><input type="checkbox" data-pp ${x.pago?'checked':''}></td><td><button type="button" class="icon-btn" data-pagdel title="Tirar">${ic('trash',13)}</button></td></tr>`}
+function pagsEditor(rec){const L=pagsDe(rec&&rec.id).map(l=>({id:l.id,venc:l.vencimento,forma:l.forma,doc:l.doc,obs:l.obsPag||'',valor:l.valor,pago:l.pago}));
+  return `<div id="pagsEd" data-auto="${L.length?'0':'1'}"><div class="tbl-wrap"><table class="tbl" style="font-size:13px"><thead><tr><th>Vencimento</th><th>Forma de pagamento</th><th>Nº documento</th><th>Obs</th><th class="r">Valor</th><th>Pago</th><th></th></tr></thead><tbody id="pagRows">${L.map(pagRowHTML).join('')}</tbody></table></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px"><button type="button" class="btn sm" data-pagadd>${ic('plus',13)} Adicionar pagamento</button><button type="button" class="btn sm" data-paggen title="Divide o total pelas Parcelas a partir do 1º vencimento">${ic('refresh',13)} Gerar pelas parcelas</button><span class="sp" style="flex:1"></span><span id="pagsTot" class="num" style="font-size:13px"></span></div>
+   <div class="muted" style="font-size:12px;margin-top:4px">Ex.: entrada de 20% no PIX hoje e o saldo por transferência 15 dias antes do evento. Cada linha vira uma parcela em Contas a receber.</div></div>`}
+const pagsFormTot=()=>moneyParse((($('#itemsTot')||{}).textContent)||'');
+function pagsLer(){return [...document.querySelectorAll('#pagRows tr[data-pag]')].map(r=>({id:r.dataset.pag||'',venc:$('[data-pv]',r).value,forma:$('[data-pf]',r).value,doc:$('[data-pd]',r).value.trim(),obs:$('[data-po]',r).value.trim(),valor:moneyParse($('[data-pval]',r).value),pago:$('[data-pp]',r).checked})).filter(x=>x.valor>0||x.id)}
+function pagsTotUpd(){const el=$('#pagsTot');if(!el)return;const s=Math.round(pagsLer().reduce((a,x)=>a+(+x.valor||0),0)*100)/100,t=Math.round(pagsFormTot()*100)/100;const d=Math.round((t-s)*100)/100;
+  el.innerHTML=`Pagamentos: <b>${brl(s)}</b> de ${brl(t)}${Math.abs(d)<0.01?' <span style="color:var(--ok)">✓</span>':` · <span style="color:var(--warn)">${d>0?'falta '+brl(d):'passou '+brl(-d)}</span> <button type="button" class="btn sm" data-pagajus>Ajustar a última</button>`}`}
+function pagsGerar(){const tb=$('#pagRows');if(!tb)return;const t=pagsFormTot();const n=Math.max(1,parseInt(($('#f-parcelas')||{}).value)||1);const first=($('#f-primeiroVenc')||{}).value||today();const fm=($('#f-pagamento')||{}).value||'';
+  const keep=pagsLer().filter(x=>x.id&&x.pago);const resto=Math.max(0,t-keep.reduce((a,x)=>a+x.valor,0));const base=Math.floor(resto/n*100)/100;const rows=[...keep];
+  for(let i=0;i<n;i++){const d=parseD(first);d.setMonth(d.getMonth()+i);rows.push({venc:iso(d),forma:fm,valor:i===n-1?Math.round((resto-base*(n-1))*100)/100:base})}
+  const ids=new Set(rows.map(x=>x.id).filter(Boolean));const old=pagsLer().filter(x=>x.id&&!ids.has(x.id));tb.innerHTML=rows.map(pagRowHTML).join('');tb.dataset.del=JSON.stringify([...JSON.parse(tb.dataset.del||'[]'),...old.map(x=>x.id)]);pagsTotUpd()}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-pagadd],[data-paggen],[data-pagdel],[data-pagajus]');if(!t||!$('#pagsEd'))return;e.preventDefault();$('#pagsEd').dataset.auto='0';const tb=$('#pagRows');
+  if(t.hasAttribute('data-pagadd')){const L=pagsLer();const s=L.reduce((a,x)=>a+x.valor,0);const last=L[L.length-1];tb.insertAdjacentHTML('beforeend',pagRowHTML({venc:last&&last.venc?addDays(last.venc,30):(($('#f-primeiroVenc')||{}).value||today()),forma:(last&&last.forma)||($('#f-pagamento')||{}).value||'',valor:Math.max(0,Math.round((pagsFormTot()-s)*100)/100)||''}))}
+  else if(t.hasAttribute('data-paggen'))pagsGerar();
+  else if(t.hasAttribute('data-pagdel')){const tr=t.closest('tr');if(tr.dataset.pag){const l=S.data.lancamentos.find(x=>x.id===tr.dataset.pag);if(l&&l.pago&&!confirm('Esta parcela já está paga. Tirar mesmo assim? Ela será apagada de Contas a receber.'))return;tb.dataset.del=JSON.stringify([...JSON.parse(tb.dataset.del||'[]'),tr.dataset.pag])}tr.remove()}
+  else if(t.hasAttribute('data-pagajus')){const rs=[...tb.querySelectorAll('tr[data-pag]')];const lr=rs[rs.length-1];if(lr){const L=pagsLer();const s=L.slice(0,-1).reduce((a,x)=>a+x.valor,0);$('[data-pval]',lr).value=brl(Math.max(0,pagsFormTot()-s)).replace(/^R\$\s?/,'')}}
+  pagsTotUpd()});
+document.addEventListener('input',e=>{if(!$('#pagsEd'))return;const t=e.target;if(t.closest&&t.closest('#pagRows')){$('#pagsEd').dataset.auto='0';pagsTotUpd();return}
+  if(t.closest&&t.closest('#mform')&&(['f-parcelas','f-primeiroVenc','f-pagamento','f-desconto','f-outrasDespesas'].includes(t.id)||t.closest('#itemsEd'))){setTimeout(()=>{if($('#pagsEd').dataset.auto==='1'&&pagsFormTot()>0)pagsGerar();else pagsTotUpd()},30)}});
+document.addEventListener('change',e=>{if(!$('#pagsEd'))return;const t=e.target;if(t.id==='f-pagamento'||t.id==='f-primeiroVenc'||t.id==='f-parcelas'||(t.closest&&t.closest('#itemsEd'))){setTimeout(()=>{if($('#pagsEd').dataset.auto==='1'&&pagsFormTot()>0)pagsGerar();else pagsTotUpd()},30)}});
+async function pagsSalvar(pid,ped,L){L=[...L].sort((a,b)=>(a.venc||'9').localeCompare(b.venc||'9'));const old=pagsDe(pid);const del=new Set(JSON.parse((($('#pagRows')||{}).dataset||{}).del||'[]'));const n=L.length;let c=0,u=0,r=0;
+  for(const id of del){const l=old.find(x=>x.id===id);if(l){await removeRec('lancamentos',l.id);r++}}
+  for(let i=0;i<n;i++){const x=L[i];const desc=`Parcela ${i+1}/${n} · ${ped.titulo||''}`;const base={tipo:'receber',categoria:'Evento',descricao:desc,contatoId:ped.contatoId||'',valor:Math.round(x.valor*100)/100,vencimento:x.venc||today(),forma:x.forma||'',doc:x.doc||'',obsPag:x.obs||'',pedidoId:pid};
+    const l=x.id&&old.find(o=>o.id===x.id);
+    if(l){const P={...l,...base,conta:l.conta||ped.contaDeposito||'',pago:x.pago,dataPagamento:x.pago?(l.dataPagamento||(x.venc&&x.venc<today()?x.venc:today())):''};
+      if(['descricao','valor','vencimento','forma','doc','obsPag','pago','contatoId'].some(k=>String(P[k]??'')!==String(l[k]??''))){await save('lancamentos',P);u++}}
+    else{await save('lancamentos',{...base,conta:ped.contaDeposito||'',pago:x.pago,dataPagamento:x.pago?(x.venc&&x.venc<today()?x.venc:today()):''});c++}}
+  const p=[c&&c+' nova'+(c>1?'s':''),u&&u+' atualizada'+(u>1?'s':''),r&&r+' removida'+(r>1?'s':'')].filter(Boolean);return p.length?'Pagamentos: '+p.join(', '):''}
 /* ===== Produtos: empresa e ativos ===== */
 const PRIME_RX=/prime ?360|cabine|spinner|espelho|totem|grua|game|\bdj ?\d|pista|plataforma|impressora|combo|instan|hashtag|foto ?mosaico|lambe|neon|glambot|t[uú]nel|\btv ?\d|copo|ursinho|chaveiro|\bim[aâ]\b|plotagem|hora adicional equip/i;
 function prodEmp(p){if(Array.isArray(p.empresas))return p.empresas;return PRIME_RX.test((p.codigo||'')+' '+(p.nome||''))?['Prime 360']:['Fotografia e Filmagem']}
