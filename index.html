@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261105153312';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261105154746';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -3202,7 +3202,7 @@ async function fxImport(key,silent){
   return pid;
 }
 async function fxIgnore(key){if(S.mode==='db')await S.db.doc('fichas/'+key).set({status:'ignorada',em:new Date().toISOString()});else S.data.fichas=[...(S.data.fichas||[]),{id:key,status:'ignorada'}];S.fx.novas=Math.max(0,S.fx.novas-1);render()}
-VIEWS.fichas=()=>{
+VIEWS.fichas=()=>{if(!S.fx.at&&!S.fx.loading&&!S.fx._auto){S.fx._auto=1;setTimeout(()=>fxLoad(true).catch(()=>{}),60)}
   const F=S.fx,lim=iso(new Date(Date.now()-F.dias*864e5));const q=normTxt(F.q||'');
   const rows=F.rows.filter(f=>(F.dias>=9999||f.ts>=lim)&&(!q||normTxt(f.contato.nome+' '+f.pedido.titulo+' '+f.contato.email).includes(q)));
   const stB={alboom:badge('Já tratada no Alboom','--idle'),nova:badge('Nova','--warn'),importada:badge('Importada','--ok'),existe:badge('Já existe no CRM','--info'),ignorada:badge('Ignorada','--idle')};
