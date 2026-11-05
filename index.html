@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261105134541';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261105135451';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4558,7 +4558,7 @@ function extCasar(E){const b=E.banco;const byN={},byC={};bancos().forEach(x=>{by
     /* 2) conta em aberto com o mesmo valor */
     const ab=abertos.filter(l=>!usados.has(l.id)&&l.tipo===tp&&Math.abs((+l.valor||0)-av)<0.011&&Math.abs(extDias(l.vencimento||r.d,r.d))<=75)
       .map(l=>{const si=extSim(nm,extNomeL(l));return {l,si,s:si*10-Math.abs(extDias(l.vencimento||r.d,r.d))/15}}).sort((x,y)=>y.s-x.s);
-    if(ab.length){r.cands=ab.slice(0,8).map(x=>x.l);r.sel=String(r.cands[0].id);r.acao='baixar';const top=ab[0];const dd=Math.abs(extDias(top.l.vencimento||r.d,r.d));r.st=(top.si>=0.5||(ab.length===1&&dd<=10&&!r.nome))?'bateu':'parecido';if(r.st==='parecido'&&top.si===0&&dd>30){r.acao='criar';r.sel=''}else usados.add(top.l.id);return}
+    if(ab.length){r.cands=ab.slice(0,8).map(x=>x.l);r.sel=String(r.cands[0].id);r.acao='baixar';const top=ab[0];const dd=Math.abs(extDias(top.l.vencimento||r.d,r.d));r.st=(top.si>=0.5||(ab.length===1&&dd<=10&&!r.nome))?'bateu':'parecido';if(r.st==='parecido'&&top.si===0&&(dd>30||(r.nome&&extTok(extNomeL(top.l)).length))){r.acao='criar';r.sel='';const M0=(cfg().extMem||{})[extMemKey(r)];if(M0&&M0.cat)r.cat=M0.cat;if(M0&&M0.acao==='ignorar')r.acao='ignorar'}else usados.add(top.l.id);return}
     /* 3) sem par: sugestão por memória ou pelo histórico */
     const mk=extMemKey(r),M=mem[mk];const P=planoOpts(tp);const ach=rx=>P.find(o=>rx.test(o))||'';
     r.cat=M&&M.cat&&P.includes(M.cat)?M.cat:/rendiment/i.test(r.hist)?ach(/rendiment|aplica|financeir/i):/capitaliza/i.test(r.hist)?ach(/capitaliza|aplica|invest|seguro/i):/tarifa|cesta/i.test(r.hist)?ach(/tarifa|banc/i):'';
