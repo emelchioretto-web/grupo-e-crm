@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261105151025';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261105152105';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4540,7 +4540,7 @@ function extNomeL(l){const p=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoI
 const extDias=(a,b)=>Math.round((parseD(a)-parseD(b))/864e5);
 function extCasar(E){const b=E.banco;const byN={},byC={};bancos().forEach(x=>{byN[x.nome]=x;if(x.codigo)byC[x.codigo]=x});
   const todos=movPagos();const feitos=new Set(todos.flatMap(l=>[l.extKey,...(l.extKeys||[])]).filter(Boolean));const usados=new Set();
-  const pagosB=todos.filter(l=>bancoDe(l,byN,byC)===b);const outrosB=bancos().filter(x=>x!==b).map(x=>normTxt(x.nome).split(/[\s-]+/)[0]).filter(w=>w&&w.length>=4&&!normTxt(b.nome).includes(w));const deOutroBanco=l=>{const n=normTxt(extNomeL(l)+' '+(l.contaCod||''));return outrosB.some(w=>n.includes(w))};
+  const pagosB=todos.filter(l=>bancoDe(l,byN,byC)===b);const outrosB=bancos().filter(x=>x!==b).map(x=>normTxt(x.nome).split(/[\s-]+/)[0]).filter(w=>w&&w.length>=4&&!normTxt(b.nome).includes(w));const deOutroBanco=l=>{const tk=normTxt(extNomeL(l)).split(/[^a-z0-9]+/);return outrosB.some(w=>tk.includes(w))};
   const abertos=S.data.lancamentos.filter(l=>!l.pago&&!l.transf&&(!l.conta||l.conta===b.nome)&&!deOutroBanco(l));const mem=cfg().extMem||{};
   E.R.forEach(r=>{r.st='novo';r.cands=[];r.sel='';const tp=r.v>0?'receber':'pagar',av=Math.abs(r.v);const nm=r.nome||r.hist;
     if(feitos.has(r.key)){r.st='feito';r.acao='nada';return}
@@ -4555,9 +4555,13 @@ function extCasar(E){const b=E.banco;const byN={},byC={};bancos().forEach(x=>{by
     /* 1b) pagamento de fatura de cartão: soma das compras já lançadas pela fatura */
     if(tp==='pagar'&&/cart[aã]o/i.test(r.hist)){const F=pagosB.filter(l=>l.origem==='Fatura'&&!l.extKey&&!usados.has(l.id)&&Math.abs(extDias(l.dataPagamento||l.vencimento,r.d))<=6);const g={};F.forEach(l=>{const k=(l.dataPagamento||l.vencimento)+'|'+(l.obs||'').split(' · ')[0];(g[k]=g[k]||[]).push(l)});
       const hit=Object.values(g).find(G=>Math.abs(G.reduce((s,l)=>s+(l.tipo==='pagar'?1:-1)*(+l.valor||0),0)-av)<0.05);if(hit){r.st='ja';r.grupo=hit;r.acao='conc';hit.forEach(l=>usados.add(l.id));return}
-      r.st='novo';r.acao='ignorar';r.dica='Pagamento da fatura do cartão. Suba a fatura em "Ler fatura" para lançar as compras; aqui fica só conciliado.';return}
+      const C=abertos.filter(l=>!usados.has(l.id)&&l.tipo==='pagar'&&/cart/i.test(l.forma||'')&&/cr[eé]d/i.test(l.forma||'')&&Math.abs(extDias(l.vencimento||r.d,r.d))<=6);const vGrp={};C.forEach(l=>{(vGrp[l.vencimento+'|'+normTxt(l.forma)]=vGrp[l.vencimento+'|'+normTxt(l.forma)]||[]).push(l)});
+      const gs=Object.values(vGrp).map(G=>({G,s:Math.round(G.reduce((s,l)=>s+(+l.valor||0),0)*100)/100}));const ok=gs.find(x=>Math.abs(x.s-av)<0.05);
+      if(ok){r.st='bateu';r.cartao=ok.G;r.cands=[];r.acao='baixarCartao';ok.G.forEach(l=>usados.add(l.id));return}
+      r.st='novo';r.acao='ignorar';const pr=gs.sort((a,b)=>Math.abs(a.s-av)-Math.abs(b.s-av))[0];
+      r.dica=pr?`Pagamento da fatura do cartão. As compras do cartão em aberto com vencimento ${fdate(pr.G[0].vencimento)} somam ${brl(pr.s)} (diferença ${brl(av-pr.s)}). Confira se falta lançar alguma compra; aqui fica só ignorado.`:'Pagamento da fatura do cartão. Como você lança as compras separadas, aqui fica só ignorado (não lança de novo).';return}
     /* 2) conta em aberto com o mesmo valor */
-    const ab=abertos.filter(l=>!usados.has(l.id)&&l.tipo===tp&&Math.abs((+l.valor||0)-av)<0.011&&Math.abs(extDias(l.vencimento||r.d,r.d))<=75)
+    const ab=abertos.filter(l=>!usados.has(l.id)&&l.tipo===tp&&!(/cart/i.test(l.forma||'')&&/cr[eé]d/i.test(l.forma||''))&&Math.abs((+l.valor||0)-av)<0.011&&Math.abs(extDias(l.vencimento||r.d,r.d))<=75)
       .map(l=>{const si=extSim(nm,extNomeL(l));return {l,si,s:si*10-Math.abs(extDias(l.vencimento||r.d,r.d))/15}}).sort((x,y)=>y.s-x.s);
     if(ab.length){r.cands=ab.slice(0,8).map(x=>x.l);r.sel=String(r.cands[0].id);r.acao='baixar';const top=ab[0];const dd=Math.abs(extDias(top.l.vencimento||r.d,r.d));r.st=(top.si>=0.5||(ab.length===1&&dd<=10&&!r.nome))?'bateu':'parecido';if(r.st==='parecido'&&top.si===0&&(dd>30||(r.nome&&extTok(extNomeL(top.l)).length))){r.acao='criar';r.sel='';const M0=(cfg().extMem||{})[extMemKey(r)];if(M0&&M0.cat)r.cat=M0.cat;if(M0&&M0.acao==='ignorar')r.acao='ignorar'}else usados.add(top.l.id);return}
     /* 3) sem par: sugestão por memória ou pelo histórico */
@@ -4585,6 +4589,7 @@ function extModal(){const E=S.ext;if(!E)return;const R=E.R;const cnt=k=>R.filter
   const sx=R.filter(r=>r.saldo!=null).slice(-1)[0];const sCRM=extSaldoCRM(E.banco,ate);
   const linha=r=>{const [rt,cor]=EXT_ST[r.st];const tp=r.v>0?'receber':'pagar';let ac='';
     if(r.st==='feito')ac='<span class="muted" style="font-size:12px">Importado antes</span>';
+    else if(r.cartao)ac=`<select class="search" data-exn="${r.i}" style="width:100%"><option value="baixarCartao" ${r.acao==='baixarCartao'?'selected':''}>Dar baixa nas ${r.cartao.length} compras do cartão (venc. ${fdate(r.cartao[0].vencimento)}, total ${brl(r.cartao.reduce((s,l)=>s+(+l.valor||0),0))})</option><option value="ignorar" ${r.acao==='ignorar'?'selected':''}>Ignorar</option></select>`;
     else if(r.soma&&!r.soma.lider)ac=`<span class="muted" style="font-size:12px">Somado com os outros ${r.soma.n-1} iguais deste dia (${brl(r.soma.total)} no CRM)</span>`;
     else if(r.st==='ja')ac=`<select class="search" data-exa="${r.i}" style="width:100%">${r.grupo?`<option value="conc" ${r.acao==='conc'?'selected':''}>Marcar conciliado (${r.grupo.length} lançamentos somados: ${r.grupo.map(l=>esc((contatoNome(l.contatoId)||l.contatoNome||l.descricao||'').slice(0,18))+' '+brl(+l.valor)).join(' + ')})</option>`:r.cands.map(l=>`<option value="c:${esc(String(l.id))}" ${r.acao==='conc'&&r.sel===String(l.id)?'selected':''}>É este: ${esc(extLRot(l))}</option>`).join('')}<option value="nada" ${r.acao==='nada'?'selected':''}>Não mexer (deixar sem conciliar)</option></select>`;
     else if(r.cands.length)ac=`<select class="search" data-exs="${r.i}" style="width:100%">${r.cands.map(l=>`<option value="${esc(String(l.id))}" ${r.acao==='baixar'&&r.sel===String(l.id)?'selected':''}>Baixar: ${esc(extLRot(l))}</option>`).join('')}<option value="_criar" ${r.acao==='criar'?'selected':''}>Criar lançamento novo</option><option value="_ign" ${r.acao==='ignorar'?'selected':''}>Ignorar</option></select>${r.acao==='criar'?extCatSel(r,tp):''}`;
@@ -4620,6 +4625,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   const conc=async(l,key)=>{if(l.soBanco){const [,k,aid]=String(l.id).split('~');await finWrite(k,L=>L.map(x=>String(x.aid)===aid?{...x,conciliado:true}:x))}else await save('lancamentos',{...l,conciliado:true,...(key?{extKey:key}:{})})};
   try{for(const r of E.R){if(r.st==='feito'||r.acao==='nada')continue;
       if(r.acao==='conc'){const G=r.grupo||(r.sel?[r.cands.find(l=>String(l.id)===r.sel)]:[]);for(const l of G.filter(Boolean)){await conc(l,r.grupo?'':r.key);if(r.soma&&!l.soBanco)await patch('lancamentos',l.id,{extKeys:r.soma.keys})}nC++;continue}
+      if(r.acao==='baixarCartao'&&r.cartao){for(const l of r.cartao){if(feitosG.has(l.id))continue;feitosG.add(l.id);await save('lancamentos',{...l,pago:true,dataPagamento:r.d,conta:b.nome,contaCod:b.codigo||l.contaCod||'',conciliado:true,extKey:r.key+'|'+l.id,extKeys:[r.key]})}nB+=r.cartao.length;continue}
       if(r.acao==='baixar'){const l=r.cands.find(x=>String(x.id)===r.sel);if(!l||feitosG.has(l.id))continue;feitosG.add(l.id);await save('lancamentos',{...l,pago:true,dataPagamento:r.d,conta:b.nome,contaCod:b.codigo||l.contaCod||'',conciliado:true,extKey:r.key,...(r.soma?{extKeys:r.soma.keys}:{})});nB++;continue}
       const mk=extMemKey(r);if(r.acao==='ignorar'){if(r.st==='novo'&&!r.dica)mem[mk]={acao:'ignorar'};continue}
       if(r.acao==='criar'){const tp=r.v>0?'receber':'pagar';const rec={tipo:tp,valor:Math.abs(r.v),vencimento:r.d,emissao:r.d,dataPagamento:r.d,pago:true,conciliado:true,conta:b.nome,descricao:(r.forn||'').trim()||(r.nome?r.nome:r.hist),obs:'Extrato: '+r.hist+(r.doc?' · doc '+r.doc:''),forma:/pix/i.test(r.hist)?'PIX':/cobran|boleto|t[ií]tulo/i.test(r.hist)?'Boleto':/cart/i.test(r.hist)?'Cartão de crédito':'',doc:r.doc||'',categoria:r.cat||'',extKey:r.key,origem:'Extrato'};
