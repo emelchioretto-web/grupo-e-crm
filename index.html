@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261106103405';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261106103858';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1786,6 +1786,7 @@ VIEWS.pedido=()=>{
         ${c.email?`<a href="mailto:${esc(c.email)}" data-mailto="${esc(c.email)}" data-mailnome="${esc(c.nome||'')}" style="--c:var(--ev-pre)">${ic('mail',15)} Enviar e-mail</a>`:''}
         ${wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noopener" style="--c:#25a85a">${ic('wa',15)} Enviar WhatsApp</a>`:''}
         <button style="--c:var(--info)" data-sign="${p.id}">${ic('edit',15)} Assinatura digital</button>
+        ${pedStatus(p)!=='Cancelado'?`<button style="--c:#c0392b" data-pcanc="${p.id}">${ic('x',15)} Cancelar pedido</button>`:`<div style="text-align:center;color:#c0392b;font-weight:600;font-size:13px;padding:6px">Pedido cancelado${p.canceladoEm?' em '+fdate(p.canceladoEm.slice(0,10)):''}${p.motivoCancel?' · '+esc(p.motivoCancel):''}</div>`}
       </div>
       <div class="ct-docs">
         ${row('Data',dt)}
@@ -4825,6 +4826,32 @@ async function pagsSalvar(pid,ped,L){L=[...L].sort((a,b)=>(a.venc||'9').localeCo
       if(['descricao','valor','vencimento','forma','doc','obsPag','pago','contatoId'].some(k=>String(P[k]??'')!==String(l[k]??''))){await save('lancamentos',P);u++}}
     else{await save('lancamentos',{...base,conta:ped.contaDeposito||'',pago:x.pago,dataPagamento:x.pago?(x.venc&&x.venc<today()?x.venc:today()):''});c++}}
   const p=[c&&c+' nova'+(c>1?'s':''),u&&u+' atualizada'+(u>1?'s':''),r&&r+' removida'+(r>1?'s':'')].filter(Boolean);return p.length?'Pagamentos: '+p.join(', '):''}
+
+/* ===== Cancelar pedido: pedido + agenda (e Google) + parcelas em aberto + custos em aberto ===== */
+function pedCancInfo(p){const L=S.data.lancamentos.filter(l=>l.pedidoId===p.id);return {ag:(S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&!a.cancelado),recA:L.filter(l=>l.tipo==='receber'&&!l.pago),recP:L.filter(l=>l.tipo==='receber'&&l.pago),pagA:L.filter(l=>l.tipo==='pagar'&&!l.pago),pagP:L.filter(l=>l.tipo==='pagar'&&l.pago),cus:(p.custos||[])}}
+function pedCancModal(pid){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;const I=pedCancInfo(p);const sm=A=>brl(A.reduce((s,l)=>s+(+l.valor||0),0));
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:540px"><header><h3>Cancelar pedido #${esc(String(p.num||''))}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+   <div class="mbody" style="display:grid;gap:10px"><p style="margin:0"><b>${esc(p.titulo||'')}</b>${p.dataEvento?' · '+fdate(p.dataEvento):''}</p>
+    <div style="display:grid;gap:6px;font-size:13.5px">
+     <label><input type="checkbox" checked disabled> Pedido fica como <b>Cancelado</b> (some da disponibilidade e dos relatórios de vendas)</label>
+     <label><input type="checkbox" id="pc-ag" checked> Apagar ${I.ag.length} compromisso(s) da agenda e da Google Agenda da equipe</label>
+     <label><input type="checkbox" id="pc-rec" checked ${I.recA.length?'':'disabled'}> Apagar ${I.recA.length} parcela(s) em aberto de Contas a receber (${sm(I.recA)}) e os lembretes de vencimento</label>
+     <label><input type="checkbox" id="pc-pag" checked ${I.pagA.length||I.cus.some(c=>!c.pago)?'':'disabled'}> Cancelar os custos em aberto: ${I.pagA.length} conta(s) a pagar (${sm(I.pagA)}) e os custos não pagos do pedido</label>
+    </div>
+    ${I.recP.length?`<div class="banner" style="margin:0;border-color:var(--warn)"><span>⚠️ Já foi recebido <b>${sm(I.recP)}</b> deste pedido. Esses recebimentos ficam como estão. Se for devolver, lance a devolução em Contas a pagar.</span></div>`:''}
+    ${I.pagP.length?`<div class="banner" style="margin:0"><span>Custos já pagos (${sm(I.pagP)}) ficam como estão.</span></div>`:''}
+    <div class="field"><label>Motivo (opcional)</label><input id="pc-mot" placeholder="Ex.: cliente desistiu"></div></div>
+   <footer><span class="sp"></span><button class="btn" data-close>Voltar</button><button class="btn danger" data-pcancok="${esc(p.id)}">${ic('x',14)} Cancelar pedido</button></footer></div></div>`}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-pcanc],[data-pcancok]');if(!t)return;e.preventDefault();
+  if(t.dataset.pcanc){pedCancModal(t.dataset.pcanc);return}
+  const p=S.data.pedidos.find(x=>x.id===t.dataset.pcancok);if(!p)return;const I=pedCancInfo(p);const ag=$('#pc-ag').checked,rec=$('#pc-rec').checked,pag=$('#pc-pag').checked,mot=($('#pc-mot').value||'').trim();
+  t.disabled=true;t.textContent='Cancelando…';let n={ag:0,rec:0,pag:0};
+  try{await save('pedidos',{...p,status:'Cancelado',contratoStatus:p.contratoStatus==='Assinado'?p.contratoStatus:'Cancelado',canceladoEm:new Date().toISOString(),motivoCancel:mot,
+      ...(pag?{custos:(p.custos||[]).filter(c=>{if(c.pago)return true;try{const l=custoLanc(p,c);return !!(l&&l.pago)}catch(_){return false}})}:{})});
+    if(ag)for(const a of I.ag){try{await removeRec('agenda',a.id);n.ag++}catch(_){}}
+    if(rec)for(const l of I.recA){try{await removeRec('lancamentos',l.id);n.rec++}catch(_){}}
+    if(pag)for(const l of I.pagA){try{await removeRec('lancamentos',l.id);n.pag++}catch(_){}}
+    closeModal();toast(`Pedido #${p.num} cancelado: ${n.ag} compromisso(s), ${n.rec} parcela(s) e ${n.pag} custo(s) removidos.`);render()}catch(err){t.disabled=false;t.textContent='Cancelar pedido';failWrite(err)}});
 /* ===== Produtos: empresa e ativos ===== */
 const PRIME_RX=/prime ?360|cabine|spinner|espelho|totem|grua|game|\bdj ?\d|pista|plataforma|impressora|combo|instan|hashtag|foto ?mosaico|lambe|neon|glambot|t[uú]nel|\btv ?\d|copo|ursinho|chaveiro|\bim[aâ]\b|plotagem|hora adicional equip/i;
 function prodEmp(p){if(Array.isArray(p.empresas))return p.empresas;return PRIME_RX.test((p.codigo||'')+' '+(p.nome||''))?['Prime 360']:['Fotografia e Filmagem']}
