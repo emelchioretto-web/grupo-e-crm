@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261106100808';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261106103405';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4550,7 +4550,7 @@ function extCasar(E){const b=E.banco;const byN={},byC={};bancos().forEach(x=>{by
     /* já conciliado com outra versão do extrato (o banco às vezes muda o nº do documento ou o saldo do dia): mesmo banco, valor e data */
     {const f=pagosB.find(l=>(l.extKey||(l.extKeys||[]).length)&&!usados.has(l.id)&&![l.extKey,...(l.extKeys||[])].some(k=>curKeys.has(k))&&(l.tipo==='pagar'?'pagar':'receber')===tp&&Math.abs((+l.valor||0)-av)<0.011&&Math.abs(extDias(l.dataPagamento||l.vencimento||r.d,r.d))<=1);if(f){usados.add(f.id);r.st='feito';r.acao='nada';return}}
     /* 1) já lançado como pago nesta conta */
-    const ja=[...pagosB,...semBanco.filter(l=>extSim(nm,extNomeL(l))>=0.5)].filter(l=>!usados.has(l.id)&&!l.extKey&&(l.tipo==='pagar'?'pagar':'receber')===tp&&Math.abs((+l.valor||0)-av)<0.011&&Math.abs(extDias(l.dataPagamento||l.vencimento||r.d,r.d))<=(l.conta?7:10))
+    const ja=[...pagosB,...semBanco.filter(l=>extSim(nm,extNomeL(l))>=0.5)].filter(l=>!usados.has(l.id)&&!l.extKey&&(l.tipo==='pagar'?'pagar':'receber')===tp&&Math.abs((+l.valor||0)-av)<0.011&&Math.abs(extDias(l.dataPagamento||l.vencimento||r.d,r.d))<=(l.conta?7:10)&&!(r.nome&&(l.contatoId||l.contatoNome)&&extSim(nm,contatoNome(l.contatoId)||l.contatoNome||'')===0))
       .map(l=>({l,s:extSim(nm,extNomeL(l))*10-Math.abs(extDias(l.dataPagamento||l.vencimento,r.d))-(l.conciliado?3:0)})).sort((x,y)=>y.s-x.s);
     if(ja.length){r.st='ja';r.cands=ja.slice(0,6).map(x=>x.l);r.sel=String(r.cands[0].id);r.acao='conc';usados.add(r.cands[0].id);return}
     /* 1a) dois ou mais lançamentos do mesmo dia que somados dão o valor (ex.: PIX único que pagou 2 contas) */
