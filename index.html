@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261106095705';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261106100051';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4554,8 +4554,8 @@ function extCasar(E){const b=E.banco;const byN={},byC={};bancos().forEach(x=>{by
       .map(l=>({l,s:extSim(nm,extNomeL(l))*10-Math.abs(extDias(l.dataPagamento||l.vencimento,r.d))-(l.conciliado?3:0)})).sort((x,y)=>y.s-x.s);
     if(ja.length){r.st='ja';r.cands=ja.slice(0,6).map(x=>x.l);r.sel=String(r.cands[0].id);r.acao='conc';usados.add(r.cands[0].id);return}
     /* 1a) dois ou mais lançamentos do mesmo dia que somados dão o valor (ex.: PIX único que pagou 2 contas) */
-    {const P=pagosB.filter(l=>!usados.has(l.id)&&!l.extKey&&(l.tipo==='pagar'?'pagar':'receber')===tp&&(+l.valor||0)<av&&Math.abs(extDias(l.dataPagamento||l.vencimento||r.d,r.d))<=2).slice(0,14);let hit=null;
-      const rec=(k,acc,soma)=>{if(hit||acc.length>4)return;if(acc.length>=2&&Math.abs(soma-av)<0.011){hit=acc.slice();return}for(let j=k;j<P.length;j++){const v=+P[j].valor||0;if(soma+v>av+0.011)continue;acc.push(P[j]);rec(j+1,acc,soma+v);acc.pop()}};rec(0,[],0);
+    {const P=pagosB.filter(l=>!usados.has(l.id)&&!l.extKey&&(l.tipo==='pagar'?'pagar':'receber')===tp&&(+l.valor||0)<av&&Math.abs(extDias(l.dataPagamento||l.vencimento||r.d,r.d))<=3).sort((a,b)=>extSim(nm,extNomeL(b))-extSim(nm,extNomeL(a))).slice(0,16);let hit=null;
+      let passos=0;const rec=(k,acc,soma)=>{if(hit||acc.length>12||++passos>40000)return;if(acc.length>=2&&Math.abs(soma-av)<0.011){hit=acc.slice();return}for(let j=k;j<P.length;j++){const v=+P[j].valor||0;if(soma+v>av+0.011)continue;acc.push(P[j]);rec(j+1,acc,soma+v);acc.pop()}};rec(0,[],0);
       if(hit){r.st='ja';r.grupo=hit;r.acao='conc';hit.forEach(l=>usados.add(l.id));return}}
     /* 1c) custo de pedido (freela, impressão…) com o mesmo valor e fornecedor: liga ao custo em vez de criar solto */
     if(tp==='pagar'&&r.nome){let best=null;S.data.pedidos.forEach(p=>{(p.custos||[]).forEach((c,ci)=>{if(Math.abs((+c.valor||0)-av)>0.011)return;const dd=Math.abs(extDias(c.venc||p.dataEvento||r.d,r.d));if(dd>12)return;const si=extSim(nm,[c.fornecedor,c.nome].filter(Boolean).join(' '));if(si<0.5)return;const k=p.id+'#'+ci;if(usados.has(k))return;const s=si*10-dd;if(!best||s>best.s)best={p,c,ci,k,s}})});
