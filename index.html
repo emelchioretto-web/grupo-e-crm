@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261106100051';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261106100808';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4602,7 +4602,7 @@ async function extAbrir(file){iaEspera('Lendo o extrato');let res;try{res=await 
   S.ext={file:file.name,R:res.R,banco:b,f:'todos',auto:!!(res.conta&&b&&dig(b.numero)===dig(res.conta.conta))};extCasar(S.ext);extModal()}
 const EXT_ST={bateu:['Bateu','--ok'],parecido:['Conferir','--warn'],novo:['Novo','--info'],ja:['Já lançado','--idle'],feito:['Já conciliado','--idle']};
 function extLRot(l){const p=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoId);return `${fdateShort(l.vencimento||l.dataPagamento)} · ${brl(+l.valor)} · ${(()=>{const n=(contatoNome(l.contatoId)||l.contatoNome||'').slice(0,28);return n?(l.tipo==='pagar'?'fornecedor ':'cliente ')+n:''})()}${p?' · #'+p.num:''} · ${(l.descricao||'').slice(0,40)}`}
-function extModal(){const E=S.ext;if(!E)return;const R=E.R;const cnt=k=>R.filter(r=>r.st===k).length;const F=E.f;
+function extModal(){const E=S.ext;if(!E)return;const _w=document.getElementById('ext-wrap');const _st=_w&&E._fAnt===E.f?_w.scrollTop:0;E._fAnt=E.f;requestAnimationFrame(()=>{const w=document.getElementById('ext-wrap');if(w&&_st)w.scrollTop=_st});const R=E.R;const cnt=k=>R.filter(r=>r.st===k).length;const F=E.f;
   const vis=R.filter(r=>F==='todos'||(F==='conf'?r.st==='parecido':r.st===F));const ult=R[R.length-1];const ate=R.reduce((a,r)=>r.d>a?r.d:a,'');
   const sx=R.filter(r=>r.saldo!=null).slice(-1)[0];const sCRM=extSaldoCRM(E.banco,ate);
   const linha=r=>{const [rt,cor]=EXT_ST[r.st];const tp=r.v>0?'receber':'pagar';let ac='';
@@ -4623,7 +4623,7 @@ function extModal(){const E=S.ext;if(!E)return;const R=E.R;const cnt=k=>R.filter
      <label class="muted">Conta: <select class="search" data-exb style="width:auto">${bancos().map(x=>`<option value="${x.id}" ${x.id===E.banco.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label></div>
     ${sx?`<div class="banner" style="margin:0;${Math.abs(sx.saldo-sCRM)<0.01?'':'border-color:var(--warn)'}"><span>Saldo no extrato em ${fdateShort(sx.d)}: <b class="num">${brl(sx.saldo)}</b> · no CRM: <b class="num">${brl(sCRM)}</b> ${Math.abs(sx.saldo-sCRM)<0.01?'<b style="color:var(--ok)">✓ batendo</b>':`<span style="color:var(--warn)">(diferença ${brl(sx.saldo-sCRM)})</span>`}</span></div>`:''}
     <div class="seg" style="flex-wrap:wrap">${chip('todos','Todos',R.length)}${chip('bateu','✅ Bateu',cnt('bateu'))}${chip('conf','⚠️ Conferir',cnt('parecido'))}${chip('novo','➕ Novos',cnt('novo'))}${chip('ja','Já lançados',cnt('ja')+cnt('feito'))}</div>
-    <div class="tbl-wrap" style="max-height:58vh;overflow:auto"><table class="tbl" style="font-size:13px"><thead><tr><th title="Marque para gravar" style="width:34px;text-align:center"><input type="checkbox" data-exgall title="Marcar todas desta aba" style="width:17px;height:17px"></th><th>Data</th><th>Extrato</th><th class="r">Valor</th><th>Situação</th><th>O que fazer</th></tr></thead><tbody>${vis.map(linha).join('')||'<tr><td colspan="6" class="muted">Nada neste filtro.</td></tr>'}</tbody></table></div>
+    <div class="tbl-wrap" id="ext-wrap" style="max-height:58vh;overflow:auto"><table class="tbl" style="font-size:13px"><thead><tr><th title="Marque para gravar" style="width:34px;text-align:center"><input type="checkbox" data-exgall title="Marcar todas desta aba" style="width:17px;height:17px"></th><th>Data</th><th>Extrato</th><th class="r">Valor</th><th>Situação</th><th>O que fazer</th></tr></thead><tbody>${vis.map(linha).join('')||'<tr><td colspan="6" class="muted">Nada neste filtro.</td></tr>'}</tbody></table></div>
     ${extFornList()}<p class="muted" style="margin:0;font-size:12px">Marque ✓ as linhas que quer gravar. <b>Bateu</b>: dá baixa na conta em aberto com a data do extrato. <b>Conferir</b>: mesmo valor, mas o nome não confirma; escolha a conta certa. <b>Novo</b>: cria o lançamento já pago e o CRM lembra a categoria para os próximos. <b>Já lançado</b>: só marca como conciliado.</p></div>
    <footer><span class="muted" style="font-size:12px;flex:1 1 320px">Só grava as linhas <b>marcadas</b> (✓ na primeira coluna; marca sozinho quando você muda algo). <label style="margin-left:6px"><input type="checkbox" id="ex-concja" data-exconcja ${S.ext.concJa===false?'':'checked'}> marcar os "Já lançados" como conciliados (não muda valores)</label></span><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn ok" data-exok>${ic('check',14)} Gravar conciliação</button></footer></div></div>`}
 function extCatSel(r,tp){if(r.forn==null){const M=(cfg().extMem||{})[extMemKey(r)]||{};r.forn=M.forn||''}
@@ -4633,7 +4633,7 @@ document.addEventListener('input',e=>{const t=e.target;if(S.ext&&t&&t.matches&&t
 document.addEventListener('change',e=>{const t=e.target;if(!t.matches||!S.ext)return;const E=S.ext;const r=k=>E.R[+t.dataset[k]];
   {const ks=['exa','exs','exn','exc','exforn'];const k=ks.find(k=>t.dataset[k]!=null);if(k){const x=E.R[+t.dataset[k]];if(x)x.mexeu=true}}
   if(t.matches('[data-exconcja]')){E.concJa=t.checked;return}
-  if(t.matches('[data-exg]')){r('exg').mexeu=t.checked;extModal();return}
+  if(t.matches('[data-exg]')){r('exg').mexeu=t.checked;const tr=t.closest('tr');if(tr)tr.style.background=t.checked?'rgba(31,111,74,.06)':'';return}
   if(t.matches('[data-exgall]')){const F=E.f;E.R.filter(x=>(F==='todos'||(F==='conf'?x.st==='parecido':x.st===F))&&x.st!=='feito'&&x.st!=='ja'&&!(x.soma&&!x.soma.lider)).forEach(x=>x.mexeu=t.checked);extModal();return}
   if(t.matches('[data-exa]')){const x=r('exa');if(t.value.startsWith('c:')){x.acao='conc';x.sel=t.value.slice(2)}else x.acao=t.value;return}
   if(t.matches('[data-exs]')){const x=r('exs');if(t.value==='_criar')x.acao='criar';else if(t.value==='_ign')x.acao='ignorar';else if(t.value==='_ignS')x.acao='ignorarSempre';else{x.acao='baixar';x.sel=t.value}extModal();return}
