@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261108140845';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261108141143';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4848,17 +4848,36 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 
 /* Participantes marcados no agendamento/pedido viram o fornecedor dos custos de mão de obra (e da conta a pagar) */
 const CUSTO_MO=/t[eé]cnic|operador|freela|fot[oó]graf|cinegraf|videomaker|filmaker|assistente|m[aã]o de obra|equipe|monitor|recepcion|promotor|auxiliar|ajudante|motorista|drone/i;
-async function custoParticipantes(pid,nomes){const p=S.data.pedidos.find(x=>x.id===pid);if(!p||!(p.custos||[]).length||pedStatus(p)==='Cancelado')return 0;
-  const adm=new Set((cfg().equipe||[]).filter(m=>m.tipo==='Administrador').map(m=>nrm(m.nome)));
-  const L=(p.custos||[]).map(c=>({...c}));const ja=new Set(L.map(c=>nrm(c.fornecedor||'')).filter(Boolean));
-  const pend=[...new Set(nomes||[])].filter(n=>n&&!adm.has(nrm(n))&&!ja.has(nrm(n)));if(!pend.length)return 0;
-  const slots=L.filter(c=>!String(c.fornecedor||'').trim()&&c.fornecedorNum==null&&!c.pago&&CUSTO_MO.test((c.nome||'')+' '+(c.conta||'')));
-  let n=0;for(let i=0;i<Math.min(pend.length,slots.length);i++){const c=slots[i],nome=pend[i];c.fornecedor=nome;n++;
+async function custoParticipantes(pid,nomes,removidos){const p=S.data.pedidos.find(x=>x.id===pid);if(!p||!(p.custos||[]).length||pedStatus(p)==='Cancelado')return 0;
+  const adm=new Set((cfg().equipe||[]).filter(m=>m.tipo==='Administrador').map(m=>nrm(m.nome)));const mo=c=>CUSTO_MO.test((c.nome||'')+' '+(c.conta||''));
+  const L=(p.custos||[]).map(c=>({...c}));const nv=new Set((nomes||[]).map(nrm));const rm=new Set((removidos||[]).map(nrm).filter(x=>!nv.has(x)));
+  let mud=0,pagos=[];const livres=new Set();
+  for(const c of L){if(!c.fornecedor||!rm.has(nrm(c.fornecedor))||!mo(c))continue;const l=custoLanc(p,c);if(c.pago||(l&&l.pago)){pagos.push(c.fornecedor);continue}c._old=c.fornecedor;c.fornecedor='';c.fornecedorNum=null;livres.add(c.id);mud++}
+  const ja=new Set(L.map(c=>nrm(c.fornecedor||'')).filter(Boolean));
+  const pend=[...new Set(nomes||[])].filter(n=>n&&!adm.has(nrm(n))&&!ja.has(nrm(n)));
+  const slots=[...L.filter(c=>livres.has(c.id)),...L.filter(c=>!livres.has(c.id)&&!String(c.fornecedor||'').trim()&&c.fornecedorNum==null&&!c.pago&&mo(c))];
+  let n=0,tr=[];for(let i=0;i<Math.min(pend.length,slots.length);i++){const c=slots[i],nome=pend[i];if(c._old)tr.push(c._old.split(' ')[0]+' → '+nome.split(' ')[0]);c.fornecedor=nome;n++;
     try{const l=custoLanc(p,c);if(l&&!l.pago){const fid=await fornResolver(nome,true);if(fid&&fid!==l.contatoId)await save('lancamentos',{...l,contatoId:fid});if(!c.lancId)c.lancId=l.id}}catch(_){}}
-  if(n){await patch('pedidos',p.id,{custos:L});toast(`${n} participante(s) colocado(s) nos custos do pedido #${p.num} e em Contas a pagar.`)}
-  const sobra=pend.length-n;if(sobra>0&&n===0&&slots.length===0)toast(`Pedido #${p.num}: não há custo de mão de obra sem fornecedor para ${pend.slice(0,2).join(', ')}${pend.length>2?'…':''}.`);
+  for(const c of L){if(c._old&&!c.fornecedor){try{const l=custoLanc(p,c);if(l&&!l.pago&&l.contatoId)await save('lancamentos',{...l,contatoId:''})}catch(_){}}delete c._old}
+  if(n||mud){await patch('pedidos',p.id,{custos:L});toast(tr.length?`Pedido #${p.num}: troquei ${tr.join(', ')} nos custos e em Contas a pagar.`:n?`${n} participante(s) colocado(s) nos custos do pedido #${p.num} e em Contas a pagar.`:`Pedido #${p.num}: tirei ${mud} participante(s) dos custos (ficaram sem fornecedor).`)}
+  else if(pend.length&&!slots.length&&!(removidos||[]).length)toast(`Pedido #${p.num}: não há custo de mão de obra sem fornecedor para ${pend.slice(0,2).join(', ')}${pend.length>2?'…':''}.`);
+  if(pagos.length)toast(`Pedido #${p.num}: o custo de ${[...new Set(pagos)].join(', ')} já está pago e não foi trocado.`,true);
   return n}
-{const _sCP=save;save=async function(col,rec,...r){const id=await _sCP.call(this,col,rec,...r);try{if(rec&&Array.isArray(rec.participantes)&&rec.participantes.length){const pid=col==='agenda'?rec.pedidoId:col==='pedidos'?(rec.id||id):null;if(pid){const nomes=rec.participantes.slice();setTimeout(()=>custoParticipantes(pid,nomes).catch(()=>{}),900)}}}catch(_){}return id}}
+const _pEq=(a,b)=>JSON.stringify(a||[])===JSON.stringify(b||[]);
+{const _sCP=save;save=async function(col,rec,...r){
+  const old=(col==='agenda'||col==='pedidos')&&rec&&rec.id?((S.data[col]||[]).find(x=>x.id===rec.id)||null):null;
+  const id=await _sCP.call(this,col,rec,...r);
+  try{if((col==='agenda'||col==='pedidos')&&rec&&Array.isArray(rec.participantes)){const antes=(old&&old.participantes)||[],agora=rec.participantes;
+    const mudou=!_pEq(antes,agora)||(!old&&agora.length);
+    if(mudou){const rem=antes.filter(x=>!agora.includes(x)),add=agora.filter(x=>!antes.includes(x));
+      setTimeout(async()=>{try{
+        if(col==='agenda'&&rec.pedidoId){const p=S.data.pedidos.find(x=>x.id===rec.pedidoId);if(p){const Ag=(S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&!a.cancelado);
+            const todos=[...new Set(Ag.flatMap(a=>a.id===(rec.id||id)?agora:(a.participantes||[])))];const ord=[...(p.participantes||[]).filter(x=>todos.includes(x)),...todos.filter(x=>!(p.participantes||[]).includes(x))];
+            if(!_pEq(ord,p.participantes))await save('pedidos',{...p,participantes:ord})}}
+        if(col==='pedidos'){const pid=rec.id||id;const Ag=(S.data.agenda||[]).filter(a=>a.pedidoId===pid&&!a.cancelado);
+          for(const a of Ag){let L=(a.participantes||[]).filter(x=>!rem.includes(x));if(Ag.length===1)L=[...L,...add.filter(x=>!L.includes(x))];if(!_pEq(L,a.participantes||[]))await patch('agenda',a.id,{participantes:L})}
+          await custoParticipantes(pid,agora,rem)}
+      }catch(_){}},900)}}}catch(_){}return id}}
 /* Unifica Cartão Crédito Pessoal/Empresarial em "Cartão de Crédito" (uma vez, gravando no banco) */
 setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.formaCC1||(S.mode==='db'&&!S._cfgOk)||S.importing||S._formaCCrun)return;if(S.mode==='db'&&!(S.loaded&&S.loaded.has('lancamentos')))return;S._formaCCrun=true;
   try{cfgSet('formaCC1',new Date().toISOString());const ruim=f=>typeof f==='string'&&formaNorm(f)!==f;let n=0;
