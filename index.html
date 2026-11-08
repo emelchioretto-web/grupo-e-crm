@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261108160439';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261108160905';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -646,6 +646,7 @@ a.btn{color:inherit;text-decoration:none}
 .atd-cfg{margin-top:12px;padding:12px 14px}.atd-cfg summary{cursor:pointer}
 @media(max-width:820px){.atd-sendrow{flex-wrap:wrap}.atd-sendrow input{flex:1 1 100%}.atd-sendrow .btn{flex:1}.atd-wrap{grid-template-columns:1fr}.atd-list{max-height:240px}.atd-lead{grid-template-columns:1fr 1fr}.atd-b{max-width:90%}}
 .iaf-tbl td,.iaf-tbl th{overflow-wrap:anywhere;word-break:normal;white-space:normal!important}.iaf-tbl td select,.iaf-tbl td input:not([type=checkbox]){max-width:100%}.iaf-tbl td:nth-child(2),.iaf-tbl th:nth-child(2){white-space:nowrap!important;overflow-wrap:normal}.iaf-tbl td:nth-child(4){overflow-wrap:normal}.iaf-tbl td:nth-child(4) .num{white-space:nowrap}.iaf-tbl td{vertical-align:top}
+[data-frbox][hidden]{display:none!important}
 </style>
 
 <div class="app" id="app">
@@ -4835,6 +4836,26 @@ async function pagsSalvar(pid,ped,L){L=[...L].sort((a,b)=>(a.venc||'9').localeCo
 
 
 document.addEventListener('change',e=>{const t=e.target;if(!t||!S._iaFat)return;if(t.id==='iaf-pag')S._iaFat.pag=t.value;if(t.id==='iaf-venc'){const p=$('#iaf-pag');if(p&&(!S._iaFat.pag||S._iaFat.pag===S._iaFat.venc)){p.value=t.value;S._iaFat.pag=''}S._iaFat.venc=t.value}});
+
+/* ===== Cadastro rápido de fornecedor/contato (nome, celular, e-mail) ao lado de um campo de fornecedor ===== */
+function fornRapidoHTML(inp){return `<div style="margin-top:4px"><button type="button" class="clink" data-fornnovo="${inp}">${ic('plus',12)} Cadastrar novo fornecedor / contato</button>
+  <div class="fr-box" data-frbox="${inp}" hidden style="margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:8px;display:grid;gap:8px;background:var(--surface-2,var(--surface))">
+   <input class="search" data-frn placeholder="Nome completo *" autocomplete="off">
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input class="search" data-frc placeholder="Celular / WhatsApp" inputmode="tel" autocomplete="off"><input class="search" data-fre placeholder="E-mail" type="email" autocomplete="off"></div>
+   <select class="search" data-frcat><option>Fornecedor</option><option>Freelancer</option><option>Cliente</option><option>Outro</option></select>
+   <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn sm" data-fornnovo="${inp}">Fechar</button><button type="button" class="btn sm info" data-frsave="${inp}">${ic('check',13)} Salvar contato</button></div></div></div>`}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-fornnovo],[data-frsave]');if(!t)return;e.preventDefault();
+  const inp=t.dataset.fornnovo||t.dataset.frsave;const box=document.querySelector(`[data-frbox="${inp}"]`);if(!box)return;
+  if(t.dataset.fornnovo){box.hidden=!box.hidden;if(!box.hidden){const n=box.querySelector('[data-frn]');const v=($('#'+inp)||{}).value||'';if(v&&!n.value)n.value=v;n.focus()}return}
+  const nome=box.querySelector('[data-frn]').value.trim(),cel=box.querySelector('[data-frc]').value.trim(),em=box.querySelector('[data-fre]').value.trim(),cat=box.querySelector('[data-frcat]').value;
+  if(!nome){toast('Escreva o nome.',true);return}if(em&&!/^\S+@\S+\.\S+$/.test(em)){toast('E-mail inválido.',true);return}
+  const ja=S.data.contatos.find(c=>nrm([c.nome,c.sobrenome].filter(Boolean).join(' '))===nrm(nome));
+  const fill=n=>{const i=$('#'+inp);if(i){i.value=n;i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}))}box.hidden=true};
+  if(ja){const ch={};if(cel&&!ja.celular)ch.celular=cel;if(em&&!ja.email)ch.email=em;if(Object.keys(ch).length){try{await patch('contatos',ja.id,ch)}catch(_){}}fill(nome);toast('Esse contato já existia: usei o cadastro dele'+(Object.keys(ch).length?' e completei os dados.':'.'));return}
+  t.disabled=true;const [pn,...rest]=nome.split(/\s+/);
+  try{await save('contatos',{nome:pn,sobrenome:rest.join(' '),categoria:cat,celular:cel,email:em,obs:'Cadastro rápido feito no custo/conta.'});fill(nome);
+    const dl=$('#'+inp)&&$('#'+inp).list;if(dl&&![...dl.options].some(o=>o.value===nome)){const o=document.createElement('option');o.value=nome;dl.appendChild(o)}
+    toast(`${nome} cadastrado em Contatos.`)}catch(err){failWrite(err)}finally{t.disabled=false}});
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
   if(t.matches('[data-flsel]')){S.flSel=S.flSel||new Set();t.checked?S.flSel.add(t.dataset.flsel):S.flSel.delete(t.dataset.flsel);render()}
@@ -5905,7 +5926,7 @@ function custoModal(pid,i){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)retu
   const forn=c.fornecedor||(c.fornecedorNum!=null?(S.data.contatos.find(x=>+x.num===+c.fornecedorNum)||{}).nome||'':'');
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>Detalhes de Custo</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
    <div class="mbody" style="display:grid;gap:12px"><p class="muted" style="margin:0;text-align:center">Por favor insira os detalhes do custo:</p>
-    <div class="field" style="margin:0"><label for="cm-forn">Fornecedor</label><input id="cm-forn" class="search" list="dl-cmforn" value="${esc(forn)}" placeholder="Digite para buscar…" autocomplete="off"><datalist id="dl-cmforn">${[...new Set([...fornecedoresLista(),...(cfg().equipe||[]).map(m=>m.nome)])].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>`<option value="${esc(x)}">`).join('')}</datalist></div>
+    <div class="field" style="margin:0"><label for="cm-forn">Fornecedor</label><input id="cm-forn" class="search" list="dl-cmforn" value="${esc(forn)}" placeholder="Digite para buscar…" autocomplete="off"><datalist id="dl-cmforn">${[...new Set([...fornecedoresLista(),...(cfg().equipe||[]).map(m=>m.nome)])].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(x=>`<option value="${esc(x)}">`).join('')}</datalist>${fornRapidoHTML('cm-forn')}</div>
     <div class="field" style="margin:0"><label for="cm-conta">Conta</label><select id="cm-conta">${['',...PO.filter(Boolean)].map(o=>`<option value="${esc(o)}" ${o===contaSel?'selected':''}>${esc(o||'— escolha —')}</option>`).join('')}${contaSel&&!PO.includes(contaSel)?`<option selected>${esc(contaSel)}</option>`:''}</select></div>
     <div class="field" style="margin:0"><label for="cm-desc">Descrição</label><input id="cm-desc" class="search" value="${esc(c.nome||'')}"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="field" style="margin:0"><label for="cm-venc">Vencimento</label><input id="cm-venc" type="date" class="search" value="${esc(c.venc||'')}"></div><div class="field" style="margin:0"><label for="cm-valor">Valor</label><input id="cm-valor" class="search num" inputmode="decimal" data-money value="${c.valor?esc(moneyFmt(c.valor)):''}" placeholder="0,00" style="text-align:right"></div></div>
