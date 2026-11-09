@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261108184253';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261109083431';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -647,6 +647,17 @@ a.btn{color:inherit;text-decoration:none}
 .atd-cfg{margin-top:12px;padding:12px 14px}.atd-cfg summary{cursor:pointer}
 @media(max-width:820px){.atd-sendrow{flex-wrap:wrap}.atd-sendrow input{flex:1 1 100%}.atd-sendrow .btn{flex:1}.atd-wrap{grid-template-columns:1fr}.atd-list{max-height:240px}.atd-lead{grid-template-columns:1fr 1fr}.atd-b{max-width:90%}}
 .iaf-tbl td,.iaf-tbl th{overflow-wrap:anywhere;word-break:normal;white-space:normal!important}.iaf-tbl td select,.iaf-tbl td input:not([type=checkbox]){max-width:100%}.iaf-tbl td:nth-child(2),.iaf-tbl th:nth-child(2){white-space:nowrap!important;overflow-wrap:normal}.iaf-tbl td:nth-child(4){overflow-wrap:normal}.iaf-tbl td:nth-child(4) .num{white-space:nowrap}.iaf-tbl td{vertical-align:top}
+.cc-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;align-items:start}
+.cc-s{border:1px solid var(--line);border-left:4px solid var(--cc,var(--line));border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+.cc-s h5{margin:0;font-size:13px}.cc-s h5 small{color:var(--muted);font-weight:400}
+.cc-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;align-items:end}
+.cc-f{display:grid;gap:3px;font-size:12px;color:var(--muted)}.cc-in{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:7px;padding:0 7px;background:var(--surface)}
+.cc-in input{border:0;outline:0;background:none;width:100%;min-width:0;padding:7px 0;font:inherit;color:var(--ink,inherit);font-size:13.5px}.cc-in i{font-style:normal;color:var(--muted);font-size:12px}
+.cc-in.big input{font-size:17px;font-weight:600}
+.cc-r{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12.5px;background:var(--line-2);border-radius:7px;padding:7px 9px}.cc-r b{font-size:13.5px}
+.cc-r.red{background:color-mix(in srgb,var(--danger) 12%,transparent)}.cc-r.green{background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.cc-tot{grid-column:1/-1;border-left-color:var(--ok)}
+.cc-eqr{display:grid;grid-template-columns:minmax(0,1fr) 110px 30px;gap:6px;margin-top:5px}
 [data-frbox][hidden]{display:none!important}
 .iaf-tbl thead th{position:sticky;top:0;z-index:3;background:var(--surface);box-shadow:0 1px 0 var(--line)}
 </style>
@@ -1569,7 +1580,7 @@ VIEWS.opp=()=>{
     </div></section>`;
   const tile=(label,val,cor,icon,k)=>`<button class="tile ${T.tile===k?'on':''}" style="--c:var(${cor})" data-optile="${k}">${ic(icon,46)}<small>${label}</small><b>${val}</b></button>`;
   const propRows=props.map(p=>`<tr class="row"><td class="num muted">${p.num||''}</td><td class="num">${p.criadoEm?fdateShort(p.criadoEm.slice(0,10))+'<div class="sub">'+p.criadoEm.slice(11,16)+'</div>':''}</td><td>${p.enviadaEm?`<span class="num">${fdateShort(p.enviadaEm.slice(0,10))}</span>`:'<span style="color:var(--warn)">Não enviado</span>'}</td><td>${esc((p.vendedor||'').split(' ').slice(0,2).join(' '))}</td><td class="r"><span class="num">${brl(pedidoTotal(p))}</span></td><td>${p.visualizadaEm?`<span class="num">${fdateShort(p.visualizadaEm.slice(0,10))}</span>`:'<span style="color:var(--warn)">Não visualizado</span>'}</td><td>${badge(p.status||'Rascunho',{Rascunho:'--idle',Enviada:'--info',Aceita:'--ok',Recusada:'--danger'}[p.status||'Rascunho'])}</td>
-    <td class="r" style="white-space:nowrap"><button class="icon-btn" title="Editar" data-edit="propostas" data-id="${p.id}">${ic('edit',14)}</button><button class="icon-btn" title="Ver / imprimir" data-propprint="${p.id}">${ic('doc',14)}</button><button class="icon-btn" title="Enviar por WhatsApp" style="color:#25a85a" data-propwa="${p.id}">${ic('wa',14)}</button><button class="icon-btn" title="Clonar" data-propclone="${p.id}">${ic('copy',14)}</button><button class="icon-btn" title="Gerar pedido" data-propped="${p.id}">${ic('cart',14)}</button><button class="icon-btn del" title="Excluir" data-propdel="${p.id}">${ic('trash',14)}</button></td></tr>`).join('');
+    <td class="r" style="white-space:nowrap"><button class="icon-btn" title="Editar" data-edit="propostas" data-id="${p.id}">${ic('edit',14)}</button><button class="icon-btn" title="Ver / imprimir" data-propprint="${p.id}">${ic('doc',14)}</button><button class="icon-btn" title="Enviar por WhatsApp" style="color:#25a85a" data-propwa="${p.id}">${ic('wa',14)}</button><button class="icon-btn" title="Clonar" data-propclone="${p.id}">${ic('copy',14)}</button>${p.calc?`<button class="icon-btn" title="Cálculo de custos desta proposta" data-propcalc="${p.id}">🧮</button>`:''}<button class="icon-btn" title="Gerar pedido" data-propped="${p.id}">${ic('cart',14)}</button><button class="icon-btn del" title="Excluir" data-propdel="${p.id}">${ic('trash',14)}</button></td></tr>`).join('');
   const pdfList=anex.filter(a=>/pdf/i.test(a.tipo||a.nome||''));
   const geral=`<div class="tiles">${tile('Propostas',props.length+pdfList.length,'--ev-pre','tag','prop')}${tile('Agendamentos',ag.length,'--warn','cal','ag')}${tile('Custos',custos.length,'--danger','money','custo')}</div>
    ${T.tile==='ag'?`<section><h4 style="margin:4px 0 8px">Agendamentos</h4>${ag.length?`<div class="list-rows">${ag.map(e=>`<div class="lr" style="grid-template-columns:90px 60px minmax(0,1fr)"><span class="num">${fdate(e.data)}</span><span class="num muted">${esc(e.hora||'')}</span><span>${esc(e.titulo||'')}</span></div>`).join('')}</div>`:'<span class="muted" style="font-size:13px">Nenhum agendamento.</span>'}</section>`
@@ -3618,7 +3629,7 @@ document.addEventListener('click',async e=>{
   if(d.propcopy){const p=S.data.propostas.find(x=>x.id===d.propcopy);if(!p)return;try{await navigator.clipboard.writeText(propTexto(p));toast('Texto da proposta copiado')}catch(err){toast('Não foi possível copiar',true)}return}
   if(d.propped){const p=S.data.propostas.find(x=>x.id===d.propped);if(!p)return;const o=p.oportunidadeId&&S.data.oportunidades.find(x=>x.id===p.oportunidadeId);
     await patch('propostas',p.id,{status:'Aceita'});if(o)await patch('oportunidades',o.id,{etapa:'Venda efetivada',fechamento:today(),valor:pedidoTotal(p)});
-    openForm('pedidos',{contatoId:p.contatoId,titulo:p.titulo,dataEvento:p.dataEvento,itens:p.itens||[],desconto:p.desconto,condicoes:p.condicoes,vendedor:p.vendedor,categoria:o&&o.categoria||'',local:o&&o.local||'',oportunidadeId:o?o.id:''});toast('Proposta aceita — confira e salve o pedido');return}
+    openForm('pedidos',{contatoId:p.contatoId,titulo:p.titulo,dataEvento:p.dataEvento,itens:p.itens||[],desconto:p.desconto,condicoes:p.condicoes,vendedor:p.vendedor,categoria:o&&o.categoria||'',local:o&&o.local||'',oportunidadeId:o?o.id:'',...(p.calc?{custos:calcCustos(p.calc,p.dataEvento||today())}:{})});toast('Proposta aceita — confira e salve o pedido');return}
   if(d.robase){S.ui.ro.base=d.robase;render();return}
   if(d.rometrica){S.ui.ro.metrica=d.rometrica;render();return}
   if(d.rocsv!==undefined){try{await csvCopy(S.roCsv||[]);toast('Tabela copiada')}catch(err){toast('Não foi possível copiar',true)}return}
@@ -4885,6 +4896,68 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   for(const {a,b,troca} of sel){t.textContent=`Juntando ${n+1} de ${sel.length}…`;try{if(troca){const ch={};['pedidoId','contatoId','contatoNome','categoria','planoCod','forma'].forEach(k=>{if(!a[k]&&b[k])ch[k]=b[k]});if(b.descricao&&b.descricao!==a.descricao)ch.obs=[a.obs,'Antes: '+b.descricao].filter(Boolean).join('\n');if(Object.keys(ch).length)await save('lancamentos',{...a,...ch});await removeRec('lancamentos',b.id);n++;continue}const ch={conciliado:true,extKey:a.extKey||'',extKeys:[...new Set([...(b.extKeys||[]),...(a.extKeys||[])])],dataPagamento:a.dataPagamento||b.dataPagamento};if(a.doc&&!b.doc)ch.doc=a.doc;if(!ch.extKey)delete ch.extKey;if(!ch.extKeys.length)delete ch.extKeys;
       await save('lancamentos',{...b,...ch});await removeRec('lancamentos',a.id);n++}catch(_){}}
   closeModal();toast(`${n} duplicada${n===1?'':'s'} juntada${n===1?'':'s'}.`);render()});
+
+/* ===== Proposta específica: calculadora de custos (papel, equipe, gasolina, IA, % sobre a venda) ===== */
+const CALC_DEF={dias:1,horas:4,papelMin:1.7,fotosKit:320,caixaValor:1060,caixaKits:2,equipe:[{nome:'Almoço | Café | Janta',valor:100},{nome:'Diversos',valor:50},{nome:'Funcionário',valor:500},{nome:'Hotel',valor:300}],km:0,kmL:10,litro:7,iaOn:false,iaMin:4,pAnuncio:2,pVendedor:0,pNF:7,cartaoOn:true,pCartao:3.65,pAgencia:0,venda:0,margemAlvo:30};
+function calcBase(){const c=JSON.parse(JSON.stringify({...CALC_DEF,...(cfg().calcPadrao||{})}));return c}
+function calcConta(c){const n=v=>+v||0;const min=n(c.dias)*n(c.horas)*60,papel=min*n(c.papelMin),kits=n(c.fotosKit)?papel/n(c.fotosKit):0,eq=(c.equipe||[]).reduce((s,x)=>s+n(x.valor),0)*n(c.dias),gas=n(c.kmL)?n(c.km)/n(c.kmL)*n(c.litro):0,ia=c.iaOn?min*n(c.iaMin):0;
+  const fixos=papel+eq+gas+ia,pc={anuncio:n(c.pAnuncio),vendedor:n(c.pVendedor),nf:n(c.pNF),cartao:c.cartaoOn?n(c.pCartao):0,agencia:n(c.pAgencia)},pct=Object.values(pc).reduce((s,x)=>s+x,0)/100,v=n(c.venda);
+  const pctV=Object.fromEntries(Object.entries(pc).map(([k,x])=>[k,v*x/100]));const total=fixos+v*pct,lucro=v-total;const sug=(1-pct-n(c.margemAlvo)/100)>0?fixos/(1-pct-n(c.margemAlvo)/100):0;
+  return {min,papel,kits,eq,gas,ia,fixos,pct,pctV,total,lucro,margem:v?lucro/v:0,sug:Math.ceil(sug/10)*10}}
+function calcCustos(c,dataEv){const R=calcConta(c),r2=x=>Math.round(x*100)/100,id=()=>'cu'+Math.random().toString(36).slice(2,9);const nf=(()=>{const d=parseD(dataEv);d.setMonth(d.getMonth()+1);d.setDate(20);return iso(d)})();const L=[];
+  if(R.papel)L.push({id:id(),nome:`Papel fotográfico (${R.min} min)`,fornecedor:'',valor:r2(R.papel),venc:'',conta:''});
+  (c.equipe||[]).forEach(x=>{const v=(+x.valor||0)*(+c.dias||0);if(v)L.push({id:id(),nome:x.nome+((+c.dias||0)>1?` (${c.dias} dias)`:''),fornecedor:'',valor:r2(v),venc:dataEv,conta:''})});
+  if(R.gas)L.push({id:id(),nome:`Gasolina (${c.km} km)`,fornecedor:'',valor:r2(R.gas),venc:dataEv,conta:''});
+  if(R.ia)L.push({id:id(),nome:'Custo IA',fornecedor:'',valor:r2(R.ia),venc:dataEv,conta:''});
+  if(R.pctV.nf)L.push({id:id(),nome:`Imposto NF (${c.pNF}%)`,fornecedor:'',valor:r2(R.pctV.nf),venc:nf,conta:''});
+  if(R.pctV.vendedor)L.push({id:id(),nome:`Comissão vendedor (${c.pVendedor}%)`,fornecedor:'',valor:r2(R.pctV.vendedor),venc:dataEv,conta:''});
+  if(R.pctV.agencia)L.push({id:id(),nome:`Comissão agência (${c.pAgencia}%)`,fornecedor:'',valor:r2(R.pctV.agencia),venc:dataEv,conta:''});
+  if(R.pctV.anuncio)L.push({id:id(),nome:`Anúncio (${c.pAnuncio}%)`,fornecedor:'',valor:r2(R.pctV.anuncio),venc:'',conta:''});
+  if(R.pctV.cartao)L.push({id:id(),nome:`Taxa cartão (${c.pCartao}%)`,fornecedor:'',valor:r2(R.pctV.cartao),venc:'',conta:''});
+  return L}
+function calcModal(oid,pid){const o=S.data.oportunidades.find(x=>x.id===oid);const p=pid&&S.data.propostas.find(x=>x.id===pid);const c=S._calcKeep||(p&&p.calc?JSON.parse(JSON.stringify({...CALC_DEF,...p.calc})):calcBase());S._calcKeep=null;
+  if(!p&&o&&o.valor&&!c.venda)c.venda=+o.valor;S._calc={oid:oid||(p&&p.oportunidadeId),pid:pid||'',c};
+  const inp=(k,lab,step,suf)=>`<label class="cc-f"><span>${lab}</span><span class="cc-in"><input type="number" step="${step||'any'}" inputmode="decimal" data-cc="${k}" value="${esc(String(c[k]??''))}">${suf?`<i>${suf}</i>`:''}</span></label>`;
+  const out=id=>`<b class="num" id="cc-${id}">—</b>`;
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal cc" style="max-width:980px;width:min(980px,97vw)"><header><h3>🧮 Proposta específica${o?' · '+esc(o.titulo||''):''}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody cc-body">
+   <section class="cc-s" style="--cc:#e8a13a"><h5>Tempo de evento</h5><div class="cc-g">${inp('dias','Dias',1)}${inp('horas','Horas por dia',0.5)}<div class="cc-r"><span>Total</span>${out('min')}</div></div></section>
+   <section class="cc-s" style="--cc:#6aa84f"><h5>Papel fotográfico</h5><div class="cc-g">${inp('papelMin','Custo por minuto','0.01','R$')}${inp('fotosKit','Fotos por kit',1)}${inp('caixaValor','Valor da caixa','0.01','R$')}${inp('caixaKits','Kits na caixa',1)}<div class="cc-r"><span>Kits ≈</span>${out('kits')}</div><div class="cc-r"><span>Custo papel</span>${out('papel')}</div></div></section>
+   <section class="cc-s" style="--cc:#e69138"><h5>Custo equipe <small>(valor por dia × dias)</small></h5><div id="cc-eqbox">${(c.equipe||[]).map((x,i)=>`<div class="cc-eqr"><input class="search" data-cceqn="${i}" value="${esc(x.nome)}"><span class="cc-in"><i>R$</i><input type="number" step="0.01" data-cceqv="${i}" value="${esc(String(x.valor))}"></span><button type="button" class="icon-btn" data-cceqdel="${i}" title="Tirar">${ic('trash',13)}</button></div>`).join('')}</div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><button type="button" class="clink" data-cceqadd>${ic('plus',12)} Adicionar item</button><div class="cc-r"><span>Total equipe</span>${out('eq')}</div></div></section>
+   <section class="cc-s" style="--cc:#6d9eeb"><h5>Gasolina</h5><div class="cc-g">${inp('km','Total km (ida e volta)',1,'km')}${inp('kmL','Km por litro',0.1)}${inp('litro','Valor do litro','0.01','R$')}<div class="cc-r"><span>Gasolina</span>${out('gas')}</div></div></section>
+   <section class="cc-s" style="--cc:#3d85c6"><h5><label style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-cc="iaOn" ${c.iaOn?'checked':''}> Custo de IA</label></h5><div class="cc-g">${inp('iaMin','Custo por minuto','0.01','R$')}<div class="cc-r"><span>Custo IA</span>${out('ia')}</div></div></section>
+   <section class="cc-s" style="--cc:#999"><h5>Percentuais sobre o valor de venda</h5><div class="cc-g">${inp('pAnuncio','Anúncio','0.01','%')}${inp('pVendedor','Vendedor','0.01','%')}${inp('pNF','Nota fiscal','0.01','%')}${inp('pAgencia','Comissão agência','0.01','%')}<label class="cc-f"><span><input type="checkbox" data-cc="cartaoOn" ${c.cartaoOn?'checked':''}> Cartão 10x</span><span class="cc-in"><input type="number" step="0.01" data-cc="pCartao" value="${esc(String(c.pCartao))}"><i>%</i></span></label><div class="cc-r"><span>Sobre a venda</span>${out('pctv')}</div></div></section>
+   <section class="cc-s cc-tot"><div class="cc-g">
+     <label class="cc-f"><span><b>Valor de venda</b></span><span class="cc-in big"><i>R$</i><input type="number" step="0.01" data-cc="venda" value="${esc(String(c.venda||''))}"></span></label>
+     <div class="cc-r red"><span>Total de custos</span>${out('total')}</div><div class="cc-r green"><span>Lucro</span>${out('lucro')}</div>
+     <div class="cc-r"><span>Sugestão p/ lucro de <input type="number" step="1" data-cc="margemAlvo" value="${esc(String(c.margemAlvo))}" style="width:52px">%</span><button type="button" class="clink" data-ccsug>${out('sug')}</button></div></div></section>
+  </div>
+  <footer><button class="btn" data-ccpad title="Guardar estes valores (sem o valor de venda e km) como padrão das próximas">Salvar como padrão</button><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn pri" data-ccok>${ic('check',14)} ${p?'Atualizar proposta':'Criar proposta'}</button></footer></div></div>`;calcUpd()}
+function calcUpd(){const C=S._calc;if(!C)return;const R=calcConta(C.c);const s=(id,t)=>{const e=document.getElementById('cc-'+id);if(e)e.textContent=t};
+  s('min',R.min+' min');s('kits',(Math.round(R.kits*100+1e-9)/100).toFixed(2).replace('.',','));s('papel',brl(R.papel));s('eq',brl(R.eq));s('gas',brl(R.gas));s('ia',brl(R.ia));s('pctv',brl(R.total-R.fixos)+' ('+(R.pct*100).toFixed(2).replace('.',',')+'%)');s('total',brl(R.total));s('lucro',brl(R.lucro)+(C.c.venda?' · '+(R.margem*100).toFixed(1).replace('.',',')+'%':''));s('sug',brl(R.sug));
+  const l=document.getElementById('cc-lucro');if(l)l.style.color=R.lucro<0?'var(--danger)':''}
+document.addEventListener('input',e=>{const t=e.target;if(!S._calc||!t||!t.closest||!t.closest('.cc'))return;const c=S._calc.c;
+  if(t.dataset.cc){c[t.dataset.cc]=t.type==='checkbox'?t.checked:t.value;calcUpd();return}
+  if(t.dataset.cceqn!=null){c.equipe[+t.dataset.cceqn].nome=t.value;return}if(t.dataset.cceqv!=null){c.equipe[+t.dataset.cceqv].valor=t.value;calcUpd()}});
+document.addEventListener('change',e=>{const t=e.target;if(S._calc&&t&&t.dataset&&t.dataset.cc&&t.type==='checkbox'){S._calc.c[t.dataset.cc]=t.checked;calcUpd()}});
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-novaprop],[data-npp],[data-propcalc],[data-cceqadd],[data-cceqdel],[data-ccsug],[data-ccpad],[data-ccok]');if(!t)return;
+  if(t.dataset.novaprop&&!S._npDireto){e.preventDefault();e.stopImmediatePropagation();const oid=t.dataset.novaprop;
+    $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:520px"><header><h3>Nova proposta</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header><div class="mbody" style="display:grid;gap:10px">
+      <button class="btn" style="justify-content:flex-start;padding:14px;text-align:left;display:grid;gap:2px" data-npp="padrao" data-oid="${esc(oid)}"><b>📄 Proposta padrão</b><span class="muted" style="font-size:12.5px;font-weight:400">Com os produtos e valores de tabela.</span></button>
+      <button class="btn" style="justify-content:flex-start;padding:14px;text-align:left;display:grid;gap:2px" data-npp="calc" data-oid="${esc(oid)}"><b>🧮 Proposta específica (empresa)</b><span class="muted" style="font-size:12.5px;font-weight:400">Calcula papel, equipe, gasolina, IA e percentuais, e já leva os custos para o pedido.</span></button></div></div></div>`;return}
+  e.preventDefault();const C=S._calc;
+  if(t.dataset.npp){const oid=t.dataset.oid;if(t.dataset.npp==='calc'){calcModal(oid);return}closeModal();S._npDireto=true;try{const b=document.createElement('button');b.dataset.novaprop=oid;b.hidden=true;document.body.appendChild(b);b.click();b.remove()}finally{S._npDireto=false}return}
+  if(t.dataset.propcalc){const p=S.data.propostas.find(x=>x.id===t.dataset.propcalc);if(p)calcModal(p.oportunidadeId,p.id);return}
+  if(!C)return;
+  if(t.hasAttribute('data-cceqadd')){C.c.equipe.push({nome:'',valor:0});S._calcKeep=C.c;calcModal(C.oid,C.pid);return}
+  if(t.dataset.cceqdel!=null){C.c.equipe.splice(+t.dataset.cceqdel,1);const k=C.c;S._calcKeep=k;calcModal(C.oid,C.pid);return}
+  if(t.hasAttribute('data-ccsug')){const R=calcConta(C.c);if(R.sug){C.c.venda=R.sug;const i=document.querySelector('[data-cc="venda"]');if(i)i.value=R.sug;calcUpd()}return}
+  if(t.hasAttribute('data-ccpad')){const {venda,km,...pad}=C.c;await cfgSet('calcPadrao',pad);toast('Valores guardados como padrão.');return}
+  if(t.hasAttribute('data-ccok')){const c=C.c;if(!(+c.venda>0)){toast('Informe o valor de venda.',true);return}
+    if(C.pid){const p=S.data.propostas.find(x=>x.id===C.pid);const it=(p.itens||[]);const ch={calc:c};if(it.length<=1&&!(it[0]&&it[0].produtoId))ch.itens=[{produtoId:'',desc:(it[0]&&it[0].desc)||p.titulo||'Serviço',qtd:1,valor:+c.venda}];await patch('propostas',p.id,ch);closeModal();S._calc=null;toast('Proposta atualizada com o novo cálculo.');render();return}
+    const o=S.data.oportunidades.find(x=>x.id===C.oid);if(!o)return;S._calc=null;
+    openForm('propostas',{oportunidadeId:o.id,contatoId:o.contatoId,titulo:o.titulo,dataEvento:o.dataEvento,horaEvento:o.horaEvento||'',local:[o.local,o.cidade,o.uf,o.pais].filter(Boolean).join(' • '),convidados:o.convidados||'',vendedor:o.vendedor||'Elton Melchioretto',itens:[{produtoId:'',desc:o.categoria||o.titulo,qtd:1,valor:+c.venda}],calc:c});toast('Confira a proposta e salve. Os custos vão junto para o pedido.')}},true);
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
   if(t.matches('[data-flsel]')){S.flSel=S.flSel||new Set();t.checked?S.flSel.add(t.dataset.flsel):S.flSel.delete(t.dataset.flsel);render()}
