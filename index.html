@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261109130935';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261109140646';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -5001,6 +5001,28 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
   w.document.write(`<!doctype html><meta charset="utf-8"><title>Controle da semana</title><style>@page{size:A4 landscape;margin:8mm}body{font:10.5px Arial,sans-serif;margin:0}h2{font-size:14px;margin:0 0 6px}table{border-collapse:collapse;width:100%;table-layout:auto}th,td{border:1px solid #999;padding:3px 5px;text-align:left;white-space:nowrap}td:nth-child(5){white-space:normal}th{background:#eee}.c{text-align:center}.r{text-align:right}a{color:inherit;text-decoration:none}button{border:0;background:none;font:inherit;padding:0;color:inherit}.muted{color:#888}</style><h2>Controle da semana · ${fdate(S.ui.cs.ini)} a ${fdate(addDays(S.ui.cs.ini,6))}</h2>${tb.outerHTML}`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)});
 document.addEventListener('change',async e=>{const t=e.target;if(!t||!t.matches)return;if(t.matches('[data-cssel]')){const a=S.data.agenda.find(x=>x.id===t.dataset.aid);if(!a)return;try{await patch('agenda',a.id,{ctl:{...(a.ctl||{}),[t.dataset.cssel]:t.value}})}catch(err){failWrite(err)}return}if(!t.matches('[data-csck]'))return;const a=S.data.agenda.find(x=>x.id===t.dataset.aid);if(!a)return;const ctl={...(a.ctl||{}),[t.dataset.csck]:t.checked};
   try{await patch('agenda',a.id,{ctl})}catch(err){t.checked=!t.checked;failWrite(err)}});
+
+/* ===== Trava: equipamento já locado na data não pode ir para proposta/pedido ===== */
+const unidKey=s=>nrm(String(s||'')).replace(/\b360\b/g,' ').replace(/\s+/g,' ').trim();
+const ehUnid=k=>/\b(i|ii|iii|iv|v|vi|vii|viii)$/.test(k);
+function ocupadosNaData(d,selfPed){const out={unid:{},prod:{}};if(!d)return out;const canc=p=>!p||pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado';
+  agendaAll().forEach(a=>{if(a.data!==d||!a.pedidoId||a.pedidoId===selfPed)return;const p=S.data.pedidos.find(x=>x.id===a.pedidoId);if(canc(p))return;const t=String(a.titulo||'');const i=t.indexOf(' - ');if(i>0){const k=unidKey(t.slice(0,i));if(ehUnid(k))out.unid[k]=out.unid[k]||p.num}});
+  S.data.pedidos.forEach(p=>{if(p.dataEvento!==d||p.id===selfPed||canc(p))return;(p.itens||[]).forEach(it=>{if(it.produtoId)out.prod[it.produtoId]=out.prod[it.produtoId]||p.num;const pr=it.produtoId&&S.data.produtos.find(x=>x.id===it.produtoId);const k=unidKey(pr?pr.nome:it.desc);if(ehUnid(k))out.unid[k]=out.unid[k]||p.num})});
+  return out}
+function prodOcupado(pid,O,d,selfPed){const pr=S.data.produtos.find(x=>x.id===pid);if(!pr)return null;const k=unidKey(pr.nome);
+  if(ehUnid(k)&&O.unid[k])return O.unid[k];if(O.prod[pid]&&ehUnid(k))return O.prod[pid];
+  if(!ehUnid(k)){const tipos=eqDoProduto(pid,'');if(tipos.length){const uso=usoDoDia(d,selfPed);const eq=cfg().equipamentos||[];const cheio=tipos.every(t=>{const e=eq.find(x=>x.chave===t);const q=e?(+e.qtd||1):1;return ((uso.uso||uso)[t]||[]).length>=q});if(cheio)return 'todos'}}
+  return null}
+function itensOcupados(){if(!M||!(M.col==='pedidos'||M.col==='propostas'))return;const d=($('#f-dataEvento')||{}).value||'';const self=M.col==='pedidos'?M.rec.id:(M.rec.pedidoId||'');const O=ocupadosNaData(d,self);M._ocup=[];
+  $$('#itemRows [data-ip]').forEach(sel=>{[...sel.options].forEach(o=>{if(!o.value)return;if(o.dataset.orig==null)o.dataset.orig=o.textContent;const n=d?prodOcupado(o.value,O,d,self):null;
+      o.textContent=o.dataset.orig+(n?(n==='todos'?' — todos locados nesta data':` — locado (#${n})`):'');o.disabled=!!n&&!o.selected;if(n&&o.selected)M._ocup.push(o.dataset.orig+(n==='todos'?'':' (#'+n+')'))});
+    const bad=sel.value&&sel.selectedOptions[0]&&/ — (locado|todos)/.test(sel.selectedOptions[0].textContent);sel.style.borderColor=bad?'var(--danger)':'';sel.style.color=bad?'var(--danger)':'';sel.title=bad?'Este equipamento já está locado nesta data':''})}
+{const _of=openForm;openForm=function(...a){const r=_of.apply(this,a);setTimeout(itensOcupados,30);return r}}
+document.addEventListener('change',e=>{const t=e.target;if(!t||!M)return;if(t.id==='f-dataEvento'||(t.matches&&t.matches('[data-ip]')))setTimeout(itensOcupados,30)});
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-iadd]'))setTimeout(itensOcupados,60)});
+{const _sf=submitForm;submitForm=async function(...a){if(M&&(M.col==='pedidos'||M.col==='propostas')){itensOcupados();const oc=M._ocup||[];const key=oc.join('|')+'@'+(($('#f-dataEvento')||{}).value||'');
+   if(oc.length&&M._ocupOk!==key){M._ocupOk=key;toast(`Atenção: ${oc.join(', ')} já está locado em ${fdate((($('#f-dataEvento')||{}).value||''))}. Troque o equipamento ou clique em Salvar de novo para salvar mesmo assim.`,true);return}}
+  return _sf.apply(this,a)}}
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
   if(t.matches('[data-flsel]')){S.flSel=S.flSel||new Set();t.checked?S.flSel.add(t.dataset.flsel):S.flSel.delete(t.dataset.flsel);render()}
