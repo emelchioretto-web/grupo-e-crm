@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261109160326';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261109170343';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -159,7 +159,7 @@ const MCP={
   async callTool(server,tool,input){let p;
     if(server==='DocuSeal')p=await ds(tool,input||{});
     else if(server==='IA')p=await iaCall(tool,input||{});
-    else if(['Gmail','Google Calendar','Google Drive','Form'].includes(server)){let inp=input||{};if(server==='Gmail'&&inp.htmlBody){/* o Gmail do Apps Script estraga emojis (viram ������): manda como código HTML */inp={...inp,htmlBody:String(inp.htmlBody).replace(/[\u{10000}-\u{10FFFF}]/gu,c=>'&#'+c.codePointAt(0)+';')}}p=await ponte(server,tool,inp)}
+    else if(['Gmail','Google Calendar','Google Drive','Form','ICal'].includes(server)){let inp=input||{};if(server==='Gmail'&&inp.htmlBody){/* o Gmail do Apps Script estraga emojis (viram ������): manda como código HTML */inp={...inp,htmlBody:String(inp.htmlBody).replace(/[\u{10000}-\u{10FFFF}]/gu,c=>'&#'+c.codePointAt(0)+';')}}p=await ponte(server,tool,inp)}
     else throw erro('Função não disponível: '+server+' / '+tool,'not_in_manifest');
     return {payload:p,content:[{type:'text',text:JSON.stringify(p)}]}},
   async describeTool(server,tool){const s=SCH[server]&&SCH[server][tool];return {name:tool,inputSchema:s||null}},
@@ -2189,7 +2189,7 @@ VIEWS.agenda=()=>{
     const keys=Object.keys(byDay).filter(k=>k>=mFrom&&k<=mTo).sort();
     body=keys.length?`<div class="agenda-list">${keys.map(k=>{const d=parseD(k);return `<div class="dgrp" id="d-${k}"><div class="d">${pad(d.getDate())} ${MESES[d.getMonth()].slice(0,3)}<small>${DOWL[d.getDay()]}${k===t?' · hoje':''}</small></div><div class="items">${byDay[k].map(i=>`<button class="it" data-edit="${i.col}" data-id="${i.id}"><span class="h">${i.h||'—'}</span><i class="swatch" style="background:var(${i.c})"></i>${(()=>{const r=(S.data[i.col]||[]).find(x=>x.id===i.id);const p=r&&r.pedidoId&&S.data.pedidos.find(x=>x.id===r.pedidoId);return p&&p.num?`<span class="pn">#${esc(String(p.num))}</span>`:''})()}<span class="t">${esc(i.t)}</span></button>`).join('')}</div></div>`}).join('')}</div>`:`<div class="empty"><b>Mês livre</b><span>Nenhum item em ${MESES[C.m]} com os filtros atuais.</span>${newBtn('agenda')}</div>`;
   }
-  return loadingOr(`${head('Agenda','Agenda',`<button class="btn" data-agver title="Confere agenda, pedidos e Google Agenda">🔍 Verificar agenda</button><button class="btn" data-disp>${ic('cal',15)} Disponibilidade</button>`+newBtn('agenda'))}
+  return loadingOr(`${head('Agenda','Agenda',`<button class="btn" data-agver title="Confere agenda, pedidos e Google Agenda">🔍 Verificar agenda</button><button class="btn" data-disp>${ic('cal',15)} Disponibilidade</button>${window.GAS_URL?`<button class="btn" data-icalop title="Link de agenda (iCal) de cada operador, só com os eventos dele">📅 Agenda de cada operador</button>`:''}`+newBtn('agenda'))}
   <section class="panel"><div class="body" style="display:grid;gap:14px">
     <div class="cal-head">
       <div class="seg"><button data-calnav="-1" aria-label="Mês anterior">${ic('left',15)}</button><button data-calnav="0">Hoje</button><button data-calnav="1" aria-label="Próximo mês">${ic('right',15)}</button></div>
@@ -5056,6 +5056,31 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   const i=+t.dataset.pcpaynew;const pid=S.ui.pd&&S.ui.pd.id;t.disabled=true;const b=document.createElement('button');b.dataset.pclanc=String(i);b.hidden=true;document.body.appendChild(b);b.click();b.remove();
   for(let k=0;k<20;k++){await new Promise(r=>setTimeout(r,250));const p=S.data.pedidos.find(x=>x.id===pid);const c=p&&(p.custos||[])[i];const l=p&&c&&custoLanc(p,c);if(l&&!l.pago){openPay(l.id);return}}
   t.disabled=false;toast('Lancei em Contas a pagar. Clique em Pagar de novo.',true)},true);
+
+/* ===== iCal por operador: cada um assina um link que mostra só os eventos dele (como no Alboom) ===== */
+function icalToks(){return {...(cfg().icalTok||{})}}
+async function icalTok(nome){const T=icalToks();if(T[nome])return T[nome];const a=new Uint8Array(12);crypto.getRandomValues(a);T[nome]=[...a].map(x=>x.toString(36).padStart(2,'0')).join('').slice(0,20);await cfgSet('icalTok',T);return T[nome]}
+const icalUrl=t=>window.GAS_URL+'?f=ical&k='+t;
+function icalUtc(s){const d=new Date(s+'-03:00');return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+'T'+pad(d.getUTCHours())+pad(d.getUTCMinutes())+'00Z'}
+function icalFeeds(){const T=icalToks(),de=addDays(today(),-30),ate=addDays(today(),400),out={};const ev=agendaAll().filter(a=>a.data>=de&&a.data<=ate&&!a.cancelado&&(a.participantes||[]).length);
+  Object.entries(T).forEach(([nome,tok])=>{out[tok]={nome,ev:ev.filter(a=>(a.participantes||[]).includes(nome)).map(a=>{const D=gcDados(a);return {uid:a.id+'@grupoe-crm',t:D.titulo,i:icalUtc(D.ini),f:icalUtc(D.fim),l:D.local||'',d:String(D.desc||'').slice(0,3000)}})}});return out}
+async function icalPublicar(manual){if(S._icalRun||!window.GAS_URL||!Object.keys(icalToks()).length)return;const mcp=await getMcp();if(!mcp)return;S._icalRun=true;
+  try{const F=icalFeeds();const sig=JSON.stringify(F);if(!manual&&sig===S._icalSig)return;await mcp.callTool('ICal','publicar',{feeds:F});S._icalSig=sig;if(manual)toast('Agendas dos operadores atualizadas.')}
+  catch(e){if(manual)toast('Agenda iCal: '+((e&&e.message)||e)+(/dispon/i.test(String(e&&e.message))?' — falta atualizar a ponte do Google.':''),true)}finally{S._icalRun=false}}
+setInterval(()=>{if(window.__autoLider&&S.cfg&&(S.mode!=='db'||S._cfgOk))icalPublicar()},15*60*1000);setTimeout(()=>{if(window.__autoLider&&S.cfg)icalPublicar()},60000);
+{const _sIC=save;save=async function(col,rec,...r){const id=await _sIC.call(this,col,rec,...r);if(col==='agenda'){clearTimeout(S._icalT);S._icalT=setTimeout(()=>{if(window.__autoLider)icalPublicar()},20000)}return id}}
+function icalModal(){const eq=(cfg().equipe||[]).filter(m=>m.ativo!==false);const T=icalToks();
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:760px;width:min(760px,97vw)"><header><h3>📅 Agenda de cada operador</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody" style="display:grid;gap:10px;font-size:13.5px"><p style="margin:0">Cada pessoa recebe um link que mostra <b>só os eventos em que ela está como participante</b>. Assina uma vez no celular e os eventos novos, trocas e cancelamentos aparecem sozinhos.</p>
+   <div class="tbl-wrap"><table class="tbl" style="font-size:13px"><tbody>${eq.map(m=>{const t=T[m.nome];const n=t?agendaAll().filter(a=>a.data>=today()&&!a.cancelado&&(a.participantes||[]).includes(m.nome)).length:0;const tel=waNum({celular:m.telefone||m.celular||m.whatsapp||''});
+     const msg=t?`Olá ${m.nome.split(' ')[0]}! Este é o link da sua agenda de eventos do Grupo E. Assine uma vez no celular e os seus eventos aparecem sozinhos:\n\n${icalUrl(t)}\n\niPhone: Ajustes › Calendário › Contas › Adicionar conta › Outra › Adicionar Calendário Assinado › cole o link.\nAndroid/Google Agenda: no computador, calendar.google.com › Outras agendas › + › Do URL › cole o link.`:'';
+     return `<tr class="row"><td><b>${esc(m.nome)}</b><div class="sub">${esc(m.tipo||'')}${t?` · ${n} evento${n===1?'':'s'} futuro${n===1?'':'s'}`:''}</div></td><td class="r" style="white-space:nowrap">${t?`<button class="btn sm" data-copy="${esc(icalUrl(t))}">${ic('copy',13)} Copiar link</button>${tel?`<a class="btn sm" style="color:#25a85a" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}">${ic('wa',13)} Mandar</a>`:''}<button class="btn sm" data-icalnovo="${esc(m.nome)}" title="Gera outro link e o antigo para de funcionar">Trocar link</button>`:`<button class="btn sm pri" data-icalnovo="${esc(m.nome)}">Criar link</button>`}</td></tr>`}).join('')}</tbody></table></div>
+   <span class="muted" style="font-size:12px">A agenda de cada um é atualizada sozinha (a cada 15 minutos e quando um compromisso muda); o celular busca as novidades de tempos em tempos. Os participantes vêm do campo "Participantes" de cada agendamento. <button class="clink" data-icalpub>Atualizar agora</button></span></div>
+  <footer><span class="sp"></span><button class="btn" data-close>Fechar</button></footer></div></div>`}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-icalop],[data-icalnovo],[data-icalpub]');if(!t)return;e.preventDefault();
+  if(t.hasAttribute('data-icalop')){icalModal();return}
+  if(t.hasAttribute('data-icalpub')){await icalPublicar(true);return}
+  const nome=t.dataset.icalnovo;const T=icalToks();if(T[nome]){delete T[nome];await cfgSet('icalTok',T)}await icalTok(nome);icalModal();await icalPublicar(true)});
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
   if(t.matches('[data-flsel]')){S.flSel=S.flSel||new Set();t.checked?S.flSel.add(t.dataset.flsel):S.flSel.delete(t.dataset.flsel);render()}
