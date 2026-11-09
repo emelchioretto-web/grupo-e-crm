@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261109143553';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261109152052';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -5031,7 +5031,7 @@ function formSiteModal(){const u=orcUrl(),u2=orcUrl('site-prime360'),u3=orcUrl('
   <div class="mbody" style="display:grid;gap:12px;font-size:13.5px"><p style="margin:0">Quem preencher vira <b>oportunidade</b> aqui no CRM sozinho (na primeira etapa do funil, com retorno para hoje), e chega um e-mail para você.</p>
    ${[['Link geral',u],['Site da Prime 360',u2],['Site da Fotografia',u3]].map(([l,x])=>`<div class="field" style="margin:0"><label>${l}</label><div style="display:flex;gap:6px"><input class="search" readonly value="${esc(x)}" style="flex:1"><button class="btn sm" data-copy="${esc(x)}">${ic('copy',13)} Copiar</button><a class="btn sm" href="${esc(x)}" target="_blank" rel="noopener">Abrir</a></div></div>`).join('')}
    <div class="field" style="margin:0"><label>Para colocar dentro da página do site (código)</label><div style="display:flex;gap:6px"><input class="search" readonly value="${esc(ifr)}" style="flex:1"><button class="btn sm" data-copy="${esc(ifr)}">${ic('copy',13)} Copiar</button></div></div>
-   <span class="muted" style="font-size:12px">O "site-…" no fim do link mostra de qual site veio. As opções de "O que você procura?" são as categorias ativas do CRM. Última busca: ${cfg().formAt?fdate(cfg().formAt.slice(0,10))+' '+cfg().formAt.slice(11,16):'ainda não'}. <button class="clink" data-formsync>Buscar agora</button></span></div>
+   <span class="muted" style="font-size:12px">O "site-…" no fim do link mostra de qual site veio. As opções de "O que você procura?" são as categorias ativas do CRM. Última busca: ${cfg().formAt?(()=>{const d=new Date(cfg().formAt);return fdate(iso(d))+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')})():'ainda não'}. <button class="clink" data-formsync>Buscar agora</button></span></div>
   <footer><span class="sp"></span><button class="btn" data-close>Fechar</button></footer></div></div>`}
 async function formSync(manual){if(S._formRun||!window.GAS_URL)return;const mcp=await getMcp();if(!mcp)return;S._formRun=true;let n=0;
   try{const cats=(cfg().categorias||[]).filter(c=>c.ativo!==false).map(c=>c.nome);const r=await mcp.callTool('Form','listar',{desde:+cfg().formUlt||1,categorias:cats});const pl=parsePayload(r)||{};const L=pl.linhas||[];let ult=+cfg().formUlt||1;
