@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261109152052';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261109153543';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -666,7 +666,7 @@ a.btn{color:inherit;text-decoration:none}
  #flTable .fl-sel{grid-area:sel;align-self:start}#flTable .fl-nm{grid-area:nm;font-weight:600;overflow-wrap:anywhere}#flTable .fl-val{grid-area:val;text-align:right;white-space:nowrap}#flTable .fl-obs{grid-area:obs;overflow-wrap:anywhere}
  #flTable .fl-dt{grid-area:dt}#flTable .fl-act{grid-area:act;justify-self:end}#flTable .fl-tp{grid-area:tp}#flTable .fl-ped{grid-area:ped;justify-self:end}
  #flTable tfoot tr{display:flex;justify-content:space-between;padding:6px}#flTable tfoot td{display:block;border:0;padding:2px 0}#flTable tfoot td:empty{display:none}}
-#ia-data,#ia-venc{min-height:0;height:auto}
+#ia-data,#ia-venc{min-height:0;height:auto}#pay-valor,#pay-data{height:40px;box-sizing:border-box}
 [data-frbox][hidden]{display:none!important}
 .iaf-tbl thead th{position:sticky;top:0;z-index:3;background:var(--surface);box-shadow:0 1px 0 var(--line)}
 </style>
@@ -2436,7 +2436,7 @@ function contasNomes(){return bancos().filter(b=>b.ativo!==false).map(b=>b.nome)
 function openPay(id){const l=S.data.lancamentos.find(r=>r.id===id);if(!l)return;S.ui.payDif={tipo:'parcial'};const pg=l.tipo==='pagar';const last=(()=>{try{return localStorage.getItem('grupoe-ultconta-'+l.tipo)||''}catch(e){return ''}})();const cur=(l.conta&&contasNomes().includes(l.conta))?l.conta:last;
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>${pg?'Pagar uma conta':'Receber uma conta'}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
    <div class="mbody"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:13px"><div><span class="muted">${pg?'Para':'De'}</span><div>${contatoNome(l.contatoId)?`<b>${esc(contatoNome(l.contatoId))}</b>`:`<input id="pay-cont" class="search" list="dl-paycont" value="${esc(((custoDoLanc(l)||{}).fornecedor)||'')}" placeholder="Digite o nome…" autocomplete="off" style="width:100%"><datalist id="dl-paycont">${fornecedoresLista().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`}</div></div><div><span class="muted">Vencimento</span><div><b class="num">${fdate(l.vencimento)}</b></div></div><div><span class="muted">Valor</span><div><b class="num">${brl(l.valor)}</b></div></div></div>
-   <div class="fgrid" style="margin-top:14px"><div class="field"><label for="pay-valor">Valor ${pg?'pago':'recebido'}</label><input id="pay-valor" inputmode="decimal" data-money value="${esc(moneyFmt(l.valor))}" ><span id="pay-dif" class="sub" style="color:var(--warn)"></span></div><div class="field"><label for="pay-data">Data do ${pg?'pagamento':'recebimento'}</label><input id="pay-data" type="date" value="${today()}"></div>
+   <div class="fgrid" style="margin-top:14px;align-items:start"><div class="field"><label for="pay-valor">Valor ${pg?'pago':'recebido'}</label><input id="pay-valor" inputmode="decimal" data-money value="${esc(moneyFmt(l.valor))}" ><span id="pay-dif" class="sub" style="color:var(--warn)"></span></div><div class="field"><label for="pay-data">Data do ${pg?'pagamento':'recebimento'}</label><input id="pay-data" type="date" value="${today()}"></div>
    <div class="field full" id="pay-difbox" style="display:none"></div>
    <div class="field full"><label for="pay-conta">${pg?'Pagar usando':'Receber em'}</label><select id="pay-conta"><option value="">— escolha a conta —</option>${contasNomes().map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
    <div class="field full"><label for="pay-desc">Descrição</label><textarea id="pay-desc" rows="2">${esc(l.descricao||'')}</textarea></div></div></div>
