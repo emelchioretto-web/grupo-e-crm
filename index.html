@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261108171848';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261108184253';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -478,6 +478,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .agenda-list .items{display:grid;gap:6px;min-width:0}
 .agenda-list .it{display:flex;gap:10px;align-items:center;background:none;border:0;text-align:left;padding:4px 0;min-width:0}
 .agenda-list .it .h{font-family:var(--f-mono);font-size:12px;color:var(--muted);width:44px;flex:none}
+.agenda-list .it .pn{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);flex:none;background:var(--line-2);border-radius:5px;padding:1px 5px}
 .agenda-list .it .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .agenda-list .it:hover .t{color:var(--accent)}
 
@@ -2165,7 +2166,7 @@ VIEWS.agenda=()=>{
   }else{
     const mFrom=iso(first),mTo=iso(new Date(C.y,C.m+1,0));
     const keys=Object.keys(byDay).filter(k=>k>=mFrom&&k<=mTo).sort();
-    body=keys.length?`<div class="agenda-list">${keys.map(k=>{const d=parseD(k);return `<div class="dgrp" id="d-${k}"><div class="d">${pad(d.getDate())} ${MESES[d.getMonth()].slice(0,3)}<small>${DOWL[d.getDay()]}${k===t?' · hoje':''}</small></div><div class="items">${byDay[k].map(i=>`<button class="it" data-edit="${i.col}" data-id="${i.id}"><span class="h">${i.h||'—'}</span><i class="swatch" style="background:var(${i.c})"></i><span class="t">${esc(i.t)}</span></button>`).join('')}</div></div>`}).join('')}</div>`:`<div class="empty"><b>Mês livre</b><span>Nenhum item em ${MESES[C.m]} com os filtros atuais.</span>${newBtn('agenda')}</div>`;
+    body=keys.length?`<div class="agenda-list">${keys.map(k=>{const d=parseD(k);return `<div class="dgrp" id="d-${k}"><div class="d">${pad(d.getDate())} ${MESES[d.getMonth()].slice(0,3)}<small>${DOWL[d.getDay()]}${k===t?' · hoje':''}</small></div><div class="items">${byDay[k].map(i=>`<button class="it" data-edit="${i.col}" data-id="${i.id}"><span class="h">${i.h||'—'}</span><i class="swatch" style="background:var(${i.c})"></i>${(()=>{const r=(S.data[i.col]||[]).find(x=>x.id===i.id);const p=r&&r.pedidoId&&S.data.pedidos.find(x=>x.id===r.pedidoId);return p&&p.num?`<span class="pn">#${esc(String(p.num))}</span>`:''})()}<span class="t">${esc(i.t)}</span></button>`).join('')}</div></div>`}).join('')}</div>`:`<div class="empty"><b>Mês livre</b><span>Nenhum item em ${MESES[C.m]} com os filtros atuais.</span>${newBtn('agenda')}</div>`;
   }
   return loadingOr(`${head('Agenda','Agenda',`<button class="btn" data-agver title="Confere agenda, pedidos e Google Agenda">🔍 Verificar agenda</button><button class="btn" data-disp>${ic('cal',15)} Disponibilidade</button>`+newBtn('agenda'))}
   <section class="panel"><div class="body" style="display:grid;gap:14px">
