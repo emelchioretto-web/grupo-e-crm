@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110092639';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110095722';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1699,10 +1699,10 @@ VIEWS.contato=()=>{
     ${tile('ctr','Contratos',R.ctr.length,'--info','doc')}${tile('proj','Projetos',R.proj.length,'--ev-proj','img')}${tile('prov','Provas',R.prov.length,'--ev-film','grid')}
     ${tile('arec','A receber',brlShort(sumV(R.arec)),'--ev-pre','down',1)}${tile('rec','Recebidas',brlShort(sumV(R.rec)),'--ok','down',1)}${tile('apag','A pagar',brlShort(sumV(R.apag)),'--danger','up',1)}
     ${tile('pago','Pago',brlShort(sumV(R.pago)),'--ok','up',1)}</div>`;
-  const L={opp:['oportunidades',R.opp,r=>fdate(r.dataEvento),r=>(r.valor?`<span class="num">${brl(r.valor)}</span> `:'')+badge(r.etapa,ETAPA_COR[r.etapa])],
-    prop:['oportunidades',R.prop,r=>fdate(r.dataEvento),r=>(r.valor?`<span class="num">${brl(r.valor)}</span> `:'')+badge(r.etapa,ETAPA_COR[r.etapa])],
-    pedidos:['pedidos',R.ped,r=>fdate(r.dataEvento),r=>`<span class="num">${brl(pedidoTotal(r))}</span> ${badge(r.contratoStatus,CONTRATO_COR[r.contratoStatus])}`],
-    ctr:['pedidos',R.ctr,r=>fdate(r.dataEvento),r=>`<span class="num">${brl(pedidoTotal(r))}</span> <button class="btn sm" data-contract="${r.id}">${ic('doc',13)} Contrato</button>`],
+  const L={opp:['oportunidades',R.opp,r=>fdate(r.dataEvento)+(r.num?' · #'+r.num:''),r=>(r.valor?`<span class="num">${brl(r.valor)}</span> `:'')+badge(r.etapa,ETAPA_COR[r.etapa])],
+    prop:['oportunidades',R.prop,r=>fdate(r.dataEvento)+(r.num?' · #'+r.num:''),r=>(r.valor?`<span class="num">${brl(r.valor)}</span> `:'')+badge(r.etapa,ETAPA_COR[r.etapa])],
+    pedidos:['pedidos',R.ped,r=>fdate(r.dataEvento)+(r.num?' · #'+r.num:''),r=>`<span class="num">${brl(pedidoTotal(r))}</span> ${badge(r.contratoStatus,CONTRATO_COR[r.contratoStatus])}`],
+    ctr:['pedidos',R.ctr,r=>fdate(r.dataEvento)+(r.num?' · #'+r.num:''),r=>`<span class="num">${brl(pedidoTotal(r))}</span> <button class="btn sm" data-contract="${r.id}">${ic('doc',13)} Contrato</button>`],
     proj:['projetos',R.proj,r=>fdate(r.entrega||r.dataEvento),r=>badge(r.status,PROJ_COR[r.status])],
     prov:['provas',R.prov,r=>fdate(r.ativada),r=>badge(r.status,PROVA_COR[r.status])],
     arec:['lancamentos',R.arec,r=>fdate(r.vencimento),r=>`<span class="num money-in">${brl(r.valor)}</span> <button class="btn sm" data-pay="${r.id}">${ic('paid',13)} Receber</button>`],
