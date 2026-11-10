@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110164037';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110180236';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1841,7 +1841,7 @@ VIEWS.pedido=()=>{
   const itRows=(p.itens||[]).map(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const q=+i.qtd||1,u=+i.valor||0,dsc=+i.descPct||+i.desconto||0;
     return `<tr class="row"><td class="num muted">${esc((pr&&pr.codigo)||'')}</td><td><b>${esc(i.desc||(pr&&pr.nome)||'—')}</b>${i.descricao?`<div class="sub">${esc(i.descricao)}</div>`:''}</td><td class="r num">${brl(u).replace('R$','').trim()}</td><td class="r num">${dsc.toLocaleString('pt-BR',{minimumFractionDigits:1})}</td><td class="r num">${q}</td><td class="r num">${brl(q*u*(1-dsc/100)).replace('R$','').trim()}</td></tr>`});
   const totProd=(p.itens||[]).reduce((a,i)=>a+(+i.qtd||1)*(+i.valor||0)*(1-(+i.descPct||+i.desconto||0)/100),0);
-  const tItens=pedOppLigarHTML(p)+pedPropsHTML(p)+sec('Itens do Pedido',`<button class="btn sm info" data-pedform="${p.id}">${ic('edit',13)} Editar</button>`,
+  const tItens=pedFichaAvisoHTML(p)+pedOppLigarHTML(p)+pedPropsHTML(p)+sec('Itens do Pedido',`<button class="btn sm info" data-pedform="${p.id}">${ic('edit',13)} Editar</button>`,
     itRows.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:110px">Id</th><th>Nome</th><th class="r">Unit</th><th class="r">Desc %</th><th class="r">Qtd.</th><th class="r">Total</th></tr></thead><tbody>${itRows.join('')}</tbody><tfoot><tr><td colspan="5" class="r"><b>Total dos Produtos</b></td><td class="r num">${brl(totProd)}</td></tr>${+p.desconto?`<tr><td colspan="5" class="r muted">Desconto</td><td class="r num">− ${brl(+p.desconto)}</td></tr>`:''}<tr><td colspan="5" class="r"><b>Total</b></td><td class="r num"><b>${brl(tot)}</b></td></tr></tfoot></table></div>`:`<div class="empty"><span>Nenhum item.</span></div>`);
   /* pagamentos */
   const recPago=sumV(R.rec.filter(l=>l.pago));
@@ -3221,16 +3221,31 @@ async function fxLoad(silent){
   S.fx.novas=all.filter(f=>f.ts>=iso(new Date(Date.now()-S.fx.dias*864e5))&&fxStatus(f).st==='nova').length;render();
   try{for(const f of all){const p=S.data.pedidos.find(x=>x.origemFicha===f.key);if(!p)continue;const ch={};if(!p.emissao&&f.ts){ch.emissao=f.ts.slice(0,10);ch.emissaoHora=f.ts.slice(11,16)}if(!p.horaFimEvento&&f.pedido.horaFimEvento&&(!p.horaEvento||p.horaEvento===f.pedido.horaEvento))ch.horaFimEvento=f.pedido.horaFimEvento;if(Object.keys(ch).length)await patch('pedidos',p.id,ch)}}catch(e){}
 }
+/* Contratante = sempre os dados da ficha. Mesmo CPF/CNPJ ou mesmo nome: atualiza o contato com o que veio na ficha.
+   Só e-mail/telefone iguais mas nome diferente (ex.: ficha da empresa, contato da pessoa do marketing): cria o contato da empresa. */
+function fxBase(C){return {categoria:'Cliente',pj:C.pj,nome:C.nome,email:C.email,celular:C.celular,instagram:C.instagram,aniversario:C.aniversario,rg:C.rg,cpf:C.cpf,cep:C.cep,endereco:C.endereco,bairro:C.bairro,cidade:C.cidade,uf:C.uf,origem:C.origem,
+    empresa:C.pj?C.nome:'',obs:[C.pj&&C.fundacao?'Fundação: '+fdate(C.fundacao):'',C.ie?'Inscrição estadual: '+C.ie:''].filter(Boolean).join('\n')}}
+function fxContatoAchar(C){const d=onlyD(C.cpf),n=normTxt(C.nome);
+  return (d.length>=11&&S.data.contatos.find(x=>onlyD(x.cpf)===d))||(n.length>3&&S.data.contatos.find(x=>normTxt(SCHEMAS.contatos.labelOf(x))===n||normTxt(x.nome)===n))||null}
+async function fxContatoAplicar(fx,hint){const C=fx.contato,base=fxBase(C);let c0=fxContatoAchar(C);
+  if(!c0&&hint&&normTxt(hint.nome)===normTxt(C.nome))c0=hint;
+  if(c0){const m={...c0};Object.entries(base).forEach(([k,v])=>{if(v===''||v==null)return;if(k==='categoria'){if(!m.categoria||m.categoria==='Proposta')m.categoria=v;return}if(k==='obs'){if(!String(m.obs||'').includes(v))m.obs=[m.obs,v].filter(Boolean).join('\n');return}m[k]=v});return await save('contatos',m)}
+  const clean=Object.fromEntries(Object.entries(base).filter(([k,v])=>v!==''&&v!==undefined));return await save('contatos',clean)}
+async function fxCorrigirPedido(pid){const p=S.data.pedidos.find(x=>x.id===pid);if(!p||!p.origemFicha)return;if(!S.fx.rows.length)await fxLoad(true);
+  const fx=S.fx.rows.find(x=>x.key===p.origemFicha);if(!fx){toast('Não achei essa ficha nas planilhas de respostas.',true);return}
+  const old=p.contatoId;const cid=await fxContatoAplicar(fx);for(let t=0;t<30&&!S.data.contatos.some(x=>x.id===cid);t++)await new Promise(r=>setTimeout(r,200));
+  if(cid!==old){await patch('pedidos',p.id,{contatoId:cid});for(const l of S.data.lancamentos.filter(l=>l.pedidoId===p.id&&l.tipo==='receber'&&l.contatoId===old))await patch('lancamentos',l.id,{contatoId:cid});
+    for(const a of S.data.agenda.filter(a=>a.pedidoId===p.id&&a.contatoId===old))await patch('agenda',a.id,{contatoId:cid})}
+  toast(`Contratante do pedido #${p.num}: ${fx.contato.nome} (dados da ficha).`);render()}
 async function fxImport(key,silent){
   const fx=S.fx.rows.find(x=>x.key===key);if(!fx)return;const stt=fxStatus(fx);if(stt.st==='importada'||stt.st==='existe'){if(!silent)toast('Essa ficha já está no CRM.');return}
-  const c0=stt.contato||fxMatchContato(fx.contato);const C=fx.contato;
-  const base={categoria:'Cliente',pj:C.pj,nome:C.nome,email:C.email,celular:C.celular,instagram:C.instagram,aniversario:C.aniversario,rg:C.rg,cpf:C.cpf,cep:C.cep,endereco:C.endereco,bairro:C.bairro,cidade:C.cidade,uf:C.uf,origem:C.origem,
+  const C=fx.contato;
+  const base0={categoria:'Cliente',pj:C.pj,nome:C.nome,email:C.email,celular:C.celular,instagram:C.instagram,aniversario:C.aniversario,rg:C.rg,cpf:C.cpf,cep:C.cep,endereco:C.endereco,bairro:C.bairro,cidade:C.cidade,uf:C.uf,origem:C.origem,
     empresa:C.pj?C.nome:'',obs:[C.pj&&C.fundacao?'Fundação: '+fdate(C.fundacao):'',C.ie?'Inscrição estadual: '+C.ie:''].filter(Boolean).join('\n')};
-  let cid;
-  if(c0){const merged={...c0};Object.entries(base).forEach(([k,v])=>{if(v&&!merged[k])merged[k]=v});if(merged.categoria==='Proposta')merged.categoria='Cliente';cid=await save('contatos',merged)}
-  else{const clean=Object.fromEntries(Object.entries(base).filter(([k,v])=>v!==''&&v!==undefined));cid=await save('contatos',clean)}
-  const P=fx.pedido;const itens=P.itens.map(({orig,...i})=>i);
-  const pid=await save('pedidos',{titulo:P.titulo,contatoId:cid,emissao:(fx.ts||'').slice(0,10)||today(),emissaoHora:(fx.ts||'').slice(11,16),dataEvento:P.dataEvento,horaEvento:P.horaEvento,horaFimEvento:P.horaFimEvento||'',local:P.local,convidados:P.convidados,itens,pagamento:P.pagamento,contratoStatus:'Rascunho',notas:P.notas,origemFicha:fx.key});
+  const cid=await fxContatoAplicar(fx,stt.contato);
+  const P=fx.pedido;const itens=P.itens.map(({orig,...i})=>i);const custos=pedCustosGerar({itens,dataEvento:P.dataEvento});
+  const pid=await save('pedidos',{titulo:P.titulo,contatoId:cid,emissao:(fx.ts||'').slice(0,10)||today(),emissaoHora:(fx.ts||'').slice(11,16),dataEvento:P.dataEvento,horaEvento:P.horaEvento,horaFimEvento:P.horaFimEvento||'',local:P.local,convidados:P.convidados,itens,pagamento:P.pagamento,contratoStatus:'Rascunho',notas:P.notas,origemFicha:fx.key,...(custos.length?{custos}:{})});
+  if(custos.length)try{for(let t=0;t<30&&!S.data.pedidos.some(x=>x.id===pid);t++)await new Promise(r=>setTimeout(r,200));await custoLancarTodos(pid)}catch(_){}
   try{const pd={titulo:P.titulo,contatoId:cid,dataEvento:P.dataEvento,itens,pagamento:P.pagamento};await pedParcLancar(pd,pid,1,pedVencPadrao(pd,(fx.ts||'').slice(0,10)))}catch(e){}
   if(S.mode==='db')await S.db.doc('fichas/'+fx.key).set({status:'importada',pedidoId:pid,contatoId:cid,em:new Date().toISOString(),nome:C.nome,origem:fx.src});
   else{S.data.fichas=[...(S.data.fichas||[]),{id:fx.key,status:'importada',pedidoId:pid,contatoId:cid}]}
@@ -5119,8 +5134,12 @@ setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.anoIA1||(S.mode==='db'&&!S._cfgO
     if(n)toast(`${n} conta${n>1?'s':''} lida${n>1?'s':''} por foto estava${n>1?'m':''} com o ano errado e foi corrigida${n>1?'s':''}.`)}finally{S._anoRun=false}},8000);
 
 /* Pedido sem oportunidade (ex.: veio da ficha): oferece ligar à oportunidade aberta do mesmo cliente e usar a proposta */
-function pedOppCands(p){if(p.oportunidadeId)return [];const ab=o=>o.etapa!=='Venda efetivada'&&o.etapa!=='Perdida';const cn=nrm(contatoNome(p.contatoId)||'');
-  return S.data.oportunidades.filter(o=>ab(o)&&(o.contatoId===p.contatoId||(cn&&nrm(contatoNome(o.contatoId)||'')===cn))).map(o=>({o,d:Math.abs(extDias(o.dataEvento||p.dataEvento||today(),p.dataEvento||today()))})).filter(x=>x.d<=60).sort((a,b)=>a.d-b.d).map(x=>x.o).slice(0,3)}
+/* mesmo cliente: mesmo contato, mesmo nome, mesmo e-mail, mesmo CPF/CNPJ ou mesmo celular (ex.: ficha da empresa x contato da pessoa do marketing) */
+function mesmoCli(a,b){if(!a||!b)return false;if(a===b)return true;const A=S.data.contatos.find(x=>x.id===a),B=S.data.contatos.find(x=>x.id===b);if(!A||!B)return false;
+  const f=x=>onlyD(x.celular||x.fone).slice(-8),d=x=>onlyD(x.cpf);const ea=(A.email||'').toLowerCase(),eb=(B.email||'').toLowerCase();
+  return nrm(SCHEMAS.contatos.labelOf(A))===nrm(SCHEMAS.contatos.labelOf(B))||(ea&&ea===eb)||(d(A).length>=11&&d(A)===d(B))||(f(A).length===8&&f(A)===f(B))}
+function pedOppCands(p){if(p.oportunidadeId)return [];const ab=o=>o.etapa!=='Venda efetivada'&&o.etapa!=='Perdida';
+  return S.data.oportunidades.filter(o=>ab(o)&&mesmoCli(o.contatoId,p.contatoId)).map(o=>({o,d:Math.abs(extDias(o.dataEvento||p.dataEvento||today(),p.dataEvento||today()))})).filter(x=>x.d<=60).sort((a,b)=>a.d-b.d).map(x=>x.o).slice(0,3)}
 function pedOppLigarHTML(p){const C=pedOppCands(p);if(!C.length)return '';
   return `<div class="banner" style="border-style:solid;border-color:var(--info);background:color-mix(in srgb,var(--info) 7%,var(--surface));display:grid;gap:8px;margin:0 0 12px"><span>🔗 <b>Este pedido não está ligado a uma oportunidade.</b> O cliente tem ${C.length>1?'estas oportunidades abertas':'esta oportunidade aberta'}:</span>
    ${C.map(o=>{const pr=S.data.propostas.filter(x=>x.oportunidadeId===o.id).sort((a,b)=>(b.num||0)-(a.num||0))[0];return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span><b>#${esc(String(o.num||''))}</b> ${esc(o.titulo||'')} · ${fdate(o.dataEvento)}${pr?` · proposta #${esc(String(pr.num||''))} de <b class="num">${brl(pedidoTotal(pr))}</b>`:''}</span><span class="sp"></span>
@@ -5133,13 +5152,21 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     toast(`Pedido #${p.num} ligado à oportunidade #${o.num}${pr?' com os itens da proposta #'+pr.num:''}. A oportunidade foi para Venda efetivada.${pr&&!(p.custos||[]).length&&!pr.calc?' Use "Recriar dos produtos" nos Custos, se precisar.':''}`);render()}catch(err){t.disabled=false;failWrite(err)}});
 
 /* Ligar sempre: pedido sem oportunidade + uma única oportunidade aberta do mesmo cliente com data até 3 dias → liga sozinho (não mexe nos itens) */
-async function pedOppAuto(p){if(!p||p.oportunidadeId||pedStatus(p)==='Cancelado')return false;const C=pedOppCands(p).filter(o=>o.contatoId===p.contatoId&&Math.abs(extDias(o.dataEvento||'',p.dataEvento||''))<=3);if(C.length!==1)return false;const o=C[0];
+async function pedOppAuto(p){if(!p||p.oportunidadeId||pedStatus(p)==='Cancelado')return false;const C=pedOppCands(p).filter(o=>Math.abs(extDias(o.dataEvento||'',p.dataEvento||''))<=3);if(C.length!==1)return false;const o=C[0];
   await patch('pedidos',p.id,{oportunidadeId:o.id});await patch('oportunidades',o.id,{etapa:'Venda efetivada',fechamento:today(),valor:pedidoTotal(p)});return o}
 {const _sPO=save;save=async function(col,rec,...r){const id=await _sPO.call(this,col,rec,...r);if(col==='pedidos'&&rec&&!rec.oportunidadeId){setTimeout(async()=>{try{const p=S.data.pedidos.find(x=>x.id===(rec.id||id));const o=await pedOppAuto(p);if(o)toast(`Pedido #${p.num} ligado sozinho à oportunidade #${o.num} (${o.titulo}), que foi para Venda efetivada.`)}catch(_){}},1500)}return id}}
 setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.pedOpp1||(S.mode==='db'&&!S._cfgOk)||S._poRun)return;if(S.mode==='db'&&!(S.loaded&&S.loaded.has('pedidos')&&S.loaded.has('oportunidades')))return;S._poRun=true;
   try{await cfgSet('pedOpp1',new Date().toISOString());let n=0;for(const p of S.data.pedidos.filter(p=>!p.oportunidadeId&&(p.dataEvento||'')>=addDays(today(),-30))){try{if(await pedOppAuto(p))n++}catch(_){}}
     if(n)toast(`${n} pedido${n>1?'s':''} ligado${n>1?'s':''} à oportunidade aberta do mesmo cliente.`)}finally{S._poRun=false}},9000);
 
+/* Avisos do pedido: contratante diferente da ficha / custos dos produtos não gerados */
+function pedFichaAvisoHTML(p){let h='';const bn=(c,t)=>`<div class="banner" style="border-style:solid;border-color:var(${c});background:color-mix(in srgb,var(${c}) 7%,var(--surface));display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px">${t}</div>`;
+  const fx=p.origemFicha&&S.fx.rows.find(x=>x.key===p.origemFicha);const c=S.data.contatos.find(x=>x.id===p.contatoId);
+  if(fx&&c&&(normTxt(fx.contato.nome)!==normTxt(c.nome)||(onlyD(fx.contato.cpf).length>=11&&onlyD(fx.contato.cpf)!==onlyD(c.cpf))))
+    h+=bn('--warn',`<span>📝 <b>O contratante não é o da ficha.</b> Na ficha: <b>${esc(fx.contato.nome)}</b>${fx.contato.cpf?' · '+esc(fx.contato.cpf):''}. No pedido: ${esc(c.nome||'')}.</span><span class="sp" style="flex:1"></span><button class="btn sm pri" data-fxfix="${esc(p.id)}">Usar os dados da ficha</button>`);
+  if(!(p.custos||[]).length&&pedStatus(p)!=='Cancelado'){const g=pedCustosGerar(p);if(g.length)h+=bn('--danger',`<span>💸 <b>Os custos dos produtos não foram gerados.</b> ${g.length} custo${g.length>1?'s':''} · <b class="num">${brl(g.reduce((a,x)=>a+(+x.valor||0),0))}</b> (${esc(g.map(x=>x.nome).slice(0,4).join(', '))}${g.length>4?'…':''}).</span><span class="sp" style="flex:1"></span><button class="btn sm pri" data-pcgerar="${esc(p.id)}">Gerar custos</button>`)}
+  return h}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-fxfix]');if(!t)return;e.preventDefault();t.disabled=true;try{await fxCorrigirPedido(t.dataset.fxfix)}catch(err){failWrite(err)}finally{t.disabled=false}});
 /* Propostas da oportunidade dentro do pedido + usar a proposta no pedido que já existe */
 function pedPropsHTML(p){if(!p.oportunidadeId)return '';const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);const L=S.data.propostas.filter(x=>x.oportunidadeId===p.oportunidadeId).sort((a,b)=>(b.num||0)-(a.num||0));if(!o)return '';
   return `<div class="panel" style="padding:10px 14px;margin:0 0 12px;box-shadow:none"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:${L.length?6:0}px"><b>Oportunidade <button class="clink" data-oppopen="${esc(o.id)}">#${esc(String(o.num||''))} ${esc(o.titulo||'')}</button></b> ${badge(o.etapa,ETAPA_COR[o.etapa])}<span class="muted" style="font-size:12.5px">${L.length?'· propostas enviadas ao cliente:':'· sem proposta'}</span></div>
@@ -5148,8 +5175,8 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   if(t.dataset.oppopenped){openPedido(t.dataset.oppopenped);return}
   const pr=S.data.propostas.find(x=>x.id===t.dataset.propnoped),p=S.data.pedidos.find(x=>x.id===t.dataset.pid);if(!pr||!p)return;
   if(!t.dataset.ok){t.dataset.ok='1';t.innerHTML='Confirmar: trocar os itens?';t.style.color='var(--danger)';setTimeout(()=>{if(t.isConnected){delete t.dataset.ok;t.innerHTML=`${ic('cart',13)} Usar neste pedido`;t.style.color=''}},5000);return}
-  try{const ch={itens:pr.itens||[]};if(pr.desconto!=null)ch.desconto=pr.desconto;if(pr.condicoes)ch.condicoes=pr.condicoes;if(pr.calc&&!(p.custos||[]).length)ch.custos=calcCustos(pr.calc,p.dataEvento||today());
-    await patch('pedidos',p.id,ch);await patch('propostas',pr.id,{status:'Aceita'});const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);if(o)await patch('oportunidades',o.id,{valor:pedidoTotal({...p,...ch})});
+  try{const ch={itens:pr.itens||[]};if(pr.desconto!=null)ch.desconto=pr.desconto;if(pr.condicoes)ch.condicoes=pr.condicoes;if(!(p.custos||[]).length){const g=pr.calc?calcCustos(pr.calc,p.dataEvento||today()):pedCustosGerar({...p,itens:ch.itens});if(g.length)ch.custos=g}
+    await patch('pedidos',p.id,ch);if(ch.custos)try{await custoLancarTodos(p.id)}catch(_){}await patch('propostas',pr.id,{status:'Aceita'});const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);if(o)await patch('oportunidades',o.id,{valor:pedidoTotal({...p,...ch})});
     toast(`Itens da proposta #${pr.num} aplicados no pedido #${p.num}. Confira os Pagamentos (o valor mudou para ${brl(pedidoTotal({...p,...ch}))}).`);render()}catch(err){failWrite(err)}},true);
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
