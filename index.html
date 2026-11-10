@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110182902';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110183832';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2463,7 +2463,14 @@ document.addEventListener('change',e=>{const t=e.target;if(!t||!['ped-de','ped-a
 /* ---- pedido sem compromisso na agenda: cria o compromisso (vai para a Google Agenda e abre como compromisso) ---- */
 function pedAgendaDados(p){return {titulo:p.titulo||'',data:p.dataEvento,hora:p.horaEvento||'',horaFim:p.horaFimEvento||'',local:pedLocal(p),tipo:agCatRes(p.tipoAgenda)||tipoAg2(p),contatoId:p.contatoId||'',responsavel:p.responsavel||'',participantes:p.participantes||[]}}
 /* nomes dos equipamentos do pedido (combo → os produtos de dentro), para um compromisso por equipamento */
-function pedEquipNomes(p){const out=[];(p.itens||[]).forEach(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);if(pr&&pr.pacote&&pr.pacote.length)pr.pacote.forEach(x=>{const c=S.data.produtos.find(y=>y.id===x.produtoId);if(c)for(let k=0;k<Math.max(1,+x.qtd||1);k++)out.push(c.nome)})});return out}
+function pedEquipNomes(p){const out=[];(p.itens||[]).forEach(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);if(pr&&pr.pacote&&pr.pacote.length)pr.pacote.forEach(x=>{const c=S.data.produtos.find(y=>y.id===x.produtoId);if(c)for(let k=0;k<Math.max(1,+x.qtd||1);k++)out.push(c.nome)});
+    else if(pr&&eqDoProduto(pr.id,'').length){for(let k=0;k<Math.max(1,Math.min(10,Math.round(+i.qtd||1)));k++)out.push(pr.nome)}});
+  return out.length>1?out:[]}
+/* pedido com 2 ou mais equipamentos e um compromisso só: vira um compromisso por equipamento */
+async function pedAgendaDividir(p){if(!p||!p.dataEvento||pedStatus(p)==='Cancelado'||p.contratoStatus==='Cancelado')return 0;const eqs=pedEquipNomes(p);if(eqs.length<2)return 0;
+  const L=(S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&!a.cancelado);if(L.length!==1||L[0].eqSufixo)return 0;const a0=L[0];const tit=p.titulo||a0.titulo||'';
+  await patch('agenda',a0.id,{titulo:tit+' - '+eqs[0],eqSufixo:eqs[0]});const {id,criadoEm,gcal,gEvento,eqSufixo,num,...base}=a0;
+  for(const nm of eqs.slice(1))await save('agenda',{...base,titulo:tit+' - '+nm,eqSufixo:nm,origem:'Pedido',pedidoId:p.id});return eqs.length-1}
 async function pedAgendaGarantir(p){if(!p||!p.dataEvento||p.contratoStatus==='Cancelado'||pedStatus(p)==='Cancelado')return null;
   const ex=(S.data.agenda||[]).find(a=>a.pedidoId===p.id&&!a.cancelado);if(ex)return ex.id;
   const b=opBloco(p.notas);const base={...pedAgendaDados(p),pedidoId:p.id,origem:'Pedido',notas:b?b.txt:''};const eqs=pedEquipNomes(p);
@@ -2476,6 +2483,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 const _savePedAg=save;save=async function(col,rec){const id=await _savePedAg(col,rec);try{if(col==='pedidos'){const pid=typeof id==='string'?id:rec.id;setTimeout(async()=>{const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return;
     const L=(S.data.agenda||[]).filter(a=>a.pedidoId===p.id&&a.origem==='Pedido'&&!a.cancelado);
     if(!L.length){if(S.dono&&p.dataEvento&&p.dataEvento>=today())await pedAgendaGarantir(p);return}
+    if(S.dono&&L.length===1&&!L[0].eqSufixo&&await pedAgendaDividir(p))return;
     const D0=pedAgendaDados(p);for(const a of L){const D={...D0,titulo:D0.titulo+(a.eqSufixo?' - '+a.eqSufixo:'')};const ch={};['titulo','data','hora','horaFim','local','tipo'].forEach(k=>{if((D[k]||'')!==(a[k]||'')&&D[k])ch[k]=D[k]});if(Object.keys(ch).length)await patch('agenda',a.id,ch)}},1200)}}catch(e){}return id};
 /* uma vez: acerta a categoria (cor) dos compromissos que vieram de pedidos, pela regra nova (produtos da Prime 360 → Toten/Cabine/Hashtag) */
 async function agTipoCorrigir(){if(S._agTipoFix||!S.dono||cfg().agTipoFix2||!S.loaded||!['pedidos','agenda','produtos'].every(c=>S.loaded.has(c)))return;S._agTipoFix=1;cfgSet('agTipoFix2',new Date().toISOString());let n=0;
@@ -2487,7 +2495,8 @@ setInterval(()=>{try{agTipoCorrigir()}catch(e){}},8000);
 /* sempre (a cada 5 min no CRM aberto): todo pedido futuro tem que ter compromisso na agenda — assim vai para a Google Agenda da equipe */
 async function pedAgendaTodos(){if(S._pedAgT||!S.dono||S.mode!=='db'||!S.loaded||!['pedidos','agenda'].every(c=>S.loaded.has(c)))return;if(Date.now()-(S._pedAgUlt||0)<5*60*1000)return;S._pedAgT=1;S._pedAgUlt=Date.now();let n=0;
   for(const p of S.data.pedidos.filter(p=>p.dataEvento&&p.dataEvento>=today()&&p.contratoStatus!=='Cancelado'&&pedStatus(p)!=='Cancelado')){try{const tem=(S.data.agenda||[]).some(a=>a.pedidoId===p.id&&!a.cancelado);if(!tem&&await pedAgendaGarantir(p))n++}catch(e){}}
-  S._pedAgT=0;if(n)toast(`${n} pedido${n===1?'':'s'} ganharam compromisso na agenda (e vão para a Google Agenda).`)}
+  let nd=0;for(const p of S.data.pedidos.filter(p=>p.dataEvento&&p.dataEvento>=today())){try{nd+=await pedAgendaDividir(p)}catch(e){}}
+  S._pedAgT=0;if(n)toast(`${n} pedido${n===1?'':'s'} ganharam compromisso na agenda (e vão para a Google Agenda).`);if(nd)toast(`${nd} compromisso${nd>1?'s':''} a mais: pedidos com mais de um equipamento agora têm um por equipamento.`)}
 setInterval(()=>{try{pedAgendaTodos()}catch(e){}},30000);
 /* ---- datas em que o freelancer não pode → compromisso "Folga" na agenda (vai para a Google Agenda e para a agenda dele) ---- */
 function indTipoFolga(){const k=Object.keys(TIPOS||{});return k.includes('Pessoal')?'Pessoal':(k.includes('Sem Agenda')?'Sem Agenda':k[0]||'')}
