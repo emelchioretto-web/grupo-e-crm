@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110184120';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110184736';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -6886,6 +6886,20 @@ initStore();
     if(e.key.length===1&&e.key!==' '){e.preventDefault();abrir(el,e.key)}else if(e.key==='Enter'||e.key===' '||(e.key==='ArrowDown'&&e.altKey)){e.preventDefault();abrir(el,'')}},true);
   document.addEventListener('scroll',e=>{if(cur&&!cur.box.contains(e.target))pos()},true);
 })();
+
+/* ===== proteção contra loop de gravação: (1) salvar sem mudança nenhuma não grava; (2) o mesmo registro gravado muitas vezes seguidas pausa 30 s ===== */
+{const _stab=v=>{if(Array.isArray(v))return '['+v.map(_stab).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).filter(k=>k!=='atualizadoEm'&&k!=='id'&&v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+_stab(v[k])).join(',')+'}';return JSON.stringify(v===undefined?null:v)};
+ const _W={},_B={};const _sLP=save;
+ save=async function(col,rec,...r){if(!rec||!rec.id||!S.data[col])return _sLP.call(this,col,rec,...r);const k=col+'/'+rec.id;const old=S.data[col].find(x=>x.id===rec.id);
+   if(old&&_stab(old)===_stab(rec))return rec.id;
+   if(_B[k]&&Date.now()<_B[k])return rec.id;
+   const now=Date.now();const L=(_W[k]=(_W[k]||[]).filter(t=>now-t<20000));L.push(now);
+   if(L.length>12){_B[k]=now+30000;_W[k]=[];const ch=old?Object.keys({...old,...rec}).filter(x=>x!=='atualizadoEm'&&_stab(old[x])!==_stab(rec[x])):[];
+     console.warn('[loop] pausado',k,ch);toast(`Parei uma gravação repetida em ${col==='pedidos'&&old?'pedido #'+old.num:col} (${ch.slice(0,4).join(', ')||'sem campo'}). Me mande um print deste aviso.`,true);return rec.id}
+   return _sLP.call(this,col,rec,...r)}}
+/* campo de busca (cliente, oportunidade…): ao clicar, limpa para mostrar a lista toda; se sair sem escolher, volta o que estava */
+document.addEventListener('focusin',e=>{const t=e.target;if(!t||t.tagName!=='INPUT'||!(t.getAttribute('list')||'').startsWith('dl-')||!t.closest('.modal')||!t.value)return;t.dataset.old=t.value;t.placeholder=t.value;t.value=''});
+document.addEventListener('focusout',e=>{const t=e.target;if(!t||t.tagName!=='INPUT'||t.dataset.old==null)return;if(!t.value.trim())t.value=t.dataset.old;delete t.dataset.old;t.placeholder='Digite para buscar…'});
 </script>
 
 </body></html>
