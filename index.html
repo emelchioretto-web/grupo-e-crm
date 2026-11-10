@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110084914';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110092639';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -2525,7 +2525,7 @@ async function iaChamar(tool,file,prompt){const mcp=await getMcp();if(!mcp||!win
   const r=await mcp.callTool('IA',tool,{arquivo:b64,mime,prompt},{cache:false});const pl=parsePayload(r)||{};if(!pl.dados)throw new Error('A IA não devolveu os dados.');return pl.dados}
 const IA_PROMPT_CONTA=()=>`Você recebe a foto ou PDF de um comprovante de despesa de uma empresa brasileira (cupom fiscal/NFC-e, nota fiscal, boleto, recibo ou fatura de serviço). Extraia os dados e responda SOMENTE com um JSON, sem texto fora dele, neste formato:
 {"tipo_documento":"cupom|nota|boleto|recibo|fatura|outro","fornecedor":"nome fantasia","razao_social":"","cnpj":"só números ou vazio","cidade":"","moeda":"BRL|USD|EUR (a moeda em que o valor está impresso)","valor_total":0.00,"data_emissao":"AAAA-MM-DD","vencimento":"AAAA-MM-DD ou vazio","forma_pagamento":"PIX|Cartão de crédito|Cartão de débito|Dinheiro|Boleto|Transferência|vazio","ja_pago":true,"parcelas":1,"numero_documento":"","linha_digitavel":"","itens":[{"descricao":"","valor":0.00}],"categoria":"uma opção EXATA da lista abaixo ou vazio","observacao":"algo importante, curto"}
-Regras: valores em número com ponto decimal, na moeda impressa no documento (se estiver em dólar, "moeda":"USD" e o valor em dólar; não converta); "ja_pago" true para cupom/recibo pago na hora, false para boleto ou fatura a vencer; se tiver parcelamento informe "parcelas" (número de parcelas). Categorias possíveis:
+Regras: valores em número com ponto decimal, na moeda impressa no documento (se estiver em dólar, "moeda":"USD" e o valor em dólar; não converta); "ja_pago" true para cupom/recibo pago na hora, false para boleto ou fatura a vencer; se tiver parcelamento informe "parcelas" (número de parcelas). Hoje é ${fdate(today())}: se o documento não mostrar o ANO, use o ano atual (${today().slice(0,4)}), ou o ano anterior só se a data ficaria no futuro. Categorias possíveis:
 ${iaCats().join('\n')}`;
 const IA_PROMPT_FATURA=()=>`Você recebe a fatura (PDF ou foto) de um cartão de crédito brasileiro. Extraia TODOS os lançamentos de compras do período (inclua compras parceladas com a parcela atual; inclua anuidade, juros, IOF e tarifas como lançamentos; NÃO inclua o pagamento da fatura anterior nem "saldo anterior"). Responda SOMENTE com um JSON, sem texto fora dele:
 {"banco":"","cartao_final":"4 últimos dígitos","titular":"","vencimento":"AAAA-MM-DD","total_fatura":0.00,"itens":[{"data":"AAAA-MM-DD","descricao":"como está na fatura","fornecedor":"nome limpo do estabelecimento","valor":0.00,"parcela":"3/10 ou vazio","estorno":false,"categoria":"opção EXATA da lista abaixo ou vazio"}]}
@@ -2594,7 +2594,7 @@ function iaContaModal(){const {file,d}=S._iaConta;if(iaMoeda(d)!=='BRL')setTimeo
       <span class="sub" id="ia-cotsub">Buscando a cotação do dia da compra…</span></div>`:''}
     <div class="field"><label for="ia-valor">Valor total${iaMoeda(d)!=='BRL'?' em reais':''}</label><input id="ia-valor" data-money inputmode="decimal" value="${esc(iaMoeda(d)!=='BRL'?'':moneyFmt(+d.valor_total||0))}"></div>
     <div class="field"><label for="ia-parc">Parcelas</label><input id="ia-parc" type="number" min="1" max="48" value="${Math.max(1,+d.parcelas||1)}"></div>
-    <div class="field" style="align-self:start"><label for="ia-data">Data da compra</label><input id="ia-data" type="date" value="${esc(dt)}"></div>
+    <div class="field" style="align-self:start"><label for="ia-data">Data da compra</label><input id="ia-data" type="date" value="${esc(dt)}">${dt&&dt<addDays(today(),-60)?`<div style="color:var(--danger);font-size:12px;margin-top:4px">⚠️ Data de ${fdate(dt)}: confira o ano.</div>`:''}</div>
     <div class="field" style="align-self:start"><label for="ia-venc">Vencimento ${'(1ª parcela)'}</label><input id="ia-venc" type="date" value="${esc(venc)}"><div id="ia-cartdias" style="display:${cred?'flex':'none'};gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center"><span class="muted" style="font-size:12px">Fatura vence dia:</span>${iaCartDias().map(n=>`<button type="button" class="btn${+iaLS('diaCartao')===n?' pri':''}" data-iadia="${n}" style="padding:4px 10px">${n}</button>`).join('')}</div></div>
     <div class="field"><label for="ia-cat">Categoria</label><select id="ia-cat"><option value="">— escolha —</option>${iaCats().map(c=>`<option ${c===cat?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
     <div class="field"><label for="ia-forma">Forma de pagamento</label><select id="ia-forma"><option value="">—</option>${IA_FORMAS.map(f=>`<option ${f===forma?'selected':''}>${esc(f)}</option>`).join('')}</select></div>
@@ -5102,6 +5102,17 @@ setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.custoLote1||(S.mode==='db'&&!S._
         if(l){try{await removeRec('lancamentos',l.id);l2++}catch(_){}}novo.push({...c,venc:'',controle:true,lancId:''});mud=true;n++}
       if(mud){try{await patch('pedidos',p.id,{custos:novo})}catch(_){}}}
     if(n)toast(`${n} custo${n>1?'s':''} de papel/fotos impressas virou "só custo" (${l2} conta${l2===1?'':'s'} a pagar em aberto removida${l2===1?'':'s'}).`)}finally{S._clRun=false}},7000);
+
+/* Uma vez: contas lidas por foto com o ano "assumido" errado (2025 em vez de 2026) */
+setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.anoIA1||(S.mode==='db'&&!S._cfgOk)||S._anoRun)return;if(S.mode==='db'&&!(S.loaded&&S.loaded.has('lancamentos')))return;S._anoRun=true;
+  try{await cfgSet('anoIA1',new Date().toISOString());const mais=s=>s&&/^\d{4}-/.test(s)?(+s.slice(0,4)+1)+s.slice(4):s;let n=0;
+    for(const l of (S.lancInd&&S.lancInd.length?S.lancInd:S.data.lancamentos)){const txt=String((l.obs||'')+' '+(l.descricao||''));if(!/ano\s+n[ãa]o\s+aparece|assumid[oa]\s+20\d\d/i.test(txt))continue;
+      const cri=String(l.criadoEm||'').slice(0,10),ref=String(l.dataPagamento||l.vencimento||'').slice(0,10);if(!cri||!ref)continue;
+      if(+ref.slice(0,4)!==+cri.slice(0,4)-1||mais(ref)>addDays(cri,40))continue;
+      const ch={};['vencimento','dataPagamento','emissao','dataCompra'].forEach(k=>{if(l[k]&&String(l[k]).slice(0,4)===ref.slice(0,4))ch[k]=mais(String(l[k]))});
+      ch.obs=String(l.obs||'').replace(/\s*Ano não aparece na tela \(assumido 20\d\d\)\.?/i,'')+' (ano corrigido para '+cri.slice(0,4)+')';
+      try{await save('lancamentos',{...l,...ch});n++}catch(_){}}
+    if(n)toast(`${n} conta${n>1?'s':''} lida${n>1?'s':''} por foto estava${n>1?'m':''} com o ano errado e foi corrigida${n>1?'s':''}.`)}finally{S._anoRun=false}},8000);
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
   if(t.matches('[data-flsel]')){S.flSel=S.flSel||new Set();t.checked?S.flSel.add(t.dataset.flsel):S.flSel.delete(t.dataset.flsel);render()}
