@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110162100';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110163227';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1561,7 +1561,7 @@ VIEWS.opp=()=>{
       <button class="icon-btn" title="Editar" data-edit="oportunidades" data-id="${o.id}">${ic('edit',15)}</button>
       <button class="icon-btn" title="Nova proposta" data-novaprop="${o.id}">${ic('tag',15)}</button>
       <button class="icon-btn del" title="Excluir oportunidade" data-oppdel="${o.id}">${ic('trash',15)}</button></div></header>
-    <div class="body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${st}${o.num?`<span class="num muted">#${o.num}</span>`:''}<button class="btn sm" style="margin-left:auto" data-oppficha="${o.id}" title="Ver disponibilidade e mandar a ficha de contratação">${ic('doc',13)} Ficha de contratação</button><button class="btn sm" data-oppped="${o.id}">${ic('cart',13)} Gerar pedido</button>${o.etapa==='Perdida'?`<button class="btn sm" data-oppreabre="${o.id}" title="Voltar para em aberto">${ic('refresh',13)} Reabrir</button>`:o.etapa!=='Venda efetivada'?`<button class="btn sm" style="color:var(--danger);border-color:var(--danger)" data-opplost="${o.id}" title="Marcar como perdida">${ic('x',13)} Perdida</button>`:''}</div>
+    <div class="body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${st}${o.num?`<span class="num muted">#${o.num}</span>`:''}<button class="btn sm" style="margin-left:auto" data-oppficha="${o.id}" title="Ver disponibilidade e mandar a ficha de contratação">${ic('doc',13)} Ficha de contratação</button>${(()=>{const pd=S.data.pedidos.filter(x=>x.oportunidadeId===o.id&&pedStatus(x)!=='Cancelado');return pd.length?pd.map(x=>`<button class="btn sm" style="color:var(--ok);border-color:var(--ok)" data-oppopenped="${esc(x.id)}" title="Abrir o pedido desta oportunidade">${ic('cart',13)} Pedido #${esc(String(x.num||''))}</button>`).join(''):`<button class="btn sm" data-oppped="${o.id}">${ic('cart',13)} Gerar pedido</button>`})()}${o.etapa==='Perdida'?`<button class="btn sm" data-oppreabre="${o.id}" title="Voltar para em aberto">${ic('refresh',13)} Reabrir</button>`:o.etapa!=='Venda efetivada'?`<button class="btn sm" style="color:var(--danger);border-color:var(--danger)" data-opplost="${o.id}" title="Marcar como perdida">${ic('x',13)} Perdida</button>`:''}</div>
      <div class="kv">
       <b>Tipo</b><span>${esc(o.categoria||o.tipoEvento||'—')}</span>
       <b>Valor</b><span class="num">${o.valor?brl(o.valor):'—'}</span>
@@ -1841,7 +1841,7 @@ VIEWS.pedido=()=>{
   const itRows=(p.itens||[]).map(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const q=+i.qtd||1,u=+i.valor||0,dsc=+i.desconto||0;
     return `<tr class="row"><td class="num muted">${esc((pr&&pr.codigo)||'')}</td><td><b>${esc(i.desc||(pr&&pr.nome)||'—')}</b>${i.descricao?`<div class="sub">${esc(i.descricao)}</div>`:''}</td><td class="r num">${brl(u).replace('R$','').trim()}</td><td class="r num">${dsc.toLocaleString('pt-BR',{minimumFractionDigits:1})}</td><td class="r num">${q}</td><td class="r num">${brl(q*u*(1-dsc/100)).replace('R$','').trim()}</td></tr>`});
   const totProd=(p.itens||[]).reduce((a,i)=>a+(+i.qtd||1)*(+i.valor||0)*(1-(+i.desconto||0)/100),0);
-  const tItens=pedOppLigarHTML(p)+sec('Itens do Pedido',`<button class="btn sm info" data-pedform="${p.id}">${ic('edit',13)} Editar</button>`,
+  const tItens=pedOppLigarHTML(p)+pedPropsHTML(p)+sec('Itens do Pedido',`<button class="btn sm info" data-pedform="${p.id}">${ic('edit',13)} Editar</button>`,
     itRows.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:110px">Id</th><th>Nome</th><th class="r">Unit</th><th class="r">Desc %</th><th class="r">Qtd.</th><th class="r">Total</th></tr></thead><tbody>${itRows.join('')}</tbody><tfoot><tr><td colspan="5" class="r"><b>Total dos Produtos</b></td><td class="r num">${brl(totProd)}</td></tr>${+p.desconto?`<tr><td colspan="5" class="r muted">Desconto</td><td class="r num">− ${brl(+p.desconto)}</td></tr>`:''}<tr><td colspan="5" class="r"><b>Total</b></td><td class="r num"><b>${brl(tot)}</b></td></tr></tfoot></table></div>`:`<div class="empty"><span>Nenhum item.</span></div>`);
   /* pagamentos */
   const recPago=sumV(R.rec.filter(l=>l.pago));
@@ -5139,6 +5139,18 @@ async function pedOppAuto(p){if(!p||p.oportunidadeId||pedStatus(p)==='Cancelado'
 setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.pedOpp1||(S.mode==='db'&&!S._cfgOk)||S._poRun)return;if(S.mode==='db'&&!(S.loaded&&S.loaded.has('pedidos')&&S.loaded.has('oportunidades')))return;S._poRun=true;
   try{await cfgSet('pedOpp1',new Date().toISOString());let n=0;for(const p of S.data.pedidos.filter(p=>!p.oportunidadeId&&(p.dataEvento||'')>=addDays(today(),-30))){try{if(await pedOppAuto(p))n++}catch(_){}}
     if(n)toast(`${n} pedido${n>1?'s':''} ligado${n>1?'s':''} à oportunidade aberta do mesmo cliente.`)}finally{S._poRun=false}},9000);
+
+/* Propostas da oportunidade dentro do pedido + usar a proposta no pedido que já existe */
+function pedPropsHTML(p){if(!p.oportunidadeId)return '';const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);const L=S.data.propostas.filter(x=>x.oportunidadeId===p.oportunidadeId).sort((a,b)=>(b.num||0)-(a.num||0));if(!o)return '';
+  return `<div class="panel" style="padding:10px 14px;margin:0 0 12px;box-shadow:none"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:${L.length?6:0}px"><b>Oportunidade <button class="clink" data-oppopen="${esc(o.id)}">#${esc(String(o.num||''))} ${esc(o.titulo||'')}</button></b> ${badge(o.etapa,ETAPA_COR[o.etapa])}<span class="muted" style="font-size:12.5px">${L.length?'· propostas enviadas ao cliente:':'· sem proposta'}</span></div>
+   ${L.length?`<div class="tbl-wrap"><table class="tbl" style="font-size:12.5px"><tbody>${L.map(x=>`<tr class="row"><td class="num">#${esc(String(x.num||''))}</td><td class="num muted">${fdate((x.criadoEm||'').slice(0,10))}</td><td>${badge(x.status||'Rascunho')}</td><td class="r num"><b>${brl(pedidoTotal(x))}</b></td><td class="r" style="white-space:nowrap"><button class="btn sm" data-propprint="${esc(x.id)}" title="Ver a proposta">${ic('doc',13)} Ver</button><button class="btn sm" data-propnoped="${esc(x.id)}" data-pid="${esc(p.id)}" title="Troca os itens, o desconto e as condições deste pedido pelos da proposta${x.calc?' e traz os custos calculados':''}">${ic('cart',13)} Usar neste pedido</button></td></tr>`).join('')}</tbody></table></div>`:''}</div>`}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-propnoped],[data-oppopenped]');if(!t)return;e.preventDefault();e.stopPropagation();
+  if(t.dataset.oppopenped){openPedido(t.dataset.oppopenped);return}
+  const pr=S.data.propostas.find(x=>x.id===t.dataset.propnoped),p=S.data.pedidos.find(x=>x.id===t.dataset.pid);if(!pr||!p)return;
+  if(!t.dataset.ok){t.dataset.ok='1';t.innerHTML='Confirmar: trocar os itens?';t.style.color='var(--danger)';setTimeout(()=>{if(t.isConnected){delete t.dataset.ok;t.innerHTML=`${ic('cart',13)} Usar neste pedido`;t.style.color=''}},5000);return}
+  try{const ch={itens:pr.itens||[]};if(pr.desconto!=null)ch.desconto=pr.desconto;if(pr.condicoes)ch.condicoes=pr.condicoes;if(pr.calc&&!(p.custos||[]).length)ch.custos=calcCustos(pr.calc,p.dataEvento||today());
+    await patch('pedidos',p.id,ch);await patch('propostas',pr.id,{status:'Aceita'});const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);if(o)await patch('oportunidades',o.id,{valor:pedidoTotal({...p,...ch})});
+    toast(`Itens da proposta #${pr.num} aplicados no pedido #${p.num}. Confira os Pagamentos (o valor mudou para ${brl(pedidoTotal({...p,...ch}))}).`);render()}catch(err){failWrite(err)}},true);
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
   if(t.matches('[data-flsel]')){S.flSel=S.flSel||new Set();t.checked?S.flSel.add(t.dataset.flsel):S.flSel.delete(t.dataset.flsel);render()}
