@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110182338';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110182902';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1838,11 +1838,11 @@ VIEWS.pedido=()=>{
   const itens=(p.itens||[]).map(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const ds=i.descricao||(pr&&pr.descricao)||'';return `<tr class="row"><td><b>${esc(i.desc||(pr&&pr.nome)||'—')}</b>${pr&&pr.codigo?` <span class="muted num">${esc(pr.codigo)}</span>`:''}${ds?`<div class="sub" style="white-space:pre-wrap;margin-top:4px">${esc(ds)}</div>`:''}</td><td class="r num">${(+i.qtd||0).toLocaleString('pt-BR')}</td><td class="r num">${brl(+i.valor||0)}</td><td class="r num">${brl((+i.qtd||0)*(+i.valor||0))}</td></tr>`});
   const sec=(t,btns,body,nota)=>`<div class="pd-sec"><div class="pd-sech"><h4>${t}</h4><span style="display:flex;gap:6px;flex-wrap:wrap">${btns||''}</span></div>${body}${nota?`<p class="pd-nota">${ic('info',13)} ${nota}</p>`:''}</div>`;
   /* itens */
-  const itRows=(p.itens||[]).map(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const q=+i.qtd||1,u=+i.valor||0,dsc=+i.descPct||+i.desconto||0;
-    return `<tr class="row"><td class="num muted">${esc((pr&&pr.codigo)||'')}</td><td><b>${esc(i.desc||(pr&&pr.nome)||'—')}</b>${i.descricao?`<div class="sub">${esc(i.descricao)}</div>`:''}</td><td class="r num">${brl(u).replace('R$','').trim()}</td><td class="r num">${dsc.toLocaleString('pt-BR',{minimumFractionDigits:1})}</td><td class="r num">${q}</td><td class="r num">${brl(q*u*(1-dsc/100)).replace('R$','').trim()}</td></tr>`});
+  const itRows=(p.itens||[]).map((i,ix)=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const q=+i.qtd||1,u=+i.valor||0,dsc=+i.descPct||+i.desconto||0;
+    return `<tr class="row"><td class="num muted">${esc((pr&&pr.codigo)||'')}</td><td><b>${esc(i.desc||(pr&&pr.nome)||'—')}</b>${i.descricao?`<div class="sub">${esc(i.descricao)}</div>`:''}</td><td class="r num">${brl(u).replace('R$','').trim()}</td><td class="r num">${dsc.toLocaleString('pt-BR',{minimumFractionDigits:1})}</td><td class="r num">${q}</td><td class="r num">${brl(q*u*(1-dsc/100)).replace('R$','').trim()}</td><td class="r"><button class="icon-btn" data-pitem="${ix}" data-pid="${esc(p.id)}" title="Editar este item">${ic('edit',14)}</button></td></tr>`});
   const totProd=(p.itens||[]).reduce((a,i)=>a+(+i.qtd||1)*(+i.valor||0)*(1-(+i.descPct||+i.desconto||0)/100),0);
   const tItens=pedFichaAvisoHTML(p)+pedOppLigarHTML(p)+pedPropsHTML(p)+sec('Itens do Pedido',`<button class="btn sm info" data-pedform="${p.id}">${ic('edit',13)} Editar</button>`,
-    itRows.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:110px">Id</th><th>Nome</th><th class="r">Unit</th><th class="r">Desc %</th><th class="r">Qtd.</th><th class="r">Total</th></tr></thead><tbody>${itRows.join('')}</tbody><tfoot><tr><td colspan="5" class="r"><b>Total dos Produtos</b></td><td class="r num">${brl(totProd)}</td></tr>${+p.desconto?`<tr><td colspan="5" class="r muted">Desconto</td><td class="r num">− ${brl(+p.desconto)}</td></tr>`:''}<tr><td colspan="5" class="r"><b>Total</b></td><td class="r num"><b>${brl(tot)}</b></td></tr></tfoot></table></div>`:`<div class="empty"><span>Nenhum item.</span></div>`);
+    itRows.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:110px">Id</th><th>Nome</th><th class="r">Unit</th><th class="r">Desc %</th><th class="r">Qtd.</th><th class="r">Total</th><th style="width:44px"></th></tr></thead><tbody>${itRows.join('')}</tbody><tfoot><tr><td colspan="5" class="r"><b>Total dos Produtos</b></td><td class="r num">${brl(totProd)}</td><td></td></tr>${+p.desconto?`<tr><td colspan="5" class="r muted">Desconto</td><td class="r num">− ${brl(+p.desconto)}</td><td></td></tr>`:''}<tr><td colspan="5" class="r"><b>Total</b></td><td class="r num"><b>${brl(tot)}</b></td><td></td></tr></tfoot></table></div>`:`<div class="empty"><span>Nenhum item.</span></div>`);
   /* pagamentos */
   const recPago=sumV(R.rec.filter(l=>l.pago));
   const pgSt=l=>l.pago?`<span class="pd-ok" style="${(l.dataPagamento||'')>(l.vencimento||'')?'color:var(--danger)':''}">${ic('check',13)} ${fdateShort(l.dataPagamento||l.vencimento)}</span>`:(l.vencimento<today()?badge('Vencida','--danger'):badge('Em aberto','--warn'));
@@ -5183,6 +5183,29 @@ setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.custoImp1||(S.mode==='db'&&!S._c
 setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.custoDup1||(S.mode==='db'&&!S._cfgOk)||S._cdRun)return;if(S.mode==='db'&&!(S.loaded&&S.loaded.has('pedidos')&&S.loaded.has('lancamentos')))return;S._cdRun=true;
   try{await cfgSet('custoDup1',new Date().toISOString());let n=0;for(const p of S.data.pedidos.filter(p=>pedStatus(p)!=='Cancelado'&&(p.dataEvento||'')>=addDays(today(),-90))){const ids=(p.custos||[]).map(c=>c.lancId).filter(x=>x&&x!=='alboom');if(new Set(ids).size===ids.length)continue;try{n+=await custoLancarTodos(p.id)}catch(_){}}
     if(n)toast(`${n} custo${n>1?'s':''} que dividia${n>1?'m':''} a conta a pagar com outro produto ganhou${n>1?'ram':''} a sua própria conta.`)}finally{S._cdRun=false}},10500);
+/* Editar um item do pedido sozinho (valor, desconto, quantidade); custos daquele produto e imposto acompanham */
+function pitemModal(pid,ix){const p=S.data.pedidos.find(x=>x.id===pid);const i=p&&(p.itens||[])[ix];if(!i)return;const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);
+  const nb=v=>String(v??'').replace('.',',');
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:520px"><header><h3>${esc(i.desc||(pr&&pr.nome)||'Item')}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+   <div class="mbody" style="display:grid;gap:12px"><div class="form-grid">
+    <div class="field"><label>Valor unitário</label><input id="pi-u" inputmode="decimal" value="${nb(+i.valor||0)}"></div>
+    <div class="field"><label>Desconto %</label><input id="pi-d" inputmode="decimal" value="${nb(+i.descPct||+i.desconto||0)}"></div>
+    <div class="field"><label>Quantidade</label><input id="pi-q" inputmode="decimal" value="${nb(+i.qtd||1)}"></div>
+    <div class="field"><label>Total do item</label><input id="pi-t" disabled></div>
+    <div class="field full"><label>Descrição</label><textarea id="pi-x" rows="3">${esc(i.descricao||'')}</textarea></div></div>
+    <p class="muted" style="margin:0;font-size:12px">Unitário com desconto: <b id="pi-ud" class="num"></b>. Os custos deste produto (se ainda não pagos) e o imposto da NF se ajustam.</p></div>
+   <footer><button class="btn" data-close>Cancelar</button><button class="btn pri" data-pisave="${ix}" data-pid="${esc(pid)}">Salvar</button></footer></div></div>`;
+  const nv=id=>+String(($(id)||{}).value||'0').replace(/\./g,'').replace(',','.')||0;const up=()=>{const u=nv('#pi-u'),d=nv('#pi-d'),q=nv('#pi-q');$('#pi-ud').textContent=brl(u*(1-d/100));$('#pi-t').value=brl(u*(1-d/100)*q)};
+  ['#pi-u','#pi-d','#pi-q'].forEach(x=>$(x).addEventListener('input',up));up()}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-pitem],[data-pisave]');if(!t)return;e.preventDefault();
+  if(t.dataset.pitem!==undefined){pitemModal(t.dataset.pid,+t.dataset.pitem);return}
+  const p=S.data.pedidos.find(x=>x.id===t.dataset.pid);const ix=+t.dataset.pisave;if(!p)return;const nv=id=>+String(($(id)||{}).value||'0').replace(/\./g,'').replace(',','.')||0;
+  const it=(p.itens||[]).map(x=>({...x}));const i=it[ix];const q0=+i.qtd||1;i.valor=nv('#pi-u');i.descPct=nv('#pi-d');delete i.desconto;i.qtd=nv('#pi-q')||1;i.descricao=$('#pi-x').value;
+  t.disabled=true;try{let CU=(p.custos||[]).map(c=>({...c}));
+    if(i.produtoId&&i.qtd!==q0){const pr=S.data.produtos.find(x=>x.id===i.produtoId);const base=prodCustos(pr).filter(c=>!custoEhImposto(c));
+      for(const c of CU){if(c.produtoId!==i.produtoId||c.pago||custoEhImposto(c)||custoPct(c))continue;const b=base.find(x=>nrm(x.nome)===nrm(c.nome));if(!b)continue;const v=Math.round((+b.valor||0)*i.qtd*100)/100;const l=custoLanc(p,c,CU);if(l&&l.pago)continue;c.valor=v;if(l)await patch('lancamentos',l.id,{valor:v})}}
+    await save('pedidos',{...p,itens:it,custos:CU});const o=p.oportunidadeId&&S.data.oportunidades.find(x=>x.id===p.oportunidadeId);
+    closeModal();toast(`Item salvo. Total do pedido: ${brl(pedidoTotal({...p,itens:it}))}. Confira os Pagamentos se o valor mudou.`);render()}catch(err){failWrite(err)}finally{t.disabled=false}});
 /* Avisos do pedido: contratante diferente da ficha / custos dos produtos não gerados */
 function pedFichaAvisoHTML(p){let h='';const bn=(c,t)=>`<div class="banner" style="border-style:solid;border-color:var(${c});background:color-mix(in srgb,var(${c}) 7%,var(--surface));display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px">${t}</div>`;
   const fx=p.origemFicha&&S.fx.rows.find(x=>x.key===p.origemFicha);const c=S.data.contatos.find(x=>x.id===p.contatoId);
