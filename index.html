@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110163227';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110164037';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1838,9 +1838,9 @@ VIEWS.pedido=()=>{
   const itens=(p.itens||[]).map(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const ds=i.descricao||(pr&&pr.descricao)||'';return `<tr class="row"><td><b>${esc(i.desc||(pr&&pr.nome)||'—')}</b>${pr&&pr.codigo?` <span class="muted num">${esc(pr.codigo)}</span>`:''}${ds?`<div class="sub" style="white-space:pre-wrap;margin-top:4px">${esc(ds)}</div>`:''}</td><td class="r num">${(+i.qtd||0).toLocaleString('pt-BR')}</td><td class="r num">${brl(+i.valor||0)}</td><td class="r num">${brl((+i.qtd||0)*(+i.valor||0))}</td></tr>`});
   const sec=(t,btns,body,nota)=>`<div class="pd-sec"><div class="pd-sech"><h4>${t}</h4><span style="display:flex;gap:6px;flex-wrap:wrap">${btns||''}</span></div>${body}${nota?`<p class="pd-nota">${ic('info',13)} ${nota}</p>`:''}</div>`;
   /* itens */
-  const itRows=(p.itens||[]).map(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const q=+i.qtd||1,u=+i.valor||0,dsc=+i.desconto||0;
+  const itRows=(p.itens||[]).map(i=>{const pr=i.produtoId&&S.data.produtos.find(x=>x.id===i.produtoId);const q=+i.qtd||1,u=+i.valor||0,dsc=+i.descPct||+i.desconto||0;
     return `<tr class="row"><td class="num muted">${esc((pr&&pr.codigo)||'')}</td><td><b>${esc(i.desc||(pr&&pr.nome)||'—')}</b>${i.descricao?`<div class="sub">${esc(i.descricao)}</div>`:''}</td><td class="r num">${brl(u).replace('R$','').trim()}</td><td class="r num">${dsc.toLocaleString('pt-BR',{minimumFractionDigits:1})}</td><td class="r num">${q}</td><td class="r num">${brl(q*u*(1-dsc/100)).replace('R$','').trim()}</td></tr>`});
-  const totProd=(p.itens||[]).reduce((a,i)=>a+(+i.qtd||1)*(+i.valor||0)*(1-(+i.desconto||0)/100),0);
+  const totProd=(p.itens||[]).reduce((a,i)=>a+(+i.qtd||1)*(+i.valor||0)*(1-(+i.descPct||+i.desconto||0)/100),0);
   const tItens=pedOppLigarHTML(p)+pedPropsHTML(p)+sec('Itens do Pedido',`<button class="btn sm info" data-pedform="${p.id}">${ic('edit',13)} Editar</button>`,
     itRows.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:110px">Id</th><th>Nome</th><th class="r">Unit</th><th class="r">Desc %</th><th class="r">Qtd.</th><th class="r">Total</th></tr></thead><tbody>${itRows.join('')}</tbody><tfoot><tr><td colspan="5" class="r"><b>Total dos Produtos</b></td><td class="r num">${brl(totProd)}</td></tr>${+p.desconto?`<tr><td colspan="5" class="r muted">Desconto</td><td class="r num">− ${brl(+p.desconto)}</td></tr>`:''}<tr><td colspan="5" class="r"><b>Total</b></td><td class="r num"><b>${brl(tot)}</b></td></tr></tfoot></table></div>`:`<div class="empty"><span>Nenhum item.</span></div>`);
   /* pagamentos */
