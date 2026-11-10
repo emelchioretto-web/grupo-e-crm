@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110160132';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261110161715';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -5130,6 +5130,14 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     await patch('pedidos',p.id,ch);const np={...p,...ch};
     await patch('oportunidades',o.id,{etapa:'Venda efetivada',fechamento:today(),valor:pedidoTotal(np)});if(pr)await patch('propostas',pr.id,{status:'Aceita'});
     toast(`Pedido #${p.num} ligado à oportunidade #${o.num}${pr?' com os itens da proposta #'+pr.num:''}. A oportunidade foi para Venda efetivada.${pr&&!(p.custos||[]).length&&!pr.calc?' Use "Recriar dos produtos" nos Custos, se precisar.':''}`);render()}catch(err){t.disabled=false;failWrite(err)}});
+
+/* Ligar sempre: pedido sem oportunidade + uma única oportunidade aberta do mesmo cliente com data até 3 dias → liga sozinho (não mexe nos itens) */
+async function pedOppAuto(p){if(!p||p.oportunidadeId||pedStatus(p)==='Cancelado')return false;const C=pedOppCands(p).filter(o=>o.contatoId===p.contatoId&&Math.abs(extDias(o.dataEvento||'',p.dataEvento||''))<=3);if(C.length!==1)return false;const o=C[0];
+  await patch('pedidos',p.id,{oportunidadeId:o.id});await patch('oportunidades',o.id,{etapa:'Venda efetivada',fechamento:today(),valor:pedidoTotal(p)});return o}
+{const _sPO=save;save=async function(col,rec,...r){const id=await _sPO.call(this,col,rec,...r);if(col==='pedidos'&&rec&&!rec.oportunidadeId){setTimeout(async()=>{try{const p=S.data.pedidos.find(x=>x.id===(rec.id||id));const o=await pedOppAuto(p);if(o)toast(`Pedido #${p.num} ligado sozinho à oportunidade #${o.num} (${o.titulo}), que foi para Venda efetivada.`)}catch(_){}},1500)}return id}}
+setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.pedOpp1||(S.mode==='db'&&!S._cfgOk)||S._poRun)return;if(S.mode==='db'&&!(S.loaded&&S.loaded.has('pedidos')&&S.loaded.has('oportunidades')))return;S._poRun=true;
+  try{await cfgSet('pedOpp1',new Date().toISOString());let n=0;for(const p of S.data.pedidos.filter(p=>!p.oportunidadeId&&(p.dataEvento||'')>=addDays(today(),-30))){try{if(await pedOppAuto(p))n++}catch(_){}}
+    if(n)toast(`${n} pedido${n>1?'s':''} ligado${n>1?'s':''} à oportunidade aberta do mesmo cliente.`)}finally{S._poRun=false}},9000);
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
   if(t.matches('[data-flsel]')){S.flSel=S.flSel||new Set();t.checked?S.flSel.add(t.dataset.flsel):S.flSel.delete(t.dataset.flsel);render()}
