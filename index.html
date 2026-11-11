@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261111154138';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261111161115';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4621,9 +4621,10 @@ Regras: "valor" positivo para entradas (crédito) e negativo para saídas (débi
 async function extLer(file){const nm=(file.name||'').toLowerCase();let res;
   if(/\.ofx$/.test(nm)||/<OFX>/i.test(await file.slice(0,2000).text()))res=extOFX(await file.text());
   else if(/\.(csv|txt)$/.test(nm)){const buf=new Uint8Array(await file.arrayBuffer());let t=new TextDecoder('utf-8').decode(buf);if(t.includes('�'))t=new TextDecoder('windows-1252').decode(buf);res=extCSV(t)}
-  else if(/\.pdf$/.test(nm)||file.type==='application/pdf'){let L=[];try{L=await extPdfLinhas(file)}catch(e){}const R=extPdfParse(L);
+  else if(/\.pdf$/.test(nm)||file.type==='application/pdf'){let L=[];try{const pp=$('#modalRoot .mbody p');if(pp)pp.textContent='Lendo o PDF no navegador…'}catch(_){}try{L=await extPdfLinhas(file)}catch(e){console.warn('pdf.js',e)}const R=extPdfParse(L);
     if(R.length>=2)res={conta:extConta(L.join('\n')),R};
-    else{const d=await iaChamar('ler_fatura',file,IA_PROMPT_EXTRATO());res={conta:d.conta?{ag:d.agencia||'',conta:d.conta}:null,R:(d.movimentos||[]).map(m=>({d:m.data,hist:m.historico||'',nome:m.nome||'',doc:m.documento||'',v:+m.valor||0,saldo:m.saldo==null?null:+m.saldo})).filter(r=>r.d&&r.v)}}}
+    else{try{const pp=$('#modalRoot .mbody p');if(pp)pp.innerHTML='Este PDF não deu para ler direto (layout diferente ou PDF de imagem) — <b>a IA está lendo</b>. Extrato longo pode levar alguns minutos.'}catch(_){}
+      const d=await iaChamar('ler_fatura',file,IA_PROMPT_EXTRATO());res={conta:d.conta?{ag:d.agencia||'',conta:d.conta}:null,R:(d.movimentos||[]).map(m=>({d:m.data,hist:m.historico||'',nome:m.nome||'',doc:m.documento||'',v:+m.valor||0,saldo:m.saldo==null?null:+m.saldo})).filter(r=>r.d&&r.v)}}}
   else throw new Error('Envie o extrato em OFX, CSV ou PDF.');
   res.R.forEach((r,i)=>{r.i=i;r.v=Math.round(r.v*100)/100;r.key=[r.d,String(r.doc||'').replace(/^0+/,''),r.v.toFixed(2),r.saldo!=null?r.saldo.toFixed(2):i].join('|')});
   /* o CSV do Bradesco não traz o nome de quem recebeu/pagou; o PDF traz. Guarda os nomes lidos de PDF/OFX e completa o CSV com eles */
