@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261110191029';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261111075125';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -159,7 +159,7 @@ const MCP={
   async callTool(server,tool,input){let p;
     if(server==='DocuSeal')p=await ds(tool,input||{});
     else if(server==='IA')p=await iaCall(tool,input||{});
-    else if(['Gmail','Google Calendar','Google Drive','Form','ICal'].includes(server)){let inp=input||{};if(server==='Gmail'&&inp.htmlBody){/* o Gmail do Apps Script estraga emojis (viram ������): manda como código HTML */inp={...inp,htmlBody:String(inp.htmlBody).replace(/[\u{10000}-\u{10FFFF}]/gu,c=>'&#'+c.codePointAt(0)+';')}}p=await ponte(server,tool,inp)}
+    else if(['Gmail','Google Calendar','Google Drive','Form','ICal','Instagram'].includes(server)){let inp=input||{};if(server==='Gmail'&&inp.htmlBody){/* o Gmail do Apps Script estraga emojis (viram ������): manda como código HTML */inp={...inp,htmlBody:String(inp.htmlBody).replace(/[\u{10000}-\u{10FFFF}]/gu,c=>'&#'+c.codePointAt(0)+';')}}p=await ponte(server,tool,inp)}
     else throw erro('Função não disponível: '+server+' / '+tool,'not_in_manifest');
     return {payload:p,content:[{type:'text',text:JSON.stringify(p)}]}},
   async describeTool(server,tool){const s=SCH[server]&&SCH[server][tool];return {name:tool,inputSchema:s||null}},
@@ -1317,6 +1317,7 @@ const NAV=[
   {v:'contatos',l:'Contatos',i:'user'},
   {v:'dupcont',l:'Duplicados',sub:1,cnt:()=>dupGroups().filter(g=>g.forte).length,alt:1},
   {v:'atendimento',l:'Atendimento',i:'wa',cnt:()=>{try{return atdLoad().conv.filter(c=>c.status==='aguardando').length}catch(e){return 0}},alt:1},
+  {v:'instagram',l:'Instagram Direct',i:'wa',cnt:()=>{try{return igAtrasadas()}catch(e){return 0}}},
   {v:'emails',l:'E-mails',i:'mail',cnt:()=>emNaoEnviados()},
   {v:'oportunidades',l:'Oportunidades',i:'chat',cnt:()=>S.data.oportunidades.filter(o=>ABERTAS.includes(o.etapa)).length},
   {v:'retornos',l:'Retornos',sub:1,cnt:()=>retAlerta()},{v:'funil',l:'Funil de vendas',sub:1},
@@ -1383,7 +1384,7 @@ function renderAlerts(){
   const venc=S.data.lancamentos.filter(l=>!l.pago&&l.vencimento&&l.vencimento<t).length;
   const hoje=agendaAll().filter(e=>e.data===t).length;
   const tar=S.data.tarefas.filter(x=>!x.feita&&x.data&&x.data<=t).length;
-  $('#alerts').innerHTML=[['Hoje',hoje,'--info','agenda'],['Retornar',typeof retAlerta==='function'?retAlerta():0,'--warn','retornos'],['Tarefas',tar,'--warn','tarefas'],['Vencidas',venc,'--danger','financeiro'],...((typeof atdAtrasadas==='function'&&atdAtrasadas())?[['Sem resposta',atdAtrasadas(),'--danger','atendimento']]:[]),...((typeof emNaoEnviados==='function'&&emNaoEnviados())?[['E-mails não enviados',emNaoEnviados(),'--danger','emails']]:[])].filter(x=>!(typeof modOffView==='function'&&modOffView(x[3]))).map(([l,n,c,v])=>`<button class="alert" data-nav="${v}">${l}<b style="background:var(${n?c:'--faint'})">${n}</b></button>`).join('');
+  $('#alerts').innerHTML=[['Hoje',hoje,'--info','agenda'],['Retornar',typeof retAlerta==='function'?retAlerta():0,'--warn','retornos'],['Tarefas',tar,'--warn','tarefas'],['Vencidas',venc,'--danger','financeiro'],...((typeof atdAtrasadas==='function'&&atdAtrasadas())?[['Sem resposta',atdAtrasadas(),'--danger','atendimento']]:[]),...((typeof igAtrasadas==='function'&&igAtrasadas())?[['Instagram sem resposta',igAtrasadas(),'--danger','instagram']]:[]),...((typeof emNaoEnviados==='function'&&emNaoEnviados())?[['E-mails não enviados',emNaoEnviados(),'--danger','emails']]:[])].filter(x=>!(typeof modOffView==='function'&&modOffView(x[3]))).map(([l,n,c,v])=>`<button class="alert" data-nav="${v}">${l}<b style="background:var(${n?c:'--faint'})">${n}</b></button>`).join('');
 }
 function renderFoot(){
   const total=COLS.reduce((s,c)=>s+S.data[c].length,0);
@@ -6146,7 +6147,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 /* ===== Módulos (ativar / desativar partes do sistema) ===== */
 const MODULOS=[
   {k:'agenda',l:'Agenda e disponibilidade',d:'Agenda de eventos, sincronização com o Google Agenda, equipamentos e disponibilidade para vender.',v:['agenda','reldisp'],t:['agenda','equip']},
-  {k:'atendimento',l:'Atendimento WhatsApp',d:'Conversas do WhatsApp dentro do CRM, com a IA que atende, listas de contatos e criação de oportunidades.',v:['atendimento'],t:[]},
+  {k:'atendimento',l:'Atendimento WhatsApp',d:'Conversas do WhatsApp dentro do CRM, com a IA que atende, listas de contatos e criação de oportunidades.',v:['atendimento','instagram'],t:[]},
   {k:'emails',l:'E-mails',d:'Caixa de e-mails dentro do CRM, ligada aos contatos.',v:['emails'],t:['assinatura']},
   {k:'oportunidades',l:'Oportunidades e propostas',d:'Funil de vendas, oportunidades, propostas e relatórios de oportunidades.',v:['oportunidades','retornos','funil','propostas','relopp'],t:['funil','oport','categorias']},
   {k:'pedidos',l:'Pedidos e contratos',d:'Produtos, pedidos, contratos com assinatura digital, fichas de contratação e relatórios de vendas.',v:['produtos','pedidos','fichas','relvendas','relprod','relresv'],t:['termos','contratos','pedtar']},
@@ -6678,6 +6679,75 @@ function atdLimite(){return +(((S.cfg&&S.cfg.atendimento)||{}).alerta||10)}
 function atdEsperaHTML(min){if(!min)return '';const lim=atdLimite();const cor=min>=lim*3?'var(--danger)':min>=lim?'#d9480f':'var(--muted)';const t=min<60?Math.round(min)+' min':min<1440?Math.floor(min/60)+'h'+String(Math.round(min%60)).padStart(2,'0'):Math.floor(min/1440)+' d';return `<span class="atd-wait" style="color:${cor}" title="Cliente esperando resposta">⏱ ${t}</span>`}
 function atdInteresse(x){const p=String((x.lead&&x.lead.produto)||'').trim();return p?p.split(/[,/+]| e /)[0].trim():''}
 function atdAtrasadas(){try{const A=atdLoad();const lim=atdLimite();return A.conv.filter(x=>x.status!=='bot'&&atdEspera(x)>=lim).length}catch(_){return 0}}
+/* ===== Instagram Direct: mensagens das duas contas (Prime 360 e Elton) chegam pelo webhook no Apps Script ===== */
+const IG_LS='crm.ig.v1';
+function igLoad(){if(S.ig)return S.ig;let v=null;try{v=JSON.parse(localStorage.getItem(IG_LS)||'null')}catch(_){}S.ig=v||{linhas:[],ult:1,perfis:{},contas:[]};S.ig.sel=S.ig.sel||'';return S.ig}
+function igGuardar(){try{const G=S.ig;localStorage.setItem(IG_LS,JSON.stringify({linhas:G.linhas.slice(-3000),ult:G.ult,perfis:G.perfis,contas:G.contas,sel:G.sel,lidoEm:G.lidoEm}))}catch(_){}}
+async function igSync(manual){if(S._igRun||!window.GAS_URL)return;const mcp=await getMcp();if(!mcp)return;S._igRun=true;const G=igLoad();
+  try{const r=await mcp.callTool('Instagram','listar',{desde:G.ult||1});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);
+    const vis=new Set(G.linhas.map(x=>x.mid).filter(Boolean));const nov=(pl.linhas||[]).filter(x=>!x.mid||!vis.has(x.mid));G.linhas=[...G.linhas.filter(x=>!x._local||!nov.some(n=>n.dir==='out'&&n.cliente===x.cliente&&n.t===x.t)),...nov];
+    if(pl.ultima)G.ult=pl.ultima;G.perfis={...G.perfis,...(pl.perfis||{})};if(pl.contas)G.contas=pl.contas;G.ok=true;G.erro='';G.sync=new Date().toISOString();igGuardar();
+    if(nov.length||manual){if(S.view==='instagram')render();else if(typeof renderAlerts==='function')renderAlerts()}}
+  catch(e){G.erro=String((e&&e.message)||e);if(manual)toast(G.erro,true)}finally{S._igRun=false}}
+setInterval(()=>{if(document.hidden||!window.GAS_URL||!S.dono)return;const G=igLoad();if(!G.contas.length&&!G.ok&&G._tent>3)return;G._tent=(G._tent||0)+1;igSync()},30000);
+setTimeout(()=>{if(window.GAS_URL)igSync()},6000);
+function igConvs(){const G=igLoad();const M={};G.linhas.forEach(x=>{const k=x.conta+'|'+x.cliente;(M[k]=M[k]||{id:k,conta:x.conta,cliente:x.cliente,msgs:[]}).msgs.push(x)});
+  return Object.values(M).map(c=>{c.msgs.sort((a,b)=>String(a.em).localeCompare(String(b.em)));const pf=G.perfis[c.id]||{};c.nome=pf.nome||(pf.usuario?'@'+pf.usuario:'Cliente …'+String(c.cliente).slice(-4));c.usuario=pf.usuario||'';
+    const ct=G.contas.find(y=>y.igId===c.conta)||{};c.contaNome=ct.usuario?'@'+ct.usuario:(ct.nome||'Instagram');c.prime=/prime/i.test((ct.usuario||'')+(ct.nome||''));
+    const outs=c.msgs.filter(m=>m.dir==='out');c.atendente=outs.length?outs[outs.length-1].quem:'';return c})}
+function igEspera(c){const m=c.msgs;if(!m.length||m[m.length-1].dir!=='in')return 0;let i=m.length-1;while(i>0&&m[i-1].dir==='in')i--;return Math.max(0,(Date.now()-new Date(m[i].em).getTime())/60000)}
+function igAtrasadas(){const G=S.ig||igLoad();if(!G.linhas.length)return 0;const lim=atdLimite();return igConvs().filter(c=>{const e=igEspera(c);return e>=lim&&e<60*24*3}).length}
+/* lembrete automático (roda no Apps Script a cada 30 min, mesmo com o CRM fechado) */
+const IG_LEMB_PADRAO={ligado:true,horas:20,ini:8,fim:21,prime:'Oi{nome}! 😊 Passando para saber se você ainda tem interesse nos nossos equipamentos para o seu evento.\n\nMe manda a *data* e a *cidade* que eu já consulto a agenda para você!',elton:'Oi{nome}! 😊 Passando para saber se você ainda tem interesse no nosso trabalho.\n\nMe manda a *data* e a *cidade* do evento que eu já consulto a agenda para você!'};
+function igLemb(){return {...IG_LEMB_PADRAO,...(cfg().igLemb||{})}}
+function igLembHTML(){const L=igLemb();return `<details class="panel atd-cfg" style="margin-top:12px"><summary><b>⏰ Lembrete automático</b> <span class="muted">— cliente parou de responder: antes de fechar a janela de 24 h, manda um lembrete (uma vez só)</span></summary>
+  <div class="fgrid" style="margin-top:10px">
+   <div class="field"><label>Ligado</label><select data-iglb="ligado"><option value="1" ${L.ligado?'selected':''}>Sim</option><option value="0" ${!L.ligado?'selected':''}>Não</option></select></div>
+   <div class="field"><label>Mandar quantas horas depois da última mensagem do cliente</label><input type="number" min="2" max="23" data-iglb="horas" value="${L.horas}"></div>
+   <div class="field"><label>Só entre (hora)</label><input type="number" min="0" max="23" data-iglb="ini" value="${L.ini}"></div>
+   <div class="field"><label>e (hora)</label><input type="number" min="1" max="24" data-iglb="fim" value="${L.fim}"></div>
+   <div class="field full"><label>Texto do lembrete — Prime 360 ({nome} = primeiro nome do cliente)</label><textarea rows="4" data-iglb="prime">${esc(L.prime)}</textarea></div>
+   <div class="field full"><label>Texto do lembrete — Elton Fotógrafo</label><textarea rows="4" data-iglb="elton">${esc(L.elton)}</textarea></div>
+   <div class="field full muted" style="font-size:12.5px;line-height:1.6">Só manda quando <b>a última mensagem foi de vocês</b> (o cliente parou de responder), pelo menos 2 h depois da resposta de vocês e dentro das 24 h. Se a hora certa cair de madrugada, manda antes de fechar o horário. Se o cliente responder, volta tudo ao normal.</div>
+  </div></details>`}
+document.addEventListener('change',async e=>{const t=e.target;const k=t&&t.dataset&&t.dataset.iglb;if(!k)return;let v=t.value;if(k==='ligado')v=v==='1';else if(['horas','ini','fim'].includes(k))v=+v;
+  const L={...igLemb(),[k]:v};await cfgSet('igLemb',L);try{const mcp=await getMcp();if(mcp&&window.GAS_URL){const r=await mcp.callTool('Instagram','config',L);const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro)}toast('Lembrete salvo.')}catch(err){toast('Salvo no CRM, mas o Apps Script não recebeu: '+((err&&err.message)||err),true)}});
+VIEWS.instagram=()=>{const G=igLoad();const U=S.ui.ig=S.ui.ig||{f:'todos'};const lim=atdLimite();const C=igConvs();
+  const tsU=x=>new Date((x.msgs[x.msgs.length-1]||{}).em||0).getTime();
+  const L=C.filter(c=>U.f==='todos'||(U.f==='espera'&&igEspera(c)>0)||(U.f==='prime'&&c.prime)||(U.f==='elton'&&!c.prime)).sort((a,b)=>{const ea=igEspera(a),eb=igEspera(b);if((ea>0)!==(eb>0))return eb>0?1:-1;if(ea>0&&eb>0)return eb-ea;return tsU(b)-tsU(a)});
+  const c=C.find(x=>x.id===G.sel)||L[0];if(c)G.sel=c.id;
+  const cor=x=>x.prime?'#e8590c':'#1f2937';const at=C.filter(x=>igEspera(x)>=lim&&igEspera(x)<4320).length;
+  const bolha=m=>{const hr=new Date(m.em);const h=(fdateShort(iso(hr))||'')+' '+hr.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});const cli=m.dir==='in';
+    return `<div class="atd-b ${cli?'cli':'eq'}"><div class="atd-q">${cli?esc(c.nome):m.quem==='Lembrete automático'?'⏰ Lembrete automático':'👤 '+esc(m.quem||'Equipe')}</div>${m.t?`<div style="white-space:pre-wrap">${esc(m.t)}</div>`:''}${m.anexo?`<div style="font-size:12px">${m.anexo.split(' | ').map(a=>{const [tp,u]=[a.split(' ')[0],a.split(' ').slice(1).join(' ')];return u?`<a href="${esc(u)}" target="_blank" rel="noopener">📎 ${esc(tp)}</a>`:'📎 '+esc(tp)}).join(' ')}</div>`:''}<div class="atd-h">${h}</div></div>`};
+  const semCfg=!G.contas.length;
+  return `${head('Instagram Direct','Instagram Direct',`<button class="btn" data-igsync>${ic('refresh',14)} Atualizar</button>`)}
+  ${semCfg?`<div class="banner" style="margin:0 0 12px"><span>🔌 <b>Ainda não ligado.</b> Falta configurar a Meta no Apps Script (IG_TOKEN + igConfigurar) e cadastrar o webhook. ${G.erro?'<br><span class="muted">Último erro: '+esc(G.erro)+'</span>':''}</span></div>`:''}
+  <div class="atd-chips">${[['todos','Todas'],['espera',`⏱ Sem resposta (${C.filter(x=>igEspera(x)>0).length})`],['prime','📷 Prime 360'],['elton','📷 Elton']].map(([k,l])=>`<button class="btn sm${U.f===k?' pri':''}" data-igf="${k}">${l}</button>`).join('')}<span class="muted" style="font-size:12px;align-self:center">${G.sync?'atualizado '+new Date(G.sync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''}</span></div>
+  ${at?`<div class="banner" style="border-color:var(--danger);margin:0 0 10px"><span>⚠️ <b>${at} cliente${at>1?'s':''} no Instagram esperando resposta há mais de ${lim} min.</b> Estão no topo da lista.</span></div>`:''}
+  <div class="atd-wrap"><div class="atd-list">${L.map(x=>{const u=x.msgs[x.msgs.length-1];const e=igEspera(x);return `<button class="atd-it${c&&x.id===c.id?' on':''}" data-igsel="${esc(x.id)}"><div style="display:flex;gap:8px;align-items:center"><span class="atd-av" style="background:${cor(x)}">${esc((x.nome.replace('@','')||'?')[0].toUpperCase())}</span><div style="min-width:0;flex:1"><div style="display:flex;justify-content:space-between;gap:6px"><b class="atd-nm">${esc(x.nome)}</b><span class="atd-h">${e?atdEsperaHTML(e):(u?new Date(u.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'')}</span></div><div class="atd-pv">${u?(u.dir==='out'?'Você: ':'')+esc((u.t||'📎 anexo').split('\n')[0]):''}</div><div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap"><span class="atd-tag" style="color:${cor(x)};font-weight:700">📷 ${esc(x.contaNome)}</span>${x.atendente?`<span class="atd-tag" style="color:#2a5db0">👤 ${esc(String(x.atendente).split(' ')[0])}</span>`:''}</div></div></div></button>`}).join('')||`<div class="muted" style="padding:14px">${semCfg?'Assim que ligar, as conversas aparecem aqui.':'Nenhuma conversa aqui.'}</div>`}</div>
+   <div class="atd-chat">${c?`<div class="atd-top"><div style="min-width:0"><b style="font-size:16px">${esc(c.nome)}</b> ${c.usuario?`<a class="muted" style="font-size:12.5px" href="https://instagram.com/${esc(c.usuario)}" target="_blank" rel="noopener">@${esc(c.usuario)}</a>`:''} <span style="font-size:12.5px;color:${cor(c)};font-weight:700">· 📷 ${esc(c.contaNome)}</span><div style="font-size:12.5px">${c.atendente?`<span style="color:#2a5db0">Último a responder: ${esc(c.atendente)}</span>`:'<span class="muted">Ninguém respondeu ainda</span>'}${igEspera(c)?' · '+atdEsperaHTML(igEspera(c)):''}</div></div>
+     <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-igopp>+ Criar oportunidade</button></div></div>
+    <div class="atd-msgs" id="ig-msgs">${c.msgs.map(bolha).join('')}</div>
+    <div class="atd-send"><div class="atd-sendrow"><textarea id="ig-txt" rows="2" placeholder="Responder pelo ${esc(c.contaNome)}… (Enter envia, Shift+Enter quebra linha)" style="flex:1;resize:vertical">${esc(U.rasc&&U.rasc[c.id]||'')}</textarea><button class="btn pri" data-igenv>Enviar</button></div>
+     <div class="muted" style="font-size:11.5px;padding:0 4px">O Instagram só deixa responder até 24 h depois da última mensagem do cliente. Respostas dadas pelo app do Instagram também aparecem aqui.</div></div>`:''}</div></div>${igLembHTML()}`};
+async function igEnviarMsg(){const G=igLoad();const c=igConvs().find(x=>x.id===G.sel);const ta=$('#ig-txt');if(!c||!ta)return;const t=ta.value.trim();if(!t)return;const mcp=await getMcp();if(!mcp){toast('Sem ligação com o Apps Script.',true);return}
+  const quem=(typeof usuarioAtual==='function'&&usuarioAtual())||'Equipe';const b=$('[data-igenv]');if(b)b.disabled=true;
+  try{const r=await mcp.callTool('Instagram','enviar',{conta:c.conta,para:c.cliente,texto:t,quem});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);
+    G.linhas.push({em:new Date().toISOString(),conta:c.conta,cliente:c.cliente,dir:'out',t,mid:pl.mid||'',quem,_local:!pl.mid});if(S.ui.ig&&S.ui.ig.rasc)delete S.ui.ig.rasc[c.id];igGuardar();render();setTimeout(()=>igSync(),4000)}
+  catch(e){toast(String((e&&e.message)||e),true)}finally{if(b)b.disabled=false}}
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-igsel],[data-igf],[data-igsync],[data-igenv],[data-igopp]');if(!t)return;e.preventDefault();const d=t.dataset;const G=igLoad();
+  if(d.igsel!==undefined){G.sel=d.igsel;igGuardar();render();setTimeout(()=>{const m=$('#ig-msgs');if(m)m.scrollTop=m.scrollHeight},30);return}
+  if(d.igf){S.ui.ig.f=d.igf;render();return}
+  if(t.hasAttribute('data-igsync')){await igSync(true);return}
+  if(t.hasAttribute('data-igenv')){await igEnviarMsg();return}
+  if(t.hasAttribute('data-igopp')){const c=igConvs().find(x=>x.id===G.sel);if(!c)return;const ig=c.usuario?'@'+c.usuario:'';
+    let ct=ig&&S.data.contatos.find(x=>nrm(x.instagram||'').replace(/^@/,'')===nrm(c.usuario));let cid=ct&&ct.id;
+    if(!cid){const [pn,...rs]=String(c.nome.replace(/^@/,'')).split(' ');cid=await save('contatos',{nome:pn,sobrenome:rs.join(' '),instagram:ig,origem:'Instagram',obs:'Veio pelo Direct do '+c.contaNome+'.'})}
+    const txt=c.msgs.filter(m=>m.dir==='in').slice(-6).map(m=>m.t).filter(Boolean).join('\n');
+    const oid=await save('oportunidades',{titulo:`Instagram - ${c.nome}`,contatoId:cid,origem:'Instagram',etapa:ETAPAS[0][0],prioridade:'Média',proximaAcao:today(),notas:(c.prime?'Prime 360':'Fotografia')+' · Direct '+c.contaNome+(txt?'\n'+txt:''),vendedor:(typeof usuarioAtual==='function'&&usuarioAtual())||'Elton Melchioretto'});
+    toast('Oportunidade criada (retorno para hoje).');return}});
+document.addEventListener('keydown',e=>{if(e.target&&e.target.id==='ig-txt'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();igEnviarMsg()}});
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='ig-txt'){const G=igLoad();const U=S.ui.ig=S.ui.ig||{f:'todos'};U.rasc=U.rasc||{};U.rasc[G.sel]=e.target.value}});
 VIEWS.atendimento=()=>{const A=atdLoad();const U=S.ui.atd=S.ui.atd||{f:'todos'};const C=atdCfg();
   const lim=atdLimite();const tsU=x=>{const u=(x.msgs||[])[x.msgs.length-1];return u?new Date(u.em).getTime():0};const lista=A.conv.filter(c=>U.f==='todos'||c.num===U.f||c.status===U.f||(U.f==='espera'&&atdEspera(c)>0)||(U.f.startsWith('L:')&&(c.listas||[]).includes(U.f.slice(2)))||(U.f.startsWith('I:')&&nrm(atdInteresse(c))===nrm(U.f.slice(2)))).sort((a,b)=>{const ea=atdEspera(a),eb=atdEspera(b);if((ea>0)!==(eb>0))return eb>0?1:-1;if(ea>0&&eb>0)return eb-ea;return tsU(b)-tsU(a)});const c=atdConv();const intr=[...new Set(A.conv.map(atdInteresse).filter(Boolean))].sort();
   const ult=x=>x.msgs[x.msgs.length-1];
