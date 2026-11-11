@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261111085756';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261111131711';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -5276,10 +5276,12 @@ function lixeiraModal(){const L=lixeira();$('#modalRoot').innerHTML=`<div class=
   <footer><span class="sp"></span><button class="btn" data-close>Fechar</button></footer></div></div>`}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-lixeira]');if(!t)return;e.preventDefault();lixeiraModal()});
 /* uma vez: recria a parcela de nov/2026 do empréstimo do carro (Crevisc) que foi apagada sem querer */
-setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.crevNov2||(S.mode==='db'&&!S._cfgOk)||S._cvRun)return;S._cvRun=true;
+setInterval(async()=>{if(!S.cfg||S.cfg.crevNov3||(S.mode==='db'&&!S._cfgOk)||S._cvRun)return;S._cvRun=true;
   try{const ok=l=>/emprestimo\s*compra\s*carro/.test(nrm(l.descricao||'')+' '+nrm(l.obs||''));const G=S.data.lancamentos.filter(l=>l.tipo!=='receber'&&ok(l));const dez=G.find(l=>String(l.vencimento||'').startsWith('2026-12'));
     if(!dez)return;/* espera o financeiro carregar inteiro */
-    await cfgSet('crevNov2',new Date().toISOString());if(G.some(l=>String(l.vencimento||'').startsWith('2026-11')))return;
+    const nov=G.filter(l=>String(l.vencimento||'').startsWith('2026-11')||String(l.dataPagamento||'').startsWith('2026-11'));
+    await cfgSet('crevNov3',new Date().toISOString());
+    if(nov.length){const x=nov[0];toast(`A parcela de nov/2026 do empréstimo do carro já existe: ${x.pago?'PAGA em '+fdate(x.dataPagamento||'')+(x.conta?' na conta '+x.conta:''):'em aberto'} (venc. ${fdate(x.vencimento||'')}). ${x.pago?'Use o botão ← "Desfazer pagamento" nela.':''}`,true);return}
     const {id,aid,num,criadoEm,atualizadoEm,extKey,extKeys,conciliado,dataPagamento,alboomId,...base}=dez;const vd=String(dez.vencimento);
     await save('lancamentos',{...base,tipo:'pagar',vencimento:'2026-11'+vd.slice(7,10),pago:false,dataPagamento:'',obs:[base.obs,'Parcela de nov/2026 recriada (tinha sido apagada ao corrigir o pagamento).'].filter(Boolean).join('\n')});
     toast('Parcela de novembro do empréstimo do carro (Crevisc) voltou para Contas a pagar.');render()}catch(e){console.warn('crevNov',e)}finally{S._cvRun=false}},9000);
