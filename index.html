@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261111180323';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261111182653';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -101,7 +101,12 @@ auth.onAuthStateChanged(async user=>{
   const email=String(user.email||'').toLowerCase();
   EU={id:user.uid,name:user.displayName||'',email,isOwner:email===DONO,canEdit:true,avatarUrl:user.photoURL||'',color:'#2f6f5e'};
   tela('<p>Verificando acesso…</p>');
-  let g,ultErr;for(let t=0;t<3&&!g;t++){try{g=await fs.doc('config/geral').get(t?{source:'server'}:undefined)}catch(e){ultErr=e;if(e&&e.code==='permission-denied')break;await new Promise(r=>setTimeout(r,1500))}}
+  const t0=Date.now();const tk=setInterval(()=>{const sgs=Math.round((Date.now()-t0)/1000);tela(`<p>Verificando acesso… ${sgs}s</p>${sgs>=12?'<p style="font-size:12px;color:#777">A internet ou o Google está lento agora.</p><p><button id="gxr3">Tentar de novo</button></p>':''}`);const b=document.getElementById('gxr3');if(b)b.onclick=()=>location.reload()},1000);
+  let g,ultErr;
+  /* abre na hora com a cópia guardada neste computador; o servidor atualiza logo em seguida */
+  try{const c=await Promise.race([fs.doc('config/geral').get({source:'cache'}),new Promise((_,j)=>setTimeout(()=>j(new Error('t')),2500))]);if(c&&c.exists)g=c}catch(_){}
+  for(let t=0;t<3&&!g;t++){try{g=await fs.doc('config/geral').get(t?{source:'server'}:undefined)}catch(e){ultErr=e;if(e&&e.code==='permission-denied')break;await new Promise(r=>setTimeout(r,1500))}}
+  clearInterval(tk);
   if(!g&&ultErr&&ultErr.code!=='permission-denied'){tela(`<p style="margin-top:0">Não consegui abrir o banco agora.</p><p style="font-size:12px;color:#777">${String(ultErr.code||'')} ${String(ultErr.message||ultErr).replace(/</g,'&lt;').slice(0,200)}</p><p><button id="gxr2">Tentar de novo</button></p><p><a href="#" id="gxs2" style="color:#6b716d">Sair</a></p>`);document.getElementById('gxr2').onclick=()=>location.reload();document.getElementById('gxs2').onclick=ev=>{ev.preventDefault();window.crmSair()};return}
   if(!g)try{throw ultErr}catch(e){
     tela(`<p style="margin-top:0"><b>${user.email}</b> não tem acesso a este CRM.</p><p style="font-size:11.5px;color:#888">Detalhe: ${String((e&&e.code)||'')} · e-mail verificado: ${user.emailVerified?'sim':'não'} · ${(user.providerData||[]).map(p=>p.providerId).join(', ')}</p><p>Peça ao Elton para cadastrar este e-mail como <b>Administrador</b> em Configurações › Usuários.</p><p><button id="gxo">Entrar com outra conta</button></p>`);document.getElementById('gxo').onclick=()=>auth.signOut();return}
@@ -3964,7 +3969,7 @@ async function backupDrive(silent){
 function bkDevido(){const B=bkCfg();if(!B.auto)return false;const h=Math.max(1,+B.horas||5);if(!B.ultimo)return true;return Date.now()-Date.parse(B.ultimo)>=h*3600e3}
 function bkAuto(){if(!S.dono)return;if(S.importing||S.syncing||BK_RUN||S.mode!=='db')return;if(!COLS.every(c=>S.loaded&&S.loaded.has(c)))return;
   const B=bkCfg();if(B.ultimoErro&&Date.now()-Date.parse(B.ultimoErro.split(' · ')[0])<3600e3)return;
-  if(bkDevido())backupDrive(true)}
+  if(bkDevido()){try{const t=+localStorage.getItem('crm-bk-lock')||0;if(Date.now()-t<15*60e3)return;localStorage.setItem('crm-bk-lock',String(Date.now()))}catch(_){}backupDrive(true)}}
 setTimeout(bkAuto,20000);setInterval(bkAuto,10*60*1000);
 const fdh=iso=>{if(!iso)return '—';const d=new Date(iso);return isNaN(d)?'—':d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})};
 VIEWS.backup=()=>{const B=bkCfg();const prox=B.auto?(B.ultimo?new Date(Date.parse(B.ultimo)+Math.max(1,+B.horas||5)*3600e3):null):null;
@@ -5285,8 +5290,14 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     await save('pedidos',{...p,itens:it,custos:CU});for(let t=0;t<20&&Math.abs(pedidoTotal(S.data.pedidos.find(x=>x.id===p.id)||p)-pedidoTotal({...p,itens:it}))>0.01;t++)await new Promise(r=>setTimeout(r,150));try{await pedParcAuto(p.id)}catch(_){}const o=p.oportunidadeId&&S.data.oportunidades.find(x=>x.id===p.oportunidadeId);
     closeModal();toast(`Item salvo. Total do pedido: ${brl(pedidoTotal({...p,itens:it}))} (parcelas em aberto ajustadas).`);render()}catch(err){failWrite(err)}finally{t.disabled=false}});
 /* ===== Apagar conta já paga: pergunta se é para desfazer o pagamento (como no Alboom) ou apagar de vez; o que for apagado vai para a Lixeira ===== */
-function lixeira(){return (cfg().lixeira||[]).filter(x=>x&&x.em&&(Date.now()-new Date(x.em).getTime())<60*864e5)}
-{const _rmLx=removeRec;removeRec=async function(col,id,...r){if(col==='lancamentos'){const l=S.data.lancamentos.find(x=>x.id===id);if(l&&!String(id).startsWith('f~')){try{const L=[{em:new Date().toISOString(),quem:(typeof usuarioAtual==='function'&&usuarioAtual())||'',rec:JSON.parse(JSON.stringify(l))},...lixeira()].slice(0,150);await cfgSet('lixeira',L)}catch(_){}}}return _rmLx.call(this,col,id,...r)}}
+/* Lixeira fica num documento separado (config/lixeira), para não pesar a configuração que abre junto com o CRM */
+let LX=null;
+async function lxLer(){if(LX)return LX;let L=[];try{if(S.mode==='db'){const d=await S.db.doc('config/lixeira').get();L=(d&&d.exists&&(d.data().itens))||[]}else L=JSON.parse(localStorage.getItem('grupoe-lixeira')||'[]')}catch(_){}
+  if((cfg().lixeira||[]).length){L=[...cfg().lixeira,...L]}LX=L.filter(x=>x&&x.em&&(Date.now()-new Date(x.em).getTime())<60*864e5).slice(0,150);return LX}
+async function lxGravar(L){LX=L;try{if(S.mode==='db')await S.db.doc('config/lixeira').set({itens:L});else localStorage.setItem('grupoe-lixeira',JSON.stringify(L))}catch(_){}
+  if(S.cfg&&S.cfg.lixeira){const {lixeira,...rest}=S.cfg;S.cfg=rest;if(S.mode==='db')S.db.doc('config/geral').set(rest).catch(()=>{})}}
+function lixeira(){return LX||[]}
+{const _rmLx=removeRec;removeRec=async function(col,id,...r){if(col==='lancamentos'){const l=S.data.lancamentos.find(x=>x.id===id);if(l&&!String(id).startsWith('f~')){try{const L=[{em:new Date().toISOString(),quem:(typeof usuarioAtual==='function'&&usuarioAtual())||'',rec:JSON.parse(JSON.stringify(l))},...(await lxLer())].slice(0,150);await lxGravar(L)}catch(_){}}}return _rmLx.call(this,col,id,...r)}}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-del="lancamentos"]');if(!t||t.dataset.delok)return;const l=S.data.lancamentos.find(x=>x.id===t.dataset.id);if(!l||!l.pago)return;
   e.preventDefault();e.stopImmediatePropagation();const pg=l.tipo==='pagar';
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:520px"><header><h3>Esta conta já está ${pg?'paga':'recebida'}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
@@ -5297,11 +5308,12 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-lxundo],[data-lxdel],[data-lxrest]');if(!t)return;e.preventDefault();const d=t.dataset;t.disabled=true;
   try{if(d.lxundo){await patch('lancamentos',d.lxundo,{pago:false,dataPagamento:'',conciliado:false,extKey:'',extKeys:[]});closeModal();toast('Pagamento desfeito: a conta voltou para em aberto.');render();return}
     if(d.lxdel){await removeRec('lancamentos',d.lxdel);closeModal();toast('Conta apagada (está na Lixeira por 60 dias).');render();return}
-    if(d.lxrest){const L=lixeira();const x=L[+d.lxrest];if(!x)return;const {id,...rec}=x.rec;await save('lancamentos',{...x.rec});await cfgSet('lixeira',L.filter((_,i)=>i!==+d.lxrest));toast('Conta restaurada.');lixeiraModal();render();return}}
+    if(d.lxrest){const L=await lxLer();const x=L[+d.lxrest];if(!x)return;await save('lancamentos',{...x.rec});await lxGravar(L.filter((_,i)=>i!==+d.lxrest));toast('Conta restaurada.');lixeiraModal();render();return}}
   catch(err){failWrite(err)}finally{t.disabled=false}});
-function lixeiraModal(){const L=lixeira();$('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:760px"><header><h3>🗑️ Lixeira do financeiro</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+async function lixeiraModal(){const L=await lxLer();$('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:760px"><header><h3>🗑️ Lixeira do financeiro</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
   <div class="mbody">${L.length?`<table class="tbl"><thead><tr><th>Apagada em</th><th>Conta</th><th class="r">Valor</th><th></th></tr></thead><tbody>${L.map((x,i)=>`<tr><td class="num">${fdate(iso(new Date(x.em)))}${x.quem?'<div class="muted" style="font-size:11.5px">'+esc(x.quem)+'</div>':''}</td><td>${esc(x.rec.descricao||'')}<div class="muted" style="font-size:12px">venc. ${fdate(x.rec.vencimento||'')}${x.rec.pago?' · paga':''}</div></td><td class="r num">${brl(+x.rec.valor||0)}</td><td class="r"><button class="btn sm" data-lxrest="${i}">↩️ Restaurar</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">Nada na lixeira. Contas apagadas ficam aqui por 60 dias.</p>'}</div>
   <footer><span class="sp"></span><button class="btn" data-close>Fechar</button></footer></div></div>`}
+setInterval(async()=>{if(S.cfg&&(S.cfg.lixeira||[]).length&&(S.mode!=='db'||S._cfgOk)&&!S._lxMv){S._lxMv=1;try{await lxGravar(await lxLer())}catch(_){}}},15000);
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-lixeira]');if(!t)return;e.preventDefault();lixeiraModal()});
 /* uma vez: recria a parcela de nov/2026 do empréstimo do carro (Crevisc) que foi apagada sem querer */
 setInterval(async()=>{if(!S.cfg||S.cfg.crevNov3||(S.mode==='db'&&!S._cfgOk)||S._cvRun)return;S._cvRun=true;
