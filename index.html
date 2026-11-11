@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261111141602';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261111144546';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4625,7 +4625,13 @@ async function extLer(file){const nm=(file.name||'').toLowerCase();let res;
     if(R.length>=2)res={conta:extConta(L.join('\n')),R};
     else{const d=await iaChamar('ler_fatura',file,IA_PROMPT_EXTRATO());res={conta:d.conta?{ag:d.agencia||'',conta:d.conta}:null,R:(d.movimentos||[]).map(m=>({d:m.data,hist:m.historico||'',nome:m.nome||'',doc:m.documento||'',v:+m.valor||0,saldo:m.saldo==null?null:+m.saldo})).filter(r=>r.d&&r.v)}}}
   else throw new Error('Envie o extrato em OFX, CSV ou PDF.');
-  res.R.forEach((r,i)=>{r.i=i;r.v=Math.round(r.v*100)/100;r.key=[r.d,String(r.doc||'').replace(/^0+/,''),r.v.toFixed(2),r.saldo!=null?r.saldo.toFixed(2):i].join('|')});return res}
+  res.R.forEach((r,i)=>{r.i=i;r.v=Math.round(r.v*100)/100;r.key=[r.d,String(r.doc||'').replace(/^0+/,''),r.v.toFixed(2),r.saldo!=null?r.saldo.toFixed(2):i].join('|')});
+  /* o CSV do Bradesco não traz o nome de quem recebeu/pagou; o PDF traz. Guarda os nomes lidos de PDF/OFX e completa o CSV com eles */
+  try{const K='crm.extNomes';const M=JSON.parse(localStorage.getItem(K)||'{}');const ch=r=>[r.d,String(r.doc||'').replace(/^0+/,''),r.v.toFixed(2)].join('|');let n=0;
+    res.R.forEach(r=>{const k=ch(r);if(r.nome){if(M[k]!==r.nome){M[k]=r.nome;n++}}else if(M[k])r.nome=M[k]});
+    if(n){const ks=Object.keys(M);if(ks.length>6000)ks.slice(0,ks.length-6000).forEach(k=>delete M[k]);localStorage.setItem(K,JSON.stringify(M))}
+    res.semNome=res.R.filter(r=>!r.nome&&/pix|ted|transf/i.test(r.hist||'')).length}catch(_){}
+  return res}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-extcanc]');if(!t)return;e.preventDefault();S._extTk=0;closeModal();toast('Leitura cancelada.')});
 /* ---- casamento com o CRM ---- */
 const extTok=s=>normTxt(s).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>=3&&!/^(ltda|me|eireli|epp|pix|recebido|enviado|qr|code|dinamico|estatico|pagto|eletron|cobranca|ted|doc|transf|de|da|do|dos|das)$/.test(w));
@@ -4704,7 +4710,7 @@ async function extAbrir(file){iaEspera('Lendo o extrato');const tk=S._extTk=Date
   if(!res.R.length){closeModal();toast('Não encontrei movimentos nesse arquivo.',true);return}
   const dig=s=>String(s||'').replace(/\D/g,'');let b=null;if(res.conta){b=bancos().find(x=>dig(x.numero)&&dig(x.numero)===dig(res.conta.conta)&&(!x.agencia||!res.conta.ag||dig(x.agencia).replace(/^0+/,'')===dig(res.conta.ag).replace(/^0+/,'')))}
   if(!b)b=bancos().find(x=>x.id===S.ui.cbx.conta)||bancos()[0];
-  S.ext={file:file.name,R:res.R,banco:b,f:'todos',auto:!!(res.conta&&b&&dig(b.numero)===dig(res.conta.conta))};extCasar(S.ext);extModal()}
+  S.ext={file:file.name,R:res.R,banco:b,semNome:res.semNome||0,csv:/\.(csv|txt)$/i.test(file.name||''),f:'todos',auto:!!(res.conta&&b&&dig(b.numero)===dig(res.conta.conta))};extCasar(S.ext);extModal()}
 const EXT_ST={bateu:['Bateu','--ok'],parecido:['Conferir','--warn'],novo:['Novo','--info'],ja:['Já lançado','--idle'],feito:['Já conciliado','--idle']};
 function extLRot(l){const p=l.pedidoId&&S.data.pedidos.find(x=>x.id===l.pedidoId);return `${fdateShort(l.vencimento||l.dataPagamento)} · ${brl(+l.valor)} · ${(()=>{const n=(contatoNome(l.contatoId)||l.contatoNome||'').slice(0,28);return n?(l.tipo==='pagar'?'fornecedor ':'cliente ')+n:''})()}${p?' · #'+p.num:''} · ${(l.descricao||'').slice(0,40)}`}
 function extPagosSim(r){const E=S.ext;if(!E)return [];const av=Math.abs(+r.v||0),tp=(+r.v||0)<0?'pagar':'receber',bn=normTxt((E.banco&&E.banco.nome)||''),d0=r.dOp||r.d;
@@ -4746,6 +4752,7 @@ function extModal(){const E=S.ext;if(!E)return;const _w=document.getElementById(
   const chip=(k,l,n)=>`<button type="button" class="${F===k?'on':''}" data-exf="${k}">${l}${n!=null?' '+n:''}</button>`;
   $('#modalRoot').innerHTML=`<div class="overlay"><div class="modal" style="max-width:1150px;width:96vw"><header><h3>Conciliar extrato · ${esc(E.banco.nome)}</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
    <div class="mbody" style="display:grid;gap:10px">
+    ${E.csv&&E.semNome?`<div class="banner" style="margin:0 0 10px;font-size:13px"><span>ℹ️ <b>O CSV do Bradesco não traz o nome</b> de quem recebeu/pagou o PIX (${E.semNome} movimentos só com "PIX ENVIADO/RECEBIDO"). Para ver os nomes, use o <b>extrato em PDF</b> do mesmo período — o CRM lê direto e guarda os nomes; depois disso, até o CSV passa a mostrar.</span></div>`:''}
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px"><span class="muted">${esc(E.file)} · ${R.length} movimentos · ${fdateShort(R[0].d)} a ${fdateShort(ate)}</span><span class="sp" style="flex:1"></span>
      <label class="muted">Conta: <select class="search" data-exb style="width:auto">${bancos().map(x=>`<option value="${x.id}" ${x.id===E.banco.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label></div>
     ${sx?`<div class="banner" style="margin:0;${Math.abs(sx.saldo-sCRM)<0.01?'':'border-color:var(--warn)'}"><span>Saldo no extrato em ${fdateShort(sx.d)}: <b class="num">${brl(sx.saldo)}</b> · no CRM: <b class="num">${brl(sCRM)}</b> ${Math.abs(sx.saldo-sCRM)<0.01?'<b style="color:var(--ok)">✓ batendo</b>':`<span style="color:var(--warn)">(diferença ${brl(sx.saldo-sCRM)})</span>`}</span></div>`:''}
