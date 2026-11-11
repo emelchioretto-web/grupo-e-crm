@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261111163054';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261111163926';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -669,6 +669,8 @@ a.btn{color:inherit;text-decoration:none}
 #ia-data,#ia-venc{min-height:0;height:auto}#pay-valor,#pay-data{height:40px;box-sizing:border-box}
 [data-frbox][hidden]{display:none!important}
 .iaf-tbl thead th{position:sticky;top:0;z-index:3;background:var(--surface);box-shadow:0 1px 0 var(--line)}
+
+.ext-tbl td,.ext-tbl th{white-space:normal;overflow-wrap:anywhere}.ext-tbl td:last-child select,.ext-tbl td:last-child input,.ext-tbl td:last-child textarea{max-width:100%;min-width:0;box-sizing:border-box}.ext-tbl td:last-child>div,.ext-tbl td:last-child{min-width:0}
 </style>
 
 <div class="app" id="app">
@@ -4672,7 +4674,7 @@ function extCasar(E){const b=E.banco;const byN={},byC={};bancos().forEach(x=>{by
       const C=abertos.filter(l=>!usados.has(l.id)&&l.tipo==='pagar'&&/cart/i.test(l.forma||'')&&/cr[eé]d/i.test(l.forma||'')&&Math.abs(extDias(l.vencimento||r.d,r.d))<=6);const vGrp={};C.forEach(l=>{(vGrp[l.vencimento+'|'+normTxt(l.forma)]=vGrp[l.vencimento+'|'+normTxt(l.forma)]||[]).push(l)});
       const gs=Object.values(vGrp).map(G=>({G,s:Math.round(G.reduce((s,l)=>s+(+l.valor||0),0)*100)/100}));const ok=gs.find(x=>Math.abs(x.s-av)<0.05);
       if(ok){r.st='bateu';r.cartao=ok.G;r.cands=[];r.acao='baixarCartao';ok.G.forEach(l=>usados.add(l.id));return}
-      r.st='novo';r.acao='ignorarSempre';r.mexeu=true;const pr=gs.sort((a,b)=>Math.abs(a.s-av)-Math.abs(b.s-av))[0];
+      r.st='feito';r.cartaoIgn=true;r.acao='ignorarSempre';const pr=gs.sort((a,b)=>Math.abs(a.s-av)-Math.abs(b.s-av))[0];
       r.dica=pr?`Pagamento da fatura do cartão. As compras do cartão em aberto com vencimento ${fdate(pr.G[0].vencimento)} somam ${brl(pr.s)} (diferença ${brl(av-pr.s)}). Já vem como "Ignorar de vez" (as compras do cartão entram uma a uma). Confira se falta lançar alguma compra.`:'Pagamento de fatura de cartão: já vem como "Ignorar de vez", porque as compras entram uma a uma no CRM.';return}
     /* 2) conta em aberto com o mesmo valor */
     const ab=abertos.filter(l=>!usados.has(l.id)&&l.tipo===tp&&!(/cart/i.test(l.forma||'')&&/cr[eé]d/i.test(l.forma||''))&&Math.abs((+l.valor||0)-av)<0.011&&Math.abs(extDias(l.vencimento||r.d,r.d))<=75)
@@ -4740,7 +4742,8 @@ function extModal(){const E=S.ext;if(!E)return;const _w=document.getElementById(
   const vis=R.filter(r=>F==='todos'||(F==='conf'?r.st==='parecido':r.st===F));const ult=R[R.length-1];const ate=R.reduce((a,r)=>r.d>a?r.d:a,'');
   const sx=R.filter(r=>r.saldo!=null).slice(-1)[0];const sCRM=extSaldoCRM(E.banco,ate);
   const linha=r=>{const [rt,cor]=EXT_ST[r.st];const tp=r.v>0?'receber':'pagar';let ac='';
-    if(r.acao==='varias'&&r.st!=='feito')ac=extVariasHTML(r);
+    if(r.cartaoIgn)ac=`<span class="muted" style="font-size:12px">💳 Fatura do cartão — ignorado (as compras do cartão entram uma a uma)</span>`;
+    else if(r.acao==='varias'&&r.st!=='feito')ac=extVariasHTML(r);
     else if(r.st==='feito')ac='<span class="muted" style="font-size:12px">Importado antes</span>';
     else if(r.custoG)ac=`<select class="search" data-exn="${r.i}" style="width:100%"><option value="custo" ${r.acao==='custo'?'selected':''}>Custos de ${r.custoG.length} pedidos: ${r.custoG.map(x=>'#'+(x.p.num||'')+' '+brl(x.v)).join(' + ')} · ${esc((r.custoG[0].c.fornecedor||'').slice(0,26))}: lançar pago e ligar aos custos</option><option value="ignorar" ${r.acao==='ignorar'?'selected':''}>Ignorar</option></select>`;
     else if(r.custo)ac=`<select class="search" data-exn="${r.i}" style="width:100%"><option value="custo" ${r.acao==='custo'?'selected':''}>Custo do pedido #${esc(String(r.custo.p.num||''))} · ${esc((r.custo.c.fornecedor||r.custo.c.nome||'').slice(0,30))} · ${brl(+r.custo.c.valor)}${r.custo.c.pago?' (já pago no pedido)':''}: ${r.lanc?'marcar conciliado':'lançar pago e ligar ao custo'}</option><option value="ignorar" ${r.acao==='ignorar'?'selected':''}>Ignorar</option></select>`;
@@ -4759,7 +4762,7 @@ function extModal(){const E=S.ext;if(!E)return;const _w=document.getElementById(
      <label class="muted">Conta: <select class="search" data-exb style="width:auto">${bancos().map(x=>`<option value="${x.id}" ${x.id===E.banco.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label></div>
     ${sx?`<div class="banner" style="margin:0;${Math.abs(sx.saldo-sCRM)<0.01?'':'border-color:var(--warn)'}"><span>Saldo no extrato em ${fdateShort(sx.d)}: <b class="num">${brl(sx.saldo)}</b> · no CRM: <b class="num">${brl(sCRM)}</b> ${Math.abs(sx.saldo-sCRM)<0.01?'<b style="color:var(--ok)">✓ batendo</b>':`<span style="color:var(--warn)">(diferença ${brl(sx.saldo-sCRM)})</span>`}</span></div>`:''}
     <div class="seg" style="flex-wrap:wrap">${chip('todos','Todos',R.length)}${chip('bateu','✅ Bateu',cnt('bateu'))}${chip('conf','⚠️ Conferir',cnt('parecido'))}${chip('novo','➕ Novos',cnt('novo'))}${chip('ja','Já lançados',cnt('ja')+cnt('feito'))}</div>
-    <div class="tbl-wrap" id="ext-wrap" style="max-height:58vh;overflow:auto"><table class="tbl" style="font-size:13px"><thead><tr><th title="Marque para gravar" style="width:34px;text-align:center"><input type="checkbox" data-exgall title="Marcar todas desta aba" style="width:17px;height:17px"></th><th>Data</th><th>Extrato</th><th class="r">Valor</th><th>Situação</th><th>O que fazer</th></tr></thead><tbody>${vis.map(linha).join('')||'<tr><td colspan="6" class="muted">Nada neste filtro.</td></tr>'}</tbody></table></div>
+    <div class="tbl-wrap" id="ext-wrap" style="max-height:58vh;overflow-y:auto;overflow-x:hidden"><table class="tbl ext-tbl" style="font-size:13px;table-layout:fixed;width:100%"><colgroup><col style="width:34px"><col style="width:84px"><col style="width:150px"><col style="width:112px"><col style="width:96px"><col></colgroup><thead><tr><th title="Marque para gravar" style="width:34px;text-align:center"><input type="checkbox" data-exgall title="Marcar todas desta aba" style="width:17px;height:17px"></th><th>Data</th><th>Extrato</th><th class="r">Valor</th><th>Situação</th><th>O que fazer</th></tr></thead><tbody>${vis.map(linha).join('')||'<tr><td colspan="6" class="muted">Nada neste filtro.</td></tr>'}</tbody></table></div>
     ${extFornList()}<p class="muted" style="margin:0;font-size:12px">Marque ✓ as linhas que quer gravar. <b>Bateu</b>: dá baixa na conta em aberto com a data do extrato. <b>Conferir</b>: mesmo valor, mas o nome não confirma; escolha a conta certa. <b>Novo</b>: cria o lançamento já pago e o CRM lembra a categoria para os próximos. <b>Já lançado</b>: só marca como conciliado.</p></div>
    <footer><span class="muted" style="font-size:12px;flex:1 1 320px">Só grava as linhas <b>marcadas</b> (✓ na primeira coluna; marca sozinho quando você muda algo). <label style="margin-left:6px"><input type="checkbox" id="ex-concja" data-exconcja ${S.ext.concJa===false?'':'checked'}> marcar os "Já lançados" como conciliados (não muda valores)</label></span><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn ok" data-exok>${ic('check',14)} Gravar conciliação</button></footer></div></div>`}
 function extCatSel(r,tp){if(r.forn==null){const M=(cfg().extMem||{})[extMemKey(r)]||{};r.forn=M.forn||''}
