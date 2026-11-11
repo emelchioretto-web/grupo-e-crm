@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261111131711';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261111132126';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -5254,8 +5254,8 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   t.disabled=true;try{let CU=(p.custos||[]).map(c=>({...c}));
     if(i.produtoId&&i.qtd!==q0){const pr=S.data.produtos.find(x=>x.id===i.produtoId);const base=prodCustos(pr).filter(c=>!custoEhImposto(c));
       for(const c of CU){if(c.produtoId!==i.produtoId||c.pago||custoEhImposto(c)||custoPct(c))continue;const b=base.find(x=>nrm(x.nome)===nrm(c.nome));if(!b)continue;const v=Math.round((+b.valor||0)*i.qtd*100)/100;const l=custoLanc(p,c,CU);if(l&&l.pago)continue;c.valor=v;if(l)await patch('lancamentos',l.id,{valor:v})}}
-    await save('pedidos',{...p,itens:it,custos:CU});const o=p.oportunidadeId&&S.data.oportunidades.find(x=>x.id===p.oportunidadeId);
-    closeModal();toast(`Item salvo. Total do pedido: ${brl(pedidoTotal({...p,itens:it}))}. Confira os Pagamentos se o valor mudou.`);render()}catch(err){failWrite(err)}finally{t.disabled=false}});
+    await save('pedidos',{...p,itens:it,custos:CU});for(let t=0;t<20&&Math.abs(pedidoTotal(S.data.pedidos.find(x=>x.id===p.id)||p)-pedidoTotal({...p,itens:it}))>0.01;t++)await new Promise(r=>setTimeout(r,150));try{await pedParcAuto(p.id)}catch(_){}const o=p.oportunidadeId&&S.data.oportunidades.find(x=>x.id===p.oportunidadeId);
+    closeModal();toast(`Item salvo. Total do pedido: ${brl(pedidoTotal({...p,itens:it}))} (parcelas em aberto ajustadas).`);render()}catch(err){failWrite(err)}finally{t.disabled=false}});
 /* ===== Apagar conta já paga: pergunta se é para desfazer o pagamento (como no Alboom) ou apagar de vez; o que for apagado vai para a Lixeira ===== */
 function lixeira(){return (cfg().lixeira||[]).filter(x=>x&&x.em&&(Date.now()-new Date(x.em).getTime())<60*864e5)}
 {const _rmLx=removeRec;removeRec=async function(col,id,...r){if(col==='lancamentos'){const l=S.data.lancamentos.find(x=>x.id===id);if(l&&!String(id).startsWith('f~')){try{const L=[{em:new Date().toISOString(),quem:(typeof usuarioAtual==='function'&&usuarioAtual())||'',rec:JSON.parse(JSON.stringify(l))},...lixeira()].slice(0,150);await cfgSet('lixeira',L)}catch(_){}}}return _rmLx.call(this,col,id,...r)}}
@@ -5285,6 +5285,9 @@ setInterval(async()=>{if(!S.cfg||S.cfg.crevNov3||(S.mode==='db'&&!S._cfgOk)||S._
     const {id,aid,num,criadoEm,atualizadoEm,extKey,extKeys,conciliado,dataPagamento,alboomId,...base}=dez;const vd=String(dez.vencimento);
     await save('lancamentos',{...base,tipo:'pagar',vencimento:'2026-11'+vd.slice(7,10),pago:false,dataPagamento:'',obs:[base.obs,'Parcela de nov/2026 recriada (tinha sido apagada ao corrigir o pagamento).'].filter(Boolean).join('\n')});
     toast('Parcela de novembro do empréstimo do carro (Crevisc) voltou para Contas a pagar.');render()}catch(e){console.warn('crevNov',e)}finally{S._cvRun=false}},9000);
+/* editou os itens no formulário do pedido e as parcelas batiam com o total antigo: as parcelas em aberto acompanham o total novo */
+{const _sPA=save;save=async function(col,rec,...r){let ajus=false;if(col==='pedidos'&&rec&&rec.id&&rec.itens){const old=S.data.pedidos.find(x=>x.id===rec.id);if(old){const tO=pedidoTotal(old),tN=pedidoTotal(rec);if(Math.abs(tO-tN)>0.01&&Math.abs(pedParcInfo(old).dif)<0.01)ajus=true}}
+  const id=await _sPA.call(this,col,rec,...r);if(ajus)setTimeout(()=>{pedParcAuto(rec.id).then(n=>{if(n)toast('Parcelas em aberto ajustadas ao novo total do pedido.')}).catch(()=>{})},1500);return id}}
 /* Avisos do pedido: contratante diferente da ficha / custos dos produtos não gerados */
 function pedFichaAvisoHTML(p){let h='';const bn=(c,t)=>`<div class="banner" style="border-style:solid;border-color:var(${c});background:color-mix(in srgb,var(${c}) 7%,var(--surface));display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px">${t}</div>`;
   const fx=p.origemFicha&&S.fx.rows.find(x=>x.key===p.origemFicha);const c=S.data.contatos.find(x=>x.id===p.contatoId);
@@ -5302,7 +5305,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
   const pr=S.data.propostas.find(x=>x.id===t.dataset.propnoped),p=S.data.pedidos.find(x=>x.id===t.dataset.pid);if(!pr||!p)return;
   if(!t.dataset.ok){t.dataset.ok='1';t.innerHTML='Confirmar: trocar os itens?';t.style.color='var(--danger)';setTimeout(()=>{if(t.isConnected){delete t.dataset.ok;t.innerHTML=`${ic('cart',13)} Usar neste pedido`;t.style.color=''}},5000);return}
   try{const ch={itens:pr.itens||[]};if(pr.desconto!=null)ch.desconto=pr.desconto;if(pr.condicoes)ch.condicoes=pr.condicoes;if(!(p.custos||[]).length){const g=pr.calc?calcCustos(pr.calc,p.dataEvento||today()):pedCustosGerar({...p,itens:ch.itens});if(g.length)ch.custos=g}
-    await patch('pedidos',p.id,ch);if(ch.custos)try{await custoLancarTodos(p.id)}catch(_){}await patch('propostas',pr.id,{status:'Aceita'});const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);if(o)await patch('oportunidades',o.id,{valor:pedidoTotal({...p,...ch})});
+    await patch('pedidos',p.id,ch);if(ch.custos)try{await custoLancarTodos(p.id)}catch(_){}try{for(let t=0;t<20&&Math.abs(pedidoTotal(S.data.pedidos.find(x=>x.id===p.id)||p)-pedidoTotal({...p,...ch}))>0.01;t++)await new Promise(r=>setTimeout(r,150));await pedParcAuto(p.id)}catch(_){}await patch('propostas',pr.id,{status:'Aceita'});const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);if(o)await patch('oportunidades',o.id,{valor:pedidoTotal({...p,...ch})});
     toast(`Itens da proposta #${pr.num} aplicados no pedido #${p.num}. Confira os Pagamentos (o valor mudou para ${brl(pedidoTotal({...p,...ch}))}).`);render()}catch(err){failWrite(err)}},true);
 /* ===== Financeiro: seleção e exclusão em lote ===== */
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches)return;
@@ -6434,6 +6437,11 @@ async function custoLancarTodos(pid){const p=S.data.pedidos.find(x=>x.id===pid);
     let fc=(c.fornecedorNum!=null&&S.data.contatos.find(x=>+x.num===+c.fornecedorNum))||null;if(!fc&&c.fornecedor){const fid=await fornResolver(c.fornecedor,true);if(fid)fc={id:fid}}
     try{c.lancId=await save('lancamentos',{tipo:'pagar',categoria:c.conta?String(c.conta).replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${c.nome||'Custo'} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor:+c.valor,vencimento:c.venc,conta:'',pago:false,pedidoId:p.id})||true;n++}catch(e){failWrite(e);break}}
   if(n||L.some((c,i)=>c.lancId!==((p.custos||[])[i]||{}).lancId))await patch('pedidos',p.id,{custos:L});return n}
+/* parcelas em aberto acompanham o total do pedido (quando os itens mudam): a diferença é repartida proporcionalmente; o que já foi recebido não muda */
+async function pedParcAuto(pid){const p=S.data.pedidos.find(x=>x.id===pid);if(!p)return 0;const I=pedParcInfo(p);if(Math.abs(I.dif)<0.01||!I.ab.length)return 0;
+  const base=I.ab.reduce((a,l)=>a+(+l.valor||0),0);let resto=I.dif;const n=I.ab.length;
+  for(let k=0;k<n;k++){const l=I.ab[k];const add=k===n-1?resto:Math.round((base>0?I.dif*(+l.valor||0)/base:I.dif/n)*100)/100;resto=Math.round((resto-add)*100)/100;const v=Math.round(((+l.valor||0)+add)*100)/100;if(v<=0)continue;await patch('lancamentos',l.id,{valor:v})}
+  return 1}
 function pedParcInfo(p){const R=S.data.lancamentos.filter(l=>l.pedidoId===p.id&&l.tipo==='receber');const soma=R.reduce((a,l)=>a+(+l.valor||0),0);const ab=R.filter(l=>!l.pago).sort((a,b)=>String(a.vencimento||'').localeCompare(String(b.vencimento||'')));return {R,soma,ab,dif:Math.round((pedidoTotal(p)-soma)*100)/100}}
 function pedPosSalvar(old,id){const p=S.data.pedidos.find(x=>x.id===id);if(!p)return;
   const _c=x=>pedStatus(x)==='Cancelado'||x.contratoStatus==='Cancelado';if(!_c(old)&&_c(p))pedAgendaCancelar(p,true);if(_c(old)&&!_c(p))pedAgendaCancelar(p,false);
