@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261112085537';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261112090350';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -976,7 +976,7 @@ const SCHEMAS={
       {k:'pags',l:'Pagamentos',t:'pags',full:1,tab:1},
       {k:'condicoes',l:'Condições de pagamento',t:'area',full:1,get def(){return condOpcoes()[0]||''},tab:1},
       {k:'status',l:'Status',t:'select',req:1,o:PED_ST,def:'Pedido Concluído',dv:r=>pedStatus(r),tab:2},
-      {k:'concluidoEm',l:'Data de conclusão',t:'date',tab:2},
+      {k:'concluidoEm',l:'Data de conclusão',t:'date',tab:2,ph:'preenche sozinho ao salvar'},
       {k:'contratoStatus',l:'Status do contrato',t:'select',o:Object.keys(CONTRATO_COR),tab:2},
       {k:'_c1',l:'Contratante 1',t:'info',txt:'É o cliente do pedido (aba Informação básica). Os dados dele entram no contrato.',tab:3},
       {k:'contato2Id',l:'Contratante 2',t:'ref',ref:'contatos',tab:3},
@@ -5374,6 +5374,8 @@ setInterval(async()=>{if(!S.cfg||S.cfg.crevNov3||(S.mode==='db'&&!S._cfgOk)||S._
 /* editou os itens no formulário do pedido e as parcelas batiam com o total antigo: as parcelas em aberto acompanham o total novo */
 {const _sPA=save;save=async function(col,rec,...r){let ajus=false;if(col==='pedidos'&&rec&&rec.id&&rec.itens){const old=S.data.pedidos.find(x=>x.id===rec.id);if(old){const tO=pedidoTotal(old),tN=pedidoTotal(rec);if(Math.abs(tO-tN)>0.01&&Math.abs(pedParcInfo(old).dif)<0.01)ajus=true}}
   const id=await _sPA.call(this,col,rec,...r);if(ajus)setTimeout(()=>{pedParcAuto(rec.id).then(n=>{if(n)toast('Parcelas em aberto ajustadas ao novo total do pedido.')}).catch(()=>{})},1500);return id}}
+/* pedido salvo como Concluído sem data de conclusão: usa a data em que foi criado (ou hoje) */
+{const _sCE=save;save=async function(col,rec,...r){if(col==='pedidos'&&rec&&!rec.concluidoEm&&/conclu/i.test(String(rec.status||'Pedido Concluído'))&&!(rec.id&&S.data.pedidos.some(x=>x.id===rec.id&&x.concluidoEm))){rec={...rec,concluidoEm:(rec.emissao||'').slice(0,10)||today()}}return _sCE.call(this,col,rec,...r)}}
 /* Avisos do pedido: contratante diferente da ficha / custos dos produtos não gerados */
 function pedFichaAvisoHTML(p){let h='';const bn=(c,t)=>`<div class="banner" style="border-style:solid;border-color:var(${c});background:color-mix(in srgb,var(${c}) 7%,var(--surface));display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px">${t}</div>`;
   const fx=p.origemFicha&&S.fx.rows.find(x=>x.key===p.origemFicha);const c=S.data.contatos.find(x=>x.id===p.contatoId);
