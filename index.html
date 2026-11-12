@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261112090350';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261112091655';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4727,6 +4727,14 @@ function extCasar(E){const b=E.banco;const byN={},byC={};bancos().forEach(x=>{by
       if(ok){r.st='bateu';r.cartao=ok.G;r.cands=[];r.acao='baixarCartao';ok.G.forEach(l=>usados.add(l.id));return}
       r.st='feito';r.cartaoIgn=true;r.acao='ignorarSempre';const pr=gs.sort((a,b)=>Math.abs(a.s-av)-Math.abs(b.s-av))[0];
       r.dica=pr?`Pagamento da fatura do cartão. As compras do cartão em aberto com vencimento ${fdate(pr.G[0].vencimento)} somam ${brl(pr.s)} (diferença ${brl(av-pr.s)}). Já vem como "Ignorar de vez" (as compras do cartão entram uma a uma). Confira se falta lançar alguma compra.`:'Pagamento de fatura de cartão: já vem como "Ignorar de vez", porque as compras entram uma a uma no CRM.';return}
+    /* 1d) guia de imposto: cada pedido gera o seu imposto; a guia paga todos de uma vez (como a fatura do cartão) */
+    if(tp==='pagar'&&/impost|\bdas\b|simples\s*nac|darf|\bguia\b|receita\s*fed/i.test((r.nome||'')+' '+(r.hist||''))){
+      const ehImp=l=>String(l.planoCod||'').startsWith('5.5')||/impost|\bnf\b|simples|\bdas\b/i.test(l.descricao||'')||(typeof custoEhImposto==='function'&&custoEhImposto({nome:l.descricao||''}));
+      const G=abertos.filter(l=>!usados.has(l.id)&&l.tipo==='pagar'&&ehImp(l)&&(l.vencimento||'')>=addDays(r.d,-40)&&(l.vencimento||'')<=addDays(r.d,12));
+      const soma=Math.round(G.reduce((a,l)=>a+(+l.valor||0),0)*100)/100;r.impGuia=true;
+      if(G.length){r.st=Math.abs(soma-av)<0.05?'bateu':'parecido';r.grupoAb=G;r.cands=[];r.acao='baixarGrupo';r.impDif=Math.round((av-soma)*100)/100;G.forEach(l=>usados.add(l.id));
+        r.dica=`Guia de imposto: dá baixa nos ${G.length} impostos em aberto dos pedidos (${brl(soma)}).${Math.abs(r.impDif)>=0.05?` ${r.impDif>0?`A guia veio ${brl(r.impDif)} maior: essa diferença vira um lançamento de ajuste em 5.5 Impostos.`:`A guia veio ${brl(-r.impDif)} menor: os impostos são ajustados para bater com o valor pago.`}`:''}`;return}
+      r.dica='Guia de imposto: não achei impostos de pedidos em aberto nesse período. Crie o lançamento na categoria 5.5 Impostos.'}
     /* 2) conta em aberto com o mesmo valor */
     const ab=abertos.filter(l=>!usados.has(l.id)&&l.tipo===tp&&!(/cart/i.test(l.forma||'')&&/cr[eé]d/i.test(l.forma||''))&&Math.abs((+l.valor||0)-av)<0.011&&Math.abs(extDias(l.vencimento||r.d,r.d))<=75)
       .map(l=>{const si=extSim(nm,extNomeL(l));return {l,si,s:si*10-Math.abs(extDias(l.vencimento||r.d,r.d))/15}}).sort((x,y)=>y.s-x.s);
@@ -4854,6 +4862,10 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
         if(df&&r.varias&&r.varias.dm==='lanc'){const u=r.grupoAb[0];const tp=r.v>0?'receber':'pagar';const pos=(tp==='receber'?df>0:df>0);
           await save('lancamentos',{tipo:pos?tp:(tp==='receber'?'pagar':'receber'),descricao:`Diferença na conciliação — ${r.nome||r.hist||''}`.trim(),valor:Math.abs(df),vencimento:r.d,dataPagamento:r.d,pago:true,conta:b.nome,contaCod:b.codigo||'',contatoId:u.contatoId||'',contatoNome:u.contatoNome||'',categoria:u.categoria||'',pedidoId:u.pedidoId||'',conciliado:true,extKey:r.key+'|dif',extKeys:[r.key],obs:'Diferença entre o valor do banco e a soma das contas.'})}
         r.acao='baixarGrupo'}
+      if(r.acao==='baixarGrupo'&&r.grupoAb&&r.impGuia&&(+r.impDif||0)<=-0.05){const df=-(+r.impDif);const G=[...r.grupoAb].sort((a,b)=>(+b.valor||0)-(+a.valor||0));let resto=df;
+        r.grupoAb=r.grupoAb.map(l=>{if(resto<=0.004)return l;const x=G[0]===l||G.indexOf(l)>=0?Math.min(resto,(+l.valor||0)-0.01):0;if(x<=0)return l;resto=Math.round((resto-x)*100)/100;return {...l,valor:Math.round(((+l.valor||0)-x)*100)/100,obs:[l.obs,`Ajustado −${brl(x)} pela guia paga em ${fdate(r.d)}.`].filter(Boolean).join('\n')}})}
+      if(r.acao==='baixarGrupo'&&r.grupoAb&&r.impGuia&&(+r.impDif||0)>=0.05){const df=+r.impDif;
+        await save('lancamentos',{tipo:'pagar',descricao:`Ajuste guia de imposto — ${r.nome||r.hist||''}`.trim(),valor:Math.abs(df),vencimento:r.d,dataPagamento:r.d,pago:true,conta:b.nome,contaCod:b.codigo||'',planoCod:'5.5',categoria:'5.5 - Impostos',conciliado:true,extKey:r.key+'|dif',extKeys:[r.key],obs:'Diferença entre a guia paga e a soma dos impostos estimados nos pedidos.'})}
       if(r.acao==='baixarGrupo'&&r.grupoAb){for(const l of r.grupoAb){if(feitosG.has(l.id))continue;feitosG.add(l.id);await save('lancamentos',{...l,pago:true,dataPagamento:r.d,conta:b.nome,contaCod:b.codigo||l.contaCod||'',conciliado:true,extKey:r.key+'|'+l.id,extKeys:[r.key]})}nB+=r.grupoAb.length;continue}
       if(r.acao==='baixarCartao'&&r.cartao){for(const l of r.cartao){if(feitosG.has(l.id))continue;feitosG.add(l.id);await save('lancamentos',{...l,pago:true,dataPagamento:r.d,conta:b.nome,contaCod:b.codigo||l.contaCod||'',conciliado:true,extKey:r.key+'|'+l.id,extKeys:[r.key]})}nB+=r.cartao.length;continue}
       if(r.acao==='baixar'){const l=r.cands.find(x=>String(x.id)===r.sel);if(!l||feitosG.has(l.id))continue;feitosG.add(l.id);await save('lancamentos',{...l,pago:true,dataPagamento:r.d,conta:b.nome,contaCod:b.codigo||l.contaCod||'',conciliado:true,extKey:r.key,...(r.soma?{extKeys:r.soma.keys}:{})});nB++;continue}
