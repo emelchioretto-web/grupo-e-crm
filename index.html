@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261111182653';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261112070859';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -676,6 +676,8 @@ a.btn{color:inherit;text-decoration:none}
 .iaf-tbl thead th{position:sticky;top:0;z-index:3;background:var(--surface);box-shadow:0 1px 0 var(--line)}
 
 .ext-tbl td,.ext-tbl th{white-space:normal;overflow-wrap:anywhere}.ext-tbl td:last-child select,.ext-tbl td:last-child input,.ext-tbl td:last-child textarea{max-width:100%;min-width:0;box-sizing:border-box}.ext-tbl td:last-child>div,.ext-tbl td:last-child{min-width:0}
+
+.an-tbl th,.an-tbl td{padding:8px 7px}.an-tbl th{white-space:normal;line-height:1.2}
 </style>
 
 <div class="app" id="app">
@@ -1361,6 +1363,7 @@ const NAV=[
   {v:'relprod',l:'Faturamento por produto',sub:1},
   {v:'relcontatos',l:'Por cliente / fornecedor',sub:1},
   {v:'relgastos',l:'Onde gastamos e ganhamos',sub:1},
+  {v:'relanual',l:'Lucro por ano',sub:1},
   {v:'config',l:'Configurações',i:'gear'},
   {v:'backup',l:'Backup e exportação',sub:1},
   {v:'importar',l:'Importar de outro sistema',sub:1}
@@ -1437,6 +1440,7 @@ VIEWS.inicio=()=>{
     ${kpi('', 'chat', oppAbertas.length, 'Oportunidades em aberto · '+brl(oppAbertas.reduce((s,o)=>s+(+o.valor||0),0)),'funil')}
     ${kpi('ar', 'down', brlShort(ar), 'Contas a receber em aberto (R$)','financeiro')}
     ${kpi('ap', 'up', brlShort(ap), 'Contas a pagar em aberto (R$)','financeiro')}
+    ${(()=>{try{return anBotao(today().slice(0,4))}catch(e){return ''}})()}
     <section class="panel"><header><h3>Meus projetos</h3></header><div class="body bars">
       ${PROJ_ST.map(([s,c])=>{const n=S.data.projetos.filter(p=>p.status===s).length;const p=Math.round(n/projTot*100);return `<div class="bar-row" style="--c:var(${c})"><div class="top-l"><b>${n}</b>${s}<span class="p">${p}%</span></div><div class="track"><i style="width:${p}%"></i></div></div>`}).join('')}
     </div></section>
@@ -2309,7 +2313,7 @@ VIEWS.relatorios=()=>{
 
 /* ---- relatórios de vendas e por cliente/fornecedor ---- */
 const perBar=()=>{const R=S.ui.rel,[de,ate]=relRange();return `<div class="seg">${Object.entries(PER).map(([k,l])=>`<button data-per="${k}" class="${R.periodo===k?'on':''}">${l}</button>`).join('')}</div>${R.periodo==='custom'?`<input type="date" class="search" style="flex:0 1 160px" id="rel-de" value="${de}" aria-label="De"><input type="date" class="search" style="flex:0 1 160px" id="rel-ate" value="${ate}" aria-label="Até">`:''}`};
-const relTabs=v=>`<div class="seg" style="margin-bottom:4px">${[['relatorios','Resultados'],['relresv','Resultados de vendas'],['relfluxo','Fluxo de caixa'],['relvendas','Vendas'],['relprod','Por produto'],['relcontatos','Por cliente / fornecedor'],['relgastos','Onde gastamos']].map(([k,l])=>`<button data-nav="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div>`;
+const relTabs=v=>`<div class="seg" style="margin-bottom:4px">${[['relatorios','Resultados'],['relresv','Resultados de vendas'],['relfluxo','Fluxo de caixa'],['relvendas','Vendas'],['relprod','Por produto'],['relcontatos','Por cliente / fornecedor'],['relgastos','Onde gastamos'],['relanual','Lucro por ano']].map(([k,l])=>`<button data-nav="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div>`;
 S.ui.rv={grupo:'indicadoPor',base:'emissao'};
 const RV_G={indicadoPor:['Indicado por',p=>p.indicadoPor||'(sem indicação)'],categoria:['Categoria',p=>p.categoria||'(sem categoria)'],vendedor:['Vendedor',p=>p.vendedor||'(sem vendedor)'],responsavel:['Responsável',p=>p.responsavel||'(sem responsável)'],cliente:['Cliente',p=>contatoNome(p.contatoId)||'(sem cliente)'],status:['Status do contrato',p=>p.contratoStatus||'']};
 function csvCopy(rows){const t=rows.map(r=>r.map(c=>{const v=String(c??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(';')).join('\n');return navigator.clipboard.writeText(t)}
@@ -2365,6 +2369,45 @@ VIEWS.relresv=()=>{
 };
 /* ---- fluxo de caixa ---- */
 S.ui.fx2={ag:'mes',per:'1m'};
+/* ===== Lucro por ano: tudo o que entrou e saiu (contas a receber e a pagar), ano a ano, separando realizado e previsto ===== */
+function anGrupo(l){const c=String(rgCod(l,'')||'');const t=l.tipo==='pagar';
+  if(!t){if(/^3\.6/.test(c))return 'emp';if(/^3\.2/.test(c))return 'fin';return 'rec'}
+  if(/^5\.7\.8|^5\.6\.7|^5\.2\.25/.test(c))return 'inv';if(/^5\.7/.test(c))return 'pes';if(/^4/.test(c))return 'cus';if(/^5\.5/.test(c))return 'imp';if(/^5\.6/.test(c))return 'dfin';if(/^5/.test(c))return 'desp';return 'semc'}
+const AN_LBL={rec:'Receitas (vendas e serviços)',fin:'Receitas financeiras',emp:'Empréstimos recebidos',cus:'Custos dos eventos (4.x)',desp:'Despesas da empresa (5.1–5.4)',imp:'Impostos (5.5)',dfin:'Despesas financeiras, juros e parcelas (5.6)',semc:'Despesas sem categoria',pes:'Despesas pessoais (5.7)',inv:'Investimentos / compra de equipamento / aplicações'};
+function anCalc(caixa){const Y={};const add=(y,g,k,v)=>{const a=Y[y]||(Y[y]={});const r=a[g]||(a[g]={real:0,prev:0,n:0});r[k]+=v;r.n++};
+  S.data.lancamentos.forEach(l=>{if(l.transf)return;const v=+l.valor||0;if(!v)return;const d=caixa?(l.pago?(l.dataPagamento||l.vencimento):l.vencimento):(l.vencimento||l.dataPagamento);if(!d||!/^\d{4}/.test(d))return;add(d.slice(0,4),anGrupo(l),l.pago?'real':'prev',v)});return Y}
+function anLucro(y,prev,caixa){const Y=anCalc(!!caixa)[y]||{};const v=g=>{const r=Y[g];return r?r.real+(prev?r.prev:0):0};return v('rec')+v('fin')-v('cus')-v('desp')-v('imp')-v('semc')-v('dfin')}
+function anBotao(y,grande){const real=anLucro(y,false,true),tot=anLucro(y,true,false);const ok=real>=0;
+  return `<button class="panel kpi" data-anir="${y}" style="text-align:left;cursor:pointer;width:100%;height:100%;display:block;border:2px solid var(${ok?'--ok':'--danger'});background:color-mix(in srgb,var(${ok?'--ok':'--danger'}) 6%,var(--surface));${grande?'padding:16px 20px;':''}">
+   <div style="font-size:${grande?15:13}px;font-weight:600">${ok?'📈 Lucro':'📉 Prejuízo'} de ${y}${y===today().slice(0,4)?' (até hoje)':''}</div>
+   <div class="num" style="font-size:${grande?30:24}px;font-weight:800;color:var(${ok?'--ok':'--danger'})">${brl(Math.abs(real))}</div>
+   <div class="muted" style="font-size:12px">${y>=today().slice(0,4)?`Contando o que está em aberto até dez/${y}: <b style="color:var(${tot>=0?'--ok':'--danger'})">${tot>=0?'lucro':'prejuízo'} de ${brl(Math.abs(tot))}</b>`:'Receitas − custos − despesas da empresa (sem as pessoais)'}</div></button>`}
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-anir]');if(!t)return;e.preventDefault();S.ui.an={...(S.ui.an||{caixa:false,prev:true}),sel:t.dataset.anir};go('relanual')});
+VIEWS.relanual=()=>{const U=S.ui.an=S.ui.an||{caixa:false,prev:true,sel:''};const Y=anCalc(U.caixa);const anos=Object.keys(Y).sort();const hoje=today().slice(0,4);
+  const val=(y,g)=>{const r=(Y[y]||{})[g];return r?r.real+(U.prev?r.prev:0):0};
+  const linha=y=>{const rec=val(y,'rec'),fin=val(y,'fin'),cus=val(y,'cus'),desp=val(y,'desp')+val(y,'imp')+val(y,'semc'),dfin=val(y,'dfin'),pes=val(y,'pes'),inv=val(y,'inv'),emp=val(y,'emp');
+    const op=rec+fin-cus-desp-dfin;return {rec,fin,cus,desp,dfin,pes,inv,emp,op,liq:op-pes,caixa:op-pes-inv+emp,
+      abR:((Y[y]||{}).rec||{prev:0}).prev,abP:['cus','desp','imp','dfin','semc','pes','inv'].reduce((a,g)=>a+(((Y[y]||{})[g]||{}).prev||0),0)}};
+  const L=anos.map(y=>[y,linha(y)]);const mx=Math.max(1,...L.map(([,r])=>Math.max(Math.abs(r.op),r.rec)));
+  const cel=(v,neg)=>`<td class="r"><span class="num" style="white-space:nowrap;${neg&&v?'color:var(--danger)':''}">${brl(neg?-v:v).replace(/R\$\s*/,'')}</span></td>`;
+  const res=v=>`<td class="r"><b class="num" style="white-space:nowrap;color:var(${v>=0?'--ok':'--danger'})">${brl(v).replace(/R\$\s*/,'')}</b></td>`;
+  const det=U.sel&&Y[U.sel]?Object.entries(Y[U.sel]).sort((a,b)=>Object.keys(AN_LBL).indexOf(a[0])-Object.keys(AN_LBL).indexOf(b[0])):[];
+  const topCat=(y,g)=>{const m={};S.data.lancamentos.forEach(l=>{if(l.transf)return;const d=U.caixa?(l.pago?(l.dataPagamento||l.vencimento):l.vencimento):(l.vencimento||l.dataPagamento);if(!d||d.slice(0,4)!==y||anGrupo(l)!==g||(!U.prev&&!l.pago))return;const k=rgNome(rgCod(l,''));m[k]=(m[k]||0)+(+l.valor||0)});return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,8)};
+  return loadingOr(`${head('Lucro por ano','Relatórios / Lucro por ano','')}
+   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;margin-bottom:12px">${(()=>{const ys=anos.filter(y=>y<=hoje).slice(-4);return ys.map(y=>`<div style="flex:1 1 220px">${anBotao(y,y===hoje)}</div>`).join('')})()}</div>
+   <section class="panel"><div class="body" style="display:grid;gap:10px">${relTabs('relanual')}
+    <div class="toolbar"><div class="seg"><button data-anc="0" class="${!U.caixa?'on':''}">Pelo vencimento (competência)</button><button data-anc="1" class="${U.caixa?'on':''}">Pelo dia que pagou/recebeu (caixa)</button></div>
+     <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" data-anprev ${U.prev?'checked':''}> Contar também o que está em aberto (previsto)</label></div>
+    <span class="muted" style="font-size:12.5px;line-height:1.5"><b>Lucro da empresa</b> = receitas − custos dos eventos − despesas da empresa − impostos − despesas financeiras. <b>Depois das despesas pessoais</b> tira também a categoria 5.7. <b>Sobra no caixa</b> desconta ainda investimentos/compra de equipamento e soma empréstimos recebidos. Transferências entre contas não entram. Clique num ano para ver o detalhe.</span></div></section>
+   <section class="panel"><div class="tbl-wrap"><table class="tbl an-tbl" style="font-size:12.5px"><thead><tr><th>Ano</th><th class="r">Receitas</th><th class="r">Custos eventos</th><th class="r">Despesas empresa</th><th class="r">Desp. financ.</th><th class="r">Lucro empresa</th><th class="r">Pessoais</th><th class="r">Depois do pessoal</th><th class="r">Investimentos</th><th class="r">Sobra no caixa</th></tr></thead>
+    <tbody>${L.map(([y,r])=>`<tr class="row${U.sel===y?' sel':''}" data-ansel="${y}" style="cursor:pointer${U.sel===y?';background:var(--accent-soft,#eef6f2)':''}"><td><b>${y}</b>${y>hoje?' <span class="badge" style="font-size:10.5px">futuro</span>':y===hoje?' <span class="badge" style="font-size:10.5px">em andamento</span>':''}${U.prev&&(r.abR||r.abP)?`<div class="muted" style="font-size:11px">em aberto: +${brl(r.abR)} / −${brl(r.abP)}</div>`:''}</td>
+      ${cel(r.rec+r.fin)}${cel(r.cus,1)}${cel(r.desp,1)}${cel(r.dfin,1)}<td class="r"><b class="num" style="white-space:nowrap;color:var(${r.op>=0?'--ok':'--danger'})">${brl(r.op).replace(/R\$\s*/,'')}</b>${r.rec?`<div class="muted" style="font-size:11px">margem ${Math.round(r.op/(r.rec+r.fin||1)*100)}%</div>`:''}</td>${cel(r.pes,1)}${res(r.liq)}${cel(r.inv,1)}${res(r.caixa)}</tr>`).join('')||'<tr><td colspan="11" class="muted">Sem lançamentos.</td></tr>'}</tbody></table></div></section>
+   ${U.sel&&Y[U.sel]?`<section class="panel"><div class="body"><h3 style="margin:0 0 10px">${U.sel} em detalhe ${U.prev?'(pago + em aberto)':'(só o que já foi pago/recebido)'}</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+     ${det.map(([g,r])=>{const tc=topCat(U.sel,g);const ent=['rec','fin','emp'].includes(g);return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px"><div style="display:flex;justify-content:space-between;gap:8px"><b>${AN_LBL[g]||g}</b><b class="num" style="color:var(${ent?'--ok':'--danger'})">${ent?'':'−'}${brl(r.real+(U.prev?r.prev:0))}</b></div><div class="muted" style="font-size:11.5px">pago ${brl(r.real)}${U.prev&&r.prev?' · em aberto '+brl(r.prev):''}</div>
+       <div style="margin-top:6px;font-size:12.5px">${tc.map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-top:1px dashed var(--line)"><span>${esc(k)}</span><span class="num">${brl(v)}</span></div>`).join('')}</div></div>`}).join('')}</div></div></section>`:''}`)};
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-anc],[data-ansel]');if(!t)return;const U=S.ui.an=S.ui.an||{caixa:false,prev:true,sel:''};
+  if(t.dataset.anc!==undefined)U.caixa=t.dataset.anc==='1';else U.sel=U.sel===t.dataset.ansel?'':t.dataset.ansel;render()});
+document.addEventListener('change',e=>{if(e.target&&e.target.matches&&e.target.matches('[data-anprev]')){const U=S.ui.an=S.ui.an||{};U.prev=e.target.checked;render()}});
 VIEWS.relfluxo=()=>{
   const X=S.ui.fx2,t=today(),cc=contaCalc(),cn=((S.finCfg||{}).contas)||{};
   const bancoHoje=bancos().reduce((a,b)=>a+((cc[b.id]||{}).saldoHoje||0),0)-movPagos().filter(l=>(l.dataPagamento||l.vencimento||'')===t).reduce((a,l)=>a+(l.tipo==='pagar'?-1:1)*(+l.valor||0),0);
@@ -6228,7 +6271,7 @@ const MODULOS=[
   {k:'projetos',l:'Projetos e tarefas',d:'Projetos de produção (álbuns, impressão) e lista de tarefas.',v:['projetos','tarefas'],t:['projetos','fluxos']},
   {k:'provas',l:'Provas e galerias',d:'Galerias para o cliente aprovar e escolher as fotos, com lista de seleção.',v:['provas','prova','provaview'],t:['provas']},
   {k:'venda',l:'Venda de fotos',d:'Venda de fotos na galeria com marca d\'água, Pix e cartão. Precisa do módulo Provas.',v:['vendasfotos'],t:['venda'],pre:'provas'},
-  {k:'financeiro',l:'Financeiro',d:'Contas a receber e a pagar, contas bancárias, transações, cashback e fluxo de caixa.',v:['financeiro','contasbanc','fintrans','cashback','finar','finarp','finporcli','finap','finapp','finporforn','relfluxo','relcontatos','relgastos'],t:['fin']},
+  {k:'financeiro',l:'Financeiro',d:'Contas a receber e a pagar, contas bancárias, transações, cashback e fluxo de caixa.',v:['financeiro','contasbanc','fintrans','cashback','finar','finarp','finporcli','finap','finapp','finporforn','relfluxo','relcontatos','relgastos','relanual'],t:['fin']},
   {k:'relatorios',l:'Relatórios',d:'Tela de relatórios gerais.',v:['relatorios']}
 ];
 const MOD_FIXOS='Início, Contatos, Configurações, Backup e Importar planilhas';
