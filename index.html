@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261112070859';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261112082431';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -6809,9 +6809,9 @@ async function igSync(manual){if(S._igRun||!window.GAS_URL)return;const mcp=awai
   try{const r=await mcp.callTool('Instagram','listar',{desde:G.ult||1});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);
     const vis=new Set(G.linhas.map(x=>x.mid).filter(Boolean));const nov=(pl.linhas||[]).filter(x=>!x.mid||!vis.has(x.mid));G.linhas=[...G.linhas.filter(x=>!x._local||!nov.some(n=>n.dir==='out'&&n.cliente===x.cliente&&n.t===x.t)),...nov];
     if(pl.ultima)G.ult=pl.ultima;G.perfis={...G.perfis,...(pl.perfis||{})};if(pl.contas)G.contas=pl.contas;G.ok=true;G.erro='';G.sync=new Date().toISOString();igGuardar();
-    if(nov.length||manual){if(S.view==='instagram')render();else if(typeof renderAlerts==='function')renderAlerts()}}
+    if(nov.length||manual){if(S.ui.view==='instagram')render();else if(typeof renderAlerts==='function')renderAlerts()}}
   catch(e){G.erro=String((e&&e.message)||e);if(manual)toast(G.erro,true)}finally{S._igRun=false}}
-setInterval(()=>{if(document.hidden||!window.GAS_URL||!S.dono)return;const G=igLoad();if(!G.contas.length&&!G.ok&&G._tent>3)return;G._tent=(G._tent||0)+1;igSync()},30000);
+setInterval(()=>{if(document.hidden||!window.GAS_URL||!S.dono)return;if(S.ui.view!=='instagram'&&(S._igTick=(S._igTick||0)+1)%2)return;const G=igLoad();if(!G.contas.length&&!G.ok&&G._tent>3)return;G._tent=(G._tent||0)+1;igSync()},15000);
 setTimeout(()=>{if(window.GAS_URL)igSync()},6000);
 function igConvs(){const G=igLoad();const M={};G.linhas.forEach(x=>{const k=x.conta+'|'+x.cliente;(M[k]=M[k]||{id:k,conta:x.conta,cliente:x.cliente,msgs:[]}).msgs.push(x)});
   return Object.values(M).map(c=>{c.msgs.sort((a,b)=>String(a.em).localeCompare(String(b.em)));const pf=G.perfis[c.id]||{};c.nome=pf.nome||(pf.usuario?'@'+pf.usuario:'Cliente …'+String(c.cliente).slice(-4));c.usuario=pf.usuario||'';
@@ -6860,7 +6860,8 @@ async function igEnviarMsg(){const G=igLoad();const c=igConvs().find(x=>x.id===G
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-igsel],[data-igf],[data-igsync],[data-igenv],[data-igopp]');if(!t)return;e.preventDefault();const d=t.dataset;const G=igLoad();
   if(d.igsel!==undefined){G.sel=d.igsel;igGuardar();render();setTimeout(()=>{const m=$('#ig-msgs');if(m)m.scrollTop=m.scrollHeight},30);return}
   if(d.igf){S.ui.ig.f=d.igf;render();return}
-  if(t.hasAttribute('data-igsync')){await igSync(true);return}
+  if(t.hasAttribute('data-igsync')){if(S._igRun){toast('Já estou buscando as mensagens…');return}const n0=igLoad().linhas.length;t.disabled=true;t.innerHTML='⏳ Atualizando…';
+    await igSync(true);const n=igLoad().linhas.length-n0;if(!igLoad().erro)toast(n>0?`${n} mensage${n>1?'ns novas':'m nova'}.`:'Nenhuma mensagem nova.');render();return}
   if(t.hasAttribute('data-igenv')){await igEnviarMsg();return}
   if(t.hasAttribute('data-igopp')){const c=igConvs().find(x=>x.id===G.sel);if(!c)return;const ig=c.usuario?'@'+c.usuario:'';
     let ct=ig&&S.data.contatos.find(x=>nrm(x.instagram||'').replace(/^@/,'')===nrm(c.usuario));let cid=ct&&ct.id;
