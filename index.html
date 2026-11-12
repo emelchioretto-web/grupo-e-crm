@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261112083009';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261112083641';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1325,8 +1325,8 @@ const NAV=[
   {g:'Relacionamento'},
   {v:'contatos',l:'Contatos',i:'user'},
   {v:'dupcont',l:'Duplicados',sub:1,cnt:()=>dupGroups().filter(g=>g.forte).length,alt:1},
-  {v:'atendimento',l:'Atendimento',i:'wa',cnt:()=>{try{return atdLoad().conv.filter(c=>c.status==='aguardando').length}catch(e){return 0}},alt:1},
-  {v:'instagram',l:'Mensagens',i:'wa',cnt:()=>{try{return igAtrasadas()}catch(e){return 0}}},
+  {v:'atendimento',l:'WhatsApp',i:'wa',cnt:()=>{try{return atdLoad().conv.filter(c=>c.status==='aguardando').length}catch(e){return 0}},alt:1},
+  {v:'instagram',l:'Instagram',i:'wa',cnt:()=>{try{return igAtrasadas()}catch(e){return 0}}},
   {v:'emails',l:'E-mails',i:'mail',cnt:()=>emNaoEnviados()},
   {v:'oportunidades',l:'Oportunidades',i:'chat',cnt:()=>S.data.oportunidades.filter(o=>ABERTAS.includes(o.etapa)).length},
   {v:'retornos',l:'Retornos',sub:1,cnt:()=>retAlerta()},{v:'funil',l:'Funil de vendas',sub:1},
@@ -6842,7 +6842,7 @@ VIEWS.instagram=()=>{const G=igLoad();const U=S.ui.ig=S.ui.ig||{f:'todos'};const
   const bolha=m=>{const hr=new Date(m.em);const h=(fdateShort(iso(hr))||'')+' '+hr.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});const cli=m.dir==='in';
     return `<div class="atd-b ${cli?'cli':'eq'}"><div class="atd-q">${cli?esc(c.nome):m.quem==='Lembrete automático'?'⏰ Lembrete automático':'👤 '+esc(m.quem||'Equipe')}</div>${m.t?`<div style="white-space:pre-wrap">${esc(m.t)}</div>`:''}${m.anexo?`<div style="font-size:12px">${m.anexo.split(' | ').map(a=>{const [tp,u]=[a.split(' ')[0],a.split(' ').slice(1).join(' ')];return u?`<a href="${esc(u)}" target="_blank" rel="noopener">📎 ${esc(tp)}</a>`:'📎 '+esc(tp)}).join(' ')}</div>`:''}<div class="atd-h">${h}</div></div>`};
   const semCfg=!G.contas.length;
-  return `${head('Mensagens','Mensagens · Instagram e WhatsApp',`<button class="btn" data-igsync>${ic('refresh',14)} Atualizar</button>`)}
+  return `${head('Instagram','Instagram (Direct)',`<button class="btn" data-igsync>${ic('refresh',14)} Atualizar</button>`)}
   ${semCfg?`<div class="banner" style="margin:0 0 12px"><span>🔌 <b>Ainda não ligado.</b> Falta configurar a Meta no Apps Script (IG_TOKEN + igConfigurar) e cadastrar o webhook. ${G.erro?'<br><span class="muted">Último erro: '+esc(G.erro)+'</span>':''}</span></div>`:''}
   <div class="atd-chips">${[['todos','Todas'],['espera',`⏱ Sem resposta (${C.filter(x=>igEspera(x)>0).length})`],['wa','🟢 WhatsApp'],['ig','📷 Instagram'],['prime','Prime 360'],['elton','Elton']].map(([k,l])=>`<button class="btn sm${U.f===k?' pri':''}" data-igf="${k}">${l}</button>`).join('')}<span class="muted" style="font-size:12px;align-self:center">${G.sync?'atualizado '+new Date(G.sync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''}</span></div>
   ${at?`<div class="banner" style="border-color:var(--danger);margin:0 0 10px"><span>⚠️ <b>${at} cliente${at>1?'s':''} esperando resposta há mais de ${lim} min.</b> Estão no topo da lista.</span></div>`:''}
