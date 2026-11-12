@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261112083641';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261112085537';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -776,6 +776,9 @@ function agCatRes(k){if(!k)return null;let x=k;const al=((S.cfg&&S.cfg.agenda&&S
 const ETAPAS=[['Lead','--idle'],['Contato feito','--info'],['Proposta enviada','--ev-film'],['Negociação','--warn'],['Venda efetivada','--ok'],['Perdida','--danger']];
 const ETAPA_COR=Object.fromEntries(ETAPAS);
 const ABERTAS=['Lead','Contato feito','Proposta enviada','Negociação'];
+/* em aberto de verdade: ainda dá tempo (evento hoje ou depois, ou sem data) */
+const oppViva=o=>ABERTAS.includes(o.etapa)&&(!o.dataEvento||o.dataEvento>=today());
+const oppPassou=o=>ABERTAS.includes(o.etapa)&&!!o.dataEvento&&o.dataEvento<today();
 const etapaNome=k=>{try{const f=cfg().funil||{};return (f[k]&&f[k].nome)||k}catch(e){return k}};
 const PROJ_ST=[['Não iniciado','--idle'],['Em andamento','--info'],['Concluído','--ok'],['Cancelado','--danger'],['Suspenso','--warn']];
 const PROJ_COR=Object.fromEntries(PROJ_ST);
@@ -1328,7 +1331,7 @@ const NAV=[
   {v:'atendimento',l:'WhatsApp',i:'wa',cnt:()=>{try{return atdLoad().conv.filter(c=>c.status==='aguardando').length}catch(e){return 0}},alt:1},
   {v:'instagram',l:'Instagram',i:'wa',cnt:()=>{try{return igAtrasadas()}catch(e){return 0}}},
   {v:'emails',l:'E-mails',i:'mail',cnt:()=>emNaoEnviados()},
-  {v:'oportunidades',l:'Oportunidades',i:'chat',cnt:()=>S.data.oportunidades.filter(o=>ABERTAS.includes(o.etapa)).length},
+  {v:'oportunidades',l:'Oportunidades',i:'chat',cnt:()=>S.data.oportunidades.filter(oppViva).length},
   {v:'retornos',l:'Retornos',sub:1,cnt:()=>retAlerta()},{v:'funil',l:'Funil de vendas',sub:1},
   {v:'propostas',l:'Propostas',sub:1},
   {v:'relopp',l:'Relatórios',sub:1},
@@ -1420,7 +1423,7 @@ VIEWS.inicio=()=>{
   if(!evs.length){evs=agendaAll().filter(e=>e.data>t).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora)).slice(0,7);evTitle='Próximos compromissos'}
   const projSemana=S.data.projetos.filter(p=>p.entrega&&p.entrega>=t&&p.entrega<=wk&&!['Concluído','Cancelado'].includes(p.status)).length;
   const provasAtivas=S.data.provas.filter(p=>p.status==='Ativa').length;
-  const oppAbertas=S.data.oportunidades.filter(o=>ABERTAS.includes(o.etapa));
+  const oppAbertas=S.data.oportunidades.filter(oppViva);
   const ar=S.data.lancamentos.filter(l=>l.tipo==='receber'&&!l.pago).reduce((s,l)=>s+(+l.valor||0),0);
   const ap=S.data.lancamentos.filter(l=>l.tipo==='pagar'&&!l.pago).reduce((s,l)=>s+(+l.valor||0),0);
   const projTot=S.data.projetos.length||1;
@@ -1456,7 +1459,7 @@ function genericList(col){
   if(sc.filters){
     const fo=sc.filters;
     if(col==='contatos'&&f==='Aniversários'){const m=pad(new Date().getMonth()+1);rows=rows.filter(r=>r.aniversario&&r.aniversario.slice(5,7)===m).sort((a,b)=>a.aniversario.slice(8).localeCompare(b.aniversario.slice(8)))}
-    else if(col==='oportunidades'&&f==='Em aberto')rows=rows.filter(r=>ABERTAS.includes(r.etapa));
+    else if(col==='oportunidades'&&f==='Em aberto')rows=rows.filter(oppViva);
     else if(col==='tarefas')rows=f==='Pendentes'?rows.filter(r=>!r.feita):f==='Concluídas'?rows.filter(r=>r.feita):rows;
     else if(col==='provas'&&['Seleção de fotos','Visualização','Álbum'].includes(f))rows=rows.filter(r=>r.tipo===f);
     else if(f&&f!==FO[0])rows=rows.filter(r=>r[fo.field]===f);
