@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261113175751';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261113181249';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -6909,7 +6909,7 @@ function adsCriativosView(){if(!ADS.cri&&!ADS.criCarr&&!ADS.criErro)setTimeout(a
   L=L.slice().sort(ord==='custo'?(a,b)=>cpc(a)-cpc(b):ord==='conv'?(a,b)=>b.conversas-a.conversas:ord==='novo'?(a,b)=>String(b.criado).localeCompare(String(a.criado)):(a,b)=>b.gasto-a.gasto);
   const comConv=(ADS.cri||[]).filter(x=>x.conversas>=3);const med=comConv.length?comConv.reduce((s,x)=>s+x.gasto,0)/comConv.reduce((s,x)=>s+x.conversas,0):0;
   const selo=x=>!x.conversas||x.conversas<3||!med?'':cpc(x)<=med*0.8?'<span class="badge" style="--c:var(--ok)">🏆 barato</span>':cpc(x)>=med*1.5?'<span class="badge" style="--c:var(--danger)">caro</span>':'';
-  return `${head('Anúncios','Anúncios (Meta) / Criativos',`<button class="btn" data-adscrirel>${ic('refresh',14)} ${ADS.criCarr?'Carregando…':'Atualizar'}</button><button class="btn pri" data-adsnovo>＋ Novo anúncio</button>`)}
+  return `${head('Anúncios','Anúncios (Meta) / Criativos',`<button class="btn" data-adscrirel>${ic('refresh',14)} ${ADS.criCarr?'Carregando…':'Atualizar'}</button>${ADS.cri&&ADS.cri.length?'<button class="btn" data-adscricopy title="Copia um resumo de todos os criativos (texto e resultado) para colar na conversa com o Claude">📋 Copiar para o Claude</button>':''}<button class="btn pri" data-adsnovo>＋ Novo anúncio</button>`)}
   ${adsAbas()}
   <div class="toolbar" style="margin-bottom:10px;gap:8px;flex-wrap:wrap"><input class="search" style="flex:1 1 220px" placeholder="Buscar no texto, campanha…" data-adscriq value="${esc(ADS.criQ||'')}">
    <div class="seg">${[['todos','Todos'],['imagem','Fotos'],['video','Vídeos']].map(([k,l])=>`<button data-adscritipo="${k}" class="${(ADS.criTipo||'todos')===k?'on':''}">${l}</button>`).join('')}</div>
@@ -6926,7 +6926,10 @@ function adsCriativosView(){if(!ADS.cri&&!ADS.criCarr&&!ADS.criErro)setTimeout(a
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:4px"><button class="btn sm pri" data-adscriuse="${i}">♻️ Usar em anúncio novo</button>${x.texto?`<button class="btn sm" data-copy="${esc(x.texto)}">Copiar texto</button>`:''}${(x.video||x.imagem)?`<a class="btn sm" href="${esc(x.video||x.imagem)}" target="_blank" rel="noopener" download>Baixar</a>`:''}${x.link?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener">Ver post</a>`:''}</div>
      </div></div>`}).join('')||(ADS.criCarr?'':'<p class="muted">Nenhum criativo encontrado.</p>')}</div>`}
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-adscriq]')){ADS.criQ=t.value;clearTimeout(ADS._qt);ADS._qt=setTimeout(()=>{render();const el=$('[data-adscriq]');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},350)}});
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-adsaba],[data-adscrirel],[data-adscritipo],[data-adscriord],[data-adscriuse]');if(!t)return;e.preventDefault();const d=t.dataset;
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-adsaba],[data-adscrirel],[data-adscritipo],[data-adscriord],[data-adscriuse],[data-adscricopy]');if(!t)return;e.preventDefault();const d=t.dataset;
+  if(t.hasAttribute('data-adscricopy')){const L=(ADS.cri||[]).filter(x=>x.gasto>0).sort((a,b)=>b.gasto-a.gasto).slice(0,40);const tot=L.reduce((s,x)=>s+x.gasto,0),cv=L.reduce((s,x)=>s+x.conversas,0);
+    const txt=`CRIATIVOS META ADS – Grupo E (${L.length} com investimento; total ${brl(tot)}, ${cv} conversas, média ${cv?brl(tot/cv):'—'}/conversa)\n\n`+L.map((x,k)=>`#${k+1} ${x.tipo==='video'?'VÍDEO'+(x.duracao?' '+Math.round(x.duracao)+'s':''):'FOTO'}${x.ativo?' (no ar)':''} | ${brl(x.gasto)} | ${x.conversas} conversas | ${x.conversas?brl(x.gasto/x.conversas)+'/conv':'sem conversa'} | ${x.cliques} cliques | CTR ${x.impressoes?(x.cliques/x.impressoes*100).toFixed(2).replace('.',','):'0'}% | desde ${String(x.criado||'').slice(0,10)}\nCampanhas: ${x.campanhas.join(' · ')}\n${x.titulo?'Título: '+x.titulo+'\n':''}Texto: ${String(x.texto||'(sem texto)').replace(/\s+/g,' ').slice(0,500)}`).join('\n\n');
+    try{await navigator.clipboard.writeText(txt);toast('Resumo copiado. Cole na conversa com o Claude.')}catch(_){toast('Não consegui copiar.',true)}return}
   if(d.adsaba){ADS.aba=d.adsaba;render();return}
   if(t.hasAttribute('data-adscrirel')){ADS.cri=null;adsCriCarregar();return}
   if(d.adscritipo){ADS.criTipo=d.adscritipo;render();return}
