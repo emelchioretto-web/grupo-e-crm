@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261113141212';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261113142637';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -164,7 +164,7 @@ const MCP={
   async callTool(server,tool,input){let p;
     if(server==='DocuSeal')p=await ds(tool,input||{});
     else if(server==='IA')p=await iaCall(tool,input||{});
-    else if(['Gmail','Google Calendar','Google Drive','Form','ICal','Instagram'].includes(server)){let inp=input||{};if(server==='Gmail'&&inp.htmlBody){/* o Gmail do Apps Script estraga emojis (viram ������): manda como código HTML */inp={...inp,htmlBody:String(inp.htmlBody).replace(/[\u{10000}-\u{10FFFF}]/gu,c=>'&#'+c.codePointAt(0)+';')}}p=await ponte(server,tool,inp)}
+    else if(['Gmail','Google Calendar','Google Drive','Form','ICal','Instagram','Ads'].includes(server)){let inp=input||{};if(server==='Gmail'&&inp.htmlBody){/* o Gmail do Apps Script estraga emojis (viram ������): manda como código HTML */inp={...inp,htmlBody:String(inp.htmlBody).replace(/[\u{10000}-\u{10FFFF}]/gu,c=>'&#'+c.codePointAt(0)+';')}}p=await ponte(server,tool,inp)}
     else throw erro('Função não disponível: '+server+' / '+tool,'not_in_manifest');
     return {payload:p,content:[{type:'text',text:JSON.stringify(p)}]}},
   async describeTool(server,tool){const s=SCH[server]&&SCH[server][tool];return {name:tool,inputSchema:s||null}},
@@ -1335,6 +1335,7 @@ const NAV=[
   {v:'retornos',l:'Retornos',sub:1,cnt:()=>retAlerta()},{v:'funil',l:'Funil de vendas',sub:1},
   {v:'propostas',l:'Propostas',sub:1},
   {v:'relopp',l:'Relatórios',sub:1},
+  {v:'anuncios',l:'Anúncios (Meta)',sub:1},
   {g:'Vendas'},
   {v:'produtos',l:'Produtos',i:'box'},
   {v:'pedidos',l:'Pedidos e contratos',i:'cart'},
@@ -6291,7 +6292,7 @@ const MODULOS=[
   {k:'agenda',l:'Agenda e disponibilidade',d:'Agenda de eventos, sincronização com o Google Agenda, equipamentos e disponibilidade para vender.',v:['agenda','reldisp'],t:['agenda','equip']},
   {k:'atendimento',l:'Atendimento WhatsApp',d:'Conversas do WhatsApp dentro do CRM, com a IA que atende, listas de contatos e criação de oportunidades.',v:['atendimento','instagram'],t:[]},
   {k:'emails',l:'E-mails',d:'Caixa de e-mails dentro do CRM, ligada aos contatos.',v:['emails'],t:['assinatura']},
-  {k:'oportunidades',l:'Oportunidades e propostas',d:'Funil de vendas, oportunidades, propostas e relatórios de oportunidades.',v:['oportunidades','retornos','funil','propostas','relopp'],t:['funil','oport','categorias']},
+  {k:'oportunidades',l:'Oportunidades e propostas',d:'Funil de vendas, oportunidades, propostas e relatórios de oportunidades.',v:['oportunidades','retornos','funil','propostas','relopp','anuncios'],t:['funil','oport','categorias']},
   {k:'pedidos',l:'Pedidos e contratos',d:'Produtos, pedidos, contratos com assinatura digital, fichas de contratação e relatórios de vendas.',v:['produtos','pedidos','fichas','relvendas','relprod','relresv'],t:['termos','contratos','pedtar']},
   {k:'projetos',l:'Projetos e tarefas',d:'Projetos de produção (álbuns, impressão) e lista de tarefas.',v:['projetos','tarefas'],t:['projetos','fluxos']},
   {k:'provas',l:'Provas e galerias',d:'Galerias para o cliente aprovar e escolher as fotos, com lista de seleção.',v:['provas','prova','provaview'],t:['provas']},
@@ -6827,6 +6828,129 @@ function atdEsperaHTML(min){if(!min)return '';const lim=atdLimite();const cor=mi
 function atdInteresse(x){const p=String((x.lead&&x.lead.produto)||'').trim();return p?p.split(/[,/+]| e /)[0].trim():''}
 function atdAtrasadas(){try{const A=atdLoad();const lim=atdLimite();return A.conv.filter(x=>x.status!=='bot'&&atdEspera(x)>=lim).length}catch(_){return 0}}
 /* ===== Instagram Direct: mensagens das duas contas (Prime 360 e Elton) chegam pelo webhook no Apps Script ===== */
+/* ===== Anúncios (Meta Ads): painel, cruzamento com o CRM, análise do gestor e criação de anúncio PAUSADO ===== */
+const ADS={dados:null,carregando:false,erro:'',per:'30',analise:'',analisando:false,hist:null};
+const adsOrigemAnuncio=o=>/facebook|instagram|\bmeta\b|an[uú]ncio|tr[aá]fego|patrocinad|\bads\b/i.test([o.origem,o.indicadoPor].join(' '))&&!/google/i.test([o.origem,o.indicadoPor].join(' '));
+function adsPeriodo(){const t=today();const p=ADS.per;if(p==='mes')return {desde:t.slice(0,8)+'01',ate:t};if(p==='mesant'){const d=parseD(t.slice(0,8)+'01');d.setDate(0);const f=iso(d);return {desde:f.slice(0,8)+'01',ate:f}}return {desde:addDays(t,-(+p-1)),ate:t}}
+const adsAcao=(acts,re)=>(acts||[]).filter(a=>re.test(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+const AD_CONV=/messaging_conversation_started_7d|onsite_conversion\.messaging_first_reply/;const AD_LEAD=/^lead$|onsite_conversion\.lead_grouped|offsite_conversion\.fb_pixel_lead/;
+async function adsCarregar(){if(ADS.carregando)return;const mcp=await getMcp();if(!mcp||!window.GAS_URL){ADS.erro='A aba de anúncios funciona no CRM publicado (no site).';render();return}
+  ADS.carregando=true;ADS.erro='';render();try{const r=await mcp.callTool('Ads','resumo',adsPeriodo(),{cache:false});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);ADS.dados=pl;ADS.em=new Date().toISOString()}
+  catch(e){ADS.erro=String((e&&e.message)||e)}finally{ADS.carregando=false;render()}}
+async function adsHist(){if(ADS.hist)return ADS.hist;try{if(S.mode==='db'){const d=await S.db.doc('config/anuncios').get();ADS.hist=(d&&d.exists&&d.data().itens)||[]}else ADS.hist=JSON.parse(localStorage.getItem('grupoe-anuncios')||'[]')}catch(_){ADS.hist=[]}return ADS.hist}
+async function adsHistAdd(x){const L=[x,...(await adsHist())].slice(0,200);ADS.hist=L;try{if(S.mode==='db')await S.db.doc('config/anuncios').set({itens:L});else localStorage.setItem('grupoe-anuncios',JSON.stringify(L))}catch(_){}}
+function adsCrm(){const {desde,ate}=adsPeriodo();const O=S.data.oportunidades.filter(o=>adsOrigemAnuncio(o)&&String(o.criadoEm||o.data||'').slice(0,10)>=desde&&String(o.criadoEm||o.data||'').slice(0,10)<=ate);
+  const V=O.filter(o=>o.etapa==='Venda efetivada');const fat=V.reduce((s,o)=>{const p=S.data.pedidos.find(x=>x.oportunidadeId===o.id);return s+(p?pedidoTotal(p):(+o.valor||0))},0);return {leads:O.length,vendas:V.length,fat,abertas:O.filter(oppViva).length,O}}
+function adsResumoNum(){const D=ADS.dados;if(!D)return null;const pc=D.porCamp||[];const sum=k=>pc.reduce((s,x)=>s+(+x[k]||0),0);
+  return {gasto:sum('spend'),alcance:sum('reach'),impr:sum('impressions'),cliques:sum('clicks'),conv:pc.reduce((s,x)=>s+adsAcao(x.actions,AD_CONV),0),leads:pc.reduce((s,x)=>s+adsAcao(x.actions,AD_LEAD),0)}}
+VIEWS.anuncios=()=>{if(!ADS.dados&&!ADS.carregando&&!ADS.erro)setTimeout(adsCarregar,50);const D=ADS.dados||{};const N=adsResumoNum()||{gasto:0,alcance:0,impr:0,cliques:0,conv:0,leads:0};const C=adsCrm();
+  const st=s=>s==='ACTIVE'?badge('Ativo','--ok'):s==='PAUSED'||s==='CAMPAIGN_PAUSED'||s==='ADSET_PAUSED'?badge('Pausado','--idle'):badge(String(s||'').toLowerCase().replace(/_/g,' '),'--warn');
+  const kp=(l,v,sub,cor)=>`<div class="panel" style="padding:12px 14px"><div class="muted" style="font-size:12px">${l}</div><div class="num" style="font-size:20px;font-weight:800;${cor?'color:var('+cor+')':''}">${v}</div>${sub?`<div class="muted" style="font-size:11.5px">${sub}</div>`:''}</div>`;
+  const ins={};(D.porCamp||[]).forEach(x=>ins[x.campaign_id]=x);const cs=(D.campanhas||[]).filter(c=>ins[c.id]||c.effective_status==='ACTIVE').sort((a,b)=>(+(ins[b.id]||{}).spend||0)-(+(ins[a.id]||{}).spend||0));
+  const adIns={};(D.porAd||[]).forEach(x=>adIns[x.ad_id]=x);const ads=(D.anuncios||[]).filter(a=>adIns[a.id]).sort((a,b)=>(+adIns[b.id].spend||0)-(+adIns[a.id].spend||0)).slice(0,24);
+  const orc=c=>{const cj=(D.conjuntos||[]).filter(x=>x.campaign_id===c.id);const v=(+c.daily_budget||0)||cj.reduce((s,x)=>s+(+x.daily_budget||0),0);return v?brl(v/100)+'/dia':'—'};
+  const roas=N.gasto?C.fat/N.gasto:0;
+  return `${head('Anúncios','Anúncios (Meta)',`<button class="btn" data-adsrel>${ic('refresh',14)} ${ADS.carregando?'Carregando…':'Atualizar'}</button><button class="btn" data-adsanal>🧠 Analisar como gestor</button><button class="btn pri" data-adsnovo>＋ Novo anúncio</button>`)}
+  <div class="toolbar" style="margin-bottom:10px"><div class="seg">${[['7','7 dias'],['30','30 dias'],['90','90 dias'],['mes','Este mês'],['mesant','Mês passado']].map(([k,l])=>`<button data-adsper="${k}" class="${ADS.per===k?'on':''}">${l}</button>`).join('')}</div>
+   <span class="muted" style="font-size:12px">${D.conta?esc(D.conta.name||'')+' · ':''}${ADS.em?'atualizado '+new Date(ADS.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''}</span></div>
+  ${ADS.erro?`<div class="banner" style="border-color:var(--danger);margin-bottom:12px"><span>⚠️ ${esc(ADS.erro)}${/permiss|permission|ads_|#10|#200|token/i.test(ADS.erro)?'<br><b>Falta permissão de anúncios no token:</b> gere o token do usuário do sistema de novo marcando também <code>ads_read</code>, <code>ads_management</code>, <code>pages_read_engagement</code> e <code>pages_manage_ads</code>, e troque o IG_TOKEN no Apps Script.':''}</span></div>`:''}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">
+   ${kp('Investido',brl(N.gasto))}${kp('Alcance',N.alcance.toLocaleString('pt-BR'),N.impr?N.impr.toLocaleString('pt-BR')+' impressões':'')}${kp('Cliques',N.cliques.toLocaleString('pt-BR'),N.impr?'CTR '+(N.cliques/N.impr*100).toFixed(2).replace('.',',')+'%':'')}
+   ${kp('Conversas iniciadas',N.conv.toLocaleString('pt-BR'),N.conv?brl(N.gasto/N.conv)+' por conversa':'')}
+   ${kp('Oportunidades no CRM',C.leads,`vindas de anúncio · ${C.abertas} em aberto`)}${kp('Vendas fechadas',C.vendas,C.vendas?brl(N.gasto/C.vendas)+' de anúncio por venda':'', C.vendas?'--ok':'')}
+   ${kp('Faturamento das vendas',brl(C.fat),N.gasto?`retorno ${roas.toFixed(1).replace('.',',')}× o investido`:'',roas>=1?'--ok':roas?'--danger':'')}</div>
+  ${ADS.analise||ADS.analisando?`<section class="panel" style="margin-bottom:12px;border:2px solid var(--accent,#1f6f4a)"><div class="body"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">🧠 Análise do gestor</h3>${ADS.analise?'<button class="btn sm" data-adsanalx>Fechar</button>':''}</div><div style="white-space:pre-wrap;line-height:1.6;font-size:13.5px;margin-top:8px">${ADS.analisando?'Analisando campanhas, anúncios e vendas do CRM…':adsMd(ADS.analise)}</div></div></section>`:''}
+  <section class="panel" style="margin-bottom:12px"><div class="body" style="padding-bottom:0"><h3 style="margin:0 0 8px">Campanhas</h3></div><div class="tbl-wrap"><table class="tbl" style="font-size:12.5px"><thead><tr><th>Campanha</th><th>Status</th><th class="r">Orçamento</th><th class="r">Investido</th><th class="r">Alcance</th><th class="r">Cliques</th><th class="r">CTR</th><th class="r">Conversas</th><th class="r">Custo/conversa</th><th></th></tr></thead>
+   <tbody>${cs.map(c=>{const x=ins[c.id]||{};const cv=adsAcao(x.actions,AD_CONV);return `<tr><td><b>${esc(c.name)}</b><div class="muted" style="font-size:11px">${esc(String(c.objective||'').replace('OUTCOME_','').toLowerCase())}</div></td><td>${st(c.effective_status)}</td><td class="r">${orc(c)}</td><td class="r num">${brl(+x.spend||0)}</td><td class="r num">${(+x.reach||0).toLocaleString('pt-BR')}</td><td class="r num">${(+x.clicks||0).toLocaleString('pt-BR')}</td><td class="r num">${x.ctr?(+x.ctr).toFixed(2).replace('.',',')+'%':'—'}</td><td class="r num">${cv||'—'}</td><td class="r num">${cv?brl((+x.spend||0)/cv):'—'}</td>
+     <td class="r">${c.effective_status==='ACTIVE'?`<button class="btn sm" data-adsst="${c.id}|PAUSED">Pausar</button>`:c.status==='PAUSED'?`<button class="btn sm" data-adsst="${c.id}|ACTIVE">Ligar</button>`:''}</td></tr>`}).join('')||`<tr><td colspan="10" class="muted">${ADS.carregando?'Carregando…':'Nenhuma campanha com resultado nesse período.'}</td></tr>`}</tbody></table></div></section>
+  ${ads.length?`<section class="panel"><div class="body"><h3 style="margin:0 0 10px">Anúncios que mais investiram</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">${ads.map(a=>{const x=adIns[a.id];const cr=a.creative||{};const cv=adsAcao(x.actions,AD_CONV);return `<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)">${cr.thumbnail_url||cr.image_url?`<img src="${esc(cr.image_url||cr.thumbnail_url)}" style="width:100%;height:140px;object-fit:cover;display:block" loading="lazy">`:''}<div style="padding:8px 10px;font-size:12px"><b>${esc(a.name)}</b> ${st(a.effective_status)}<div class="muted" style="margin:4px 0;max-height:34px;overflow:hidden">${esc(cr.body||'')}</div><div class="num">${brl(+x.spend||0)} · ${(+x.clicks||0)} cliques · CTR ${x.ctr?(+x.ctr).toFixed(2).replace('.',','):'0'}%${cv?` · ${cv} conversas (${brl((+x.spend||0)/cv)})`:''}</div></div></div>`}).join('')}</div></div></section>`:''}`};
+const adsMd=t=>esc(t).replace(/^### (.*)$/gm,'<b style="font-size:14px">$1</b>').replace(/^## (.*)$/gm,'<b style="font-size:15px">$1</b>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+async function adsAnalisar(){const D=ADS.dados;if(!D){toast('Atualize os números primeiro.',true);return}const mcp=await getMcp();if(!mcp)return;ADS.analisando=true;ADS.analise='';render();
+  try{const N=adsResumoNum(),C=adsCrm(),{desde,ate}=adsPeriodo();const ins={};(D.porCamp||[]).forEach(x=>ins[x.campaign_id]=x);
+    const camp=(D.campanhas||[]).filter(c=>ins[c.id]).map(c=>{const x=ins[c.id];return {nome:c.name,status:c.effective_status,objetivo:c.objective,investido:+x.spend||0,alcance:+x.reach||0,impressoes:+x.impressions||0,cliques:+x.clicks||0,ctr:+x.ctr||0,cpm:+x.cpm||0,frequencia:+x.frequency||0,conversas:adsAcao(x.actions,AD_CONV)}});
+    const adIns={};(D.porAd||[]).forEach(x=>adIns[x.ad_id]=x);const anuncios=(D.anuncios||[]).filter(a=>adIns[a.id]).map(a=>{const x=adIns[a.id];return {nome:a.name,texto:String((a.creative||{}).body||'').slice(0,200),investido:+x.spend||0,cliques:+x.clicks||0,ctr:+x.ctr||0,conversas:adsAcao(x.actions,AD_CONV)}}).sort((a,b)=>b.investido-a.investido).slice(0,25);
+    const opps=C.O.map(o=>({titulo:o.titulo,produto:o.produto||o.tipo||'',etapa:o.etapa,valor:+o.valor||0,origem:o.origem||o.indicadoPor||''})).slice(0,60);
+    const hist=(await adsHist()).slice(0,15).map(h=>({em:h.em,nome:h.nome,destino:h.destino,orcamentoDia:h.orcamentoDia,publico:h.publico,texto:(h.textos||{}).principal}));
+    const sys=`Você é o gestor de tráfego pago (Meta Ads) do Grupo E: Elton Melchioretto Fotografia e Filmagem (casamentos, eventos, empresas) e Prime 360 Foto Cabine (aluguel de cabine de fotos, totens, espelho mágico, spinner 360, grua de prêmios para eventos e empresas), em Guaramirim/Joinville-SC e região. Fale em português do Brasil, direto e prático, como um gestor experiente falando com o dono. Use os números recebidos; não invente dados que não estão lá. Estruture assim:
+## Resumo do período (3 a 5 linhas com investimento, custo por conversa, oportunidades e vendas no CRM e retorno)
+## O que está funcionando (campanhas/anúncios para manter ou aumentar verba, com o porquê)
+## O que está desperdiçando dinheiro (o que pausar ou mudar, com o porquê)
+## Ações para esta semana (lista numerada, concreta: verba, público, criativo, texto, horário)
+## Ideias de novos anúncios (2 a 3, com gancho, texto curto e público sugerido)
+Considere sazonalidade (fim de ano = confraternizações e formaturas; casamentos fecham com meses de antecedência). Se faltar dado para concluir algo, diga o que medir.`;
+    const msg=`Período: ${fdate(desde)} a ${fdate(ate)}.\nTotais Meta: ${JSON.stringify(N)}\nCRM (oportunidades vindas de anúncio no período): ${JSON.stringify({oportunidades:C.leads,vendas:C.vendas,faturamento:C.fat,abertas:C.abertas})}\nCampanhas: ${JSON.stringify(camp)}\nAnúncios: ${JSON.stringify(anuncios)}\nOportunidades: ${JSON.stringify(opps)}\nAnúncios criados pelo CRM: ${JSON.stringify(hist)}`;
+    const r=await mcp.callTool('IA','chat',{system:sys,messages:[{role:'user',content:msg}],max:3500},{cache:false});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);ADS.analise=String(pl.texto||'(sem resposta)')}
+  catch(e){ADS.analise='Não consegui analisar: '+((e&&e.message)||e)}finally{ADS.analisando=false;render()}}
+/* ---- novo anúncio ---- */
+const ADN={midias:[],passo:''};
+function adsNovoModal(){const pgs=(S.ig&&S.ig.contas||igLoad().contas||[]).filter(c=>c.tipo!=='wa');const F=ADN.f=ADN.f||{nome:'',marca:'prime',destino:'whatsapp',principal:'',titulo:'',descricao:'',link:'',orcamentoDia:30,inicio:today(),fim:addDays(today(),14),cidades:'Joinville, Jaraguá do Sul, Blumenau',raioKm:40,idadeMin:22,idadeMax:55,genero:'todos',brief:''};
+  const v=k=>esc(F[k]==null?'':String(F[k]));
+  $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:860px"><header><h3>＋ Novo anúncio</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
+  <div class="mbody" style="display:grid;gap:14px">
+   <div class="form-grid">
+    <div class="field"><label>Nome da campanha</label><input data-adf="nome" value="${v('nome')}" placeholder="Ex.: Cabine – Confraternização dezembro"></div>
+    <div class="field"><label>Marca / página</label><select data-adf="marca"><option value="prime" ${F.marca==='prime'?'selected':''}>Prime 360 Foto Cabine</option><option value="elton" ${F.marca==='elton'?'selected':''}>Elton Melchioretto Fotografia</option></select></div>
+    <div class="field"><label>Para onde o cliente vai</label><select data-adf="destino"><option value="whatsapp" ${F.destino==='whatsapp'?'selected':''}>Conversa no WhatsApp</option><option value="instagram" ${F.destino==='instagram'?'selected':''}>Direct do Instagram</option><option value="site" ${F.destino==='site'?'selected':''}>Site / formulário</option></select></div>
+    ${F.destino==='site'?`<div class="field"><label>Link do site</label><input data-adf="link" value="${v('link')}" placeholder="https://"></div>`:'<div></div>'}
+   </div>
+   <div><label style="font-weight:600;font-size:13px">Fotos e vídeos</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${ADN.midias.map((m,i)=>`<div style="position:relative;width:110px;height:110px;border-radius:8px;overflow:hidden;border:1px solid var(--line)">${m.tipo==='video'?`<video src="${m.url}" style="width:100%;height:100%;object-fit:cover" muted></video><span style="position:absolute;left:4px;bottom:4px;background:#000a;color:#fff;font-size:10px;padding:1px 5px;border-radius:4px">vídeo</span>`:`<img src="${m.url}" style="width:100%;height:100%;object-fit:cover">`}<button class="icon-btn" data-admrm="${i}" style="position:absolute;top:3px;right:3px;width:22px;height:22px;background:#fff">${ic('x',11)}</button></div>`).join('')}
+     <label class="btn" style="width:110px;height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-style:dashed">＋<span style="font-size:11px">foto ou vídeo</span><input type="file" accept="image/*,video/*" multiple data-admfile hidden></label></div>
+    <div class="muted" style="font-size:11.5px;margin-top:4px">Cada foto ou vídeo vira um anúncio dentro da mesma campanha, para a Meta descobrir qual funciona melhor. Vídeo até ~40 MB.</div></div>
+   <div class="panel" style="padding:10px 12px;background:var(--surface-2,#f6f8f7)"><div class="field"><label>O que vamos vender? (oferta, valor, diferencial, para quem)</label><textarea data-adf="brief" rows="2" placeholder="Ex.: Cabine de fotos para confraternização de empresa em dezembro, a partir de R$ 1.650, fotos impressas na hora, técnico incluso">${v('brief')}</textarea></div>
+    <button class="btn sm" data-adsugerir>✨ Escrever os textos com IA</button></div>
+   <div class="form-grid">
+    <div class="field full"><label>Texto principal</label><textarea data-adf="principal" rows="4">${v('principal')}</textarea></div>
+    <div class="field"><label>Título</label><input data-adf="titulo" value="${v('titulo')}" maxlength="60"></div>
+    <div class="field"><label>Descrição (opcional)</label><input data-adf="descricao" value="${v('descricao')}" maxlength="60"></div>
+   </div>
+   <div class="form-grid">
+    <div class="field"><label>Orçamento por dia (R$)</label><input type="number" min="6" step="1" data-adf="orcamentoDia" value="${v('orcamentoDia')}"></div>
+    <div class="field"><label>Total no período</label><input disabled value="${brl((+F.orcamentoDia||0)*Math.max(1,Math.round((parseD(F.fim||today())-parseD(F.inicio||today()))/864e5)+1))}"></div>
+    <div class="field"><label>Começa</label><input type="date" data-adf="inicio" value="${v('inicio')}"></div>
+    <div class="field"><label>Termina</label><input type="date" data-adf="fim" value="${v('fim')}"></div>
+    <div class="field full"><label>Cidades (separe por vírgula)</label><input data-adf="cidades" value="${v('cidades')}"></div>
+    <div class="field"><label>Raio em volta de cada cidade (km)</label><input type="number" min="1" max="80" data-adf="raioKm" value="${v('raioKm')}"></div>
+    <div class="field"><label>Público</label><select data-adf="genero"><option value="todos" ${F.genero==='todos'?'selected':''}>Todos</option><option value="mulheres" ${F.genero==='mulheres'?'selected':''}>Mulheres</option><option value="homens" ${F.genero==='homens'?'selected':''}>Homens</option></select></div>
+    <div class="field"><label>Idade mínima</label><input type="number" min="18" max="65" data-adf="idadeMin" value="${v('idadeMin')}"></div>
+    <div class="field"><label>Idade máxima</label><input type="number" min="18" max="65" data-adf="idadeMax" value="${v('idadeMax')}"></div>
+   </div>
+   ${ADN.passo?`<div class="banner" style="margin:0"><span>${esc(ADN.passo)}</span></div>`:''}
+   ${pgs.length?'':'<div class="banner" style="border-color:var(--warn);margin:0"><span>As páginas ainda não foram lidas do Instagram/Meta. Abra a tela Instagram uma vez e volte aqui.</span></div>'}
+  </div>
+  <footer><button class="btn" data-adcopiar>📋 Copiar pacote</button><span class="sp" style="flex:1"></span><button class="btn" data-close>Cancelar</button><button class="btn pri" data-adcriar>Criar na Meta (pausado)</button></footer></div></div>`}
+async function adsB64Img(file){const url=URL.createObjectURL(file);try{const img=await new Promise((ok,er)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>er(new Error('Não consegui abrir a imagem.'));im.src=url});const M=1920,k=Math.min(1,M/Math.max(img.naturalWidth,img.naturalHeight));const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);return cv.toDataURL('image/jpeg',0.9).split(',')[1]}finally{URL.revokeObjectURL(url)}}
+async function adsB64Raw(file){const buf=new Uint8Array(await file.arrayBuffer());let s='';for(let i=0;i<buf.length;i+=0x8000)s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));return btoa(s)}
+function adsPacote(){const F=ADN.f||{};return `CAMPANHA: ${F.nome||''}\nMarca: ${F.marca==='elton'?'Elton Melchioretto Fotografia':'Prime 360 Foto Cabine'}\nDestino: ${F.destino==='whatsapp'?'Conversa no WhatsApp':F.destino==='instagram'?'Direct do Instagram':'Site: '+(F.link||'')}\n\nTEXTO PRINCIPAL:\n${F.principal||''}\n\nTÍTULO: ${F.titulo||''}\nDESCRIÇÃO: ${F.descricao||''}\n\nORÇAMENTO: R$ ${F.orcamentoDia}/dia · de ${fdate(F.inicio)} a ${fdate(F.fim)}\nPÚBLICO: ${F.cidades} (raio ${F.raioKm} km) · ${F.idadeMin}–${F.idadeMax} anos · ${F.genero}\nMÍDIAS: ${ADN.midias.length} arquivo(s): ${ADN.midias.map(m=>m.file.name).join(', ')}`}
+document.addEventListener('input',e=>{const t=e.target;const k=t&&t.dataset&&t.dataset.adf;if(!k||!ADN.f)return;ADN.f[k]=t.value});
+document.addEventListener('change',async e=>{const t=e.target;if(!t)return;if(t.dataset&&t.dataset.adf&&ADN.f){ADN.f[t.dataset.adf]=t.value;if(['destino','orcamentoDia','inicio','fim'].includes(t.dataset.adf))adsNovoModal();return}
+  if(t.matches&&t.matches('[data-admfile]')){for(const f of [...t.files]){const vid=/^video\//.test(f.type);if(vid&&f.size>40e6){toast(f.name+': vídeo grande demais (máx. ~40 MB).',true);continue}ADN.midias.push({file:f,tipo:vid?'video':'imagem',url:URL.createObjectURL(f)})}adsNovoModal()}});
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-adsrel],[data-adsper],[data-adsanal],[data-adsanalx],[data-adsnovo],[data-adsst],[data-admrm],[data-adsugerir],[data-adcopiar],[data-adcriar]');if(!t)return;e.preventDefault();const d=t.dataset;
+  if(t.hasAttribute('data-adsrel')){adsCarregar();return}
+  if(d.adsper){ADS.per=d.adsper;ADS.dados=null;adsCarregar();return}
+  if(t.hasAttribute('data-adsanal')){adsAnalisar();return}
+  if(t.hasAttribute('data-adsanalx')){ADS.analise='';render();return}
+  if(t.hasAttribute('data-adsnovo')){ADN.passo='';adsNovoModal();return}
+  if(d.admrm!==undefined){ADN.midias.splice(+d.admrm,1);adsNovoModal();return}
+  if(d.adsst){const [id,stt]=d.adsst.split('|');t.disabled=true;try{const mcp=await getMcp();const r=await mcp.callTool('Ads','status',{id,status:stt},{cache:false});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);toast(stt==='ACTIVE'?'Campanha ligada.':'Campanha pausada.');await adsCarregar()}catch(err){toast(String((err&&err.message)||err),true);t.disabled=false}return}
+  if(t.hasAttribute('data-adcopiar')){try{await navigator.clipboard.writeText(adsPacote());toast('Pacote copiado (textos, verba, público e lista de mídias).')}catch(_){toast('Não consegui copiar.',true)}return}
+  if(t.hasAttribute('data-adsugerir')){const F=ADN.f;if(!String(F.brief||'').trim()){toast('Escreva o que vamos vender primeiro.',true);return}t.disabled=true;t.textContent='✨ Escrevendo…';
+    try{const mcp=await getMcp();const sys=`Você é redator de anúncios do Meta (Facebook/Instagram) para ${F.marca==='elton'?'Elton Melchioretto Fotografia e Filmagem (fotografia e filmagem de casamentos, eventos e empresas)':'Prime 360 Foto Cabine (aluguel de cabine de fotos, totens, espelho mágico, spinner 360 e grua de prêmios para eventos e empresas)'}, em Santa Catarina. Escreva em português do Brasil, tom próximo e profissional, com emojis com moderação. O anúncio leva para ${F.destino==='whatsapp'?'uma conversa no WhatsApp':F.destino==='instagram'?'o Direct do Instagram':'o site'}. Responda SOMENTE com JSON: {"principal":"texto principal (até 400 caracteres, com gancho na 1ª linha e chamada para ação no fim)","titulo":"até 40 caracteres","descricao":"até 30 caracteres","nome":"nome curto para a campanha"}`;
+      const r=await mcp.callTool('IA','chat',{system:sys,messages:[{role:'user',content:'Brief: '+F.brief}],max:800},{cache:false});const pl=parsePayload(r)||{};const m=String(pl.texto||'').match(/\{[\s\S]*\}/);if(!m)throw new Error('A IA não respondeu no formato.');const j=JSON.parse(m[0]);
+      F.principal=j.principal||F.principal;F.titulo=j.titulo||F.titulo;F.descricao=j.descricao||F.descricao;if(!F.nome)F.nome=j.nome||'';adsNovoModal()}catch(err){toast(String((err&&err.message)||err),true);t.disabled=false;t.textContent='✨ Escrever os textos com IA'}return}
+  if(t.hasAttribute('data-adcriar')){const F=ADN.f;if(!F.nome||!F.principal){toast('Preencha o nome da campanha e o texto principal.',true);return}if(!ADN.midias.length){toast('Coloque pelo menos uma foto ou vídeo.',true);return}if(F.destino==='site'&&!/^https?:\/\//.test(F.link||'')){toast('Coloque o link do site.',true);return}
+    const pgs=(igLoad().contas||[]).filter(c=>c.tipo!=='wa');const pg=pgs.find(c=>F.marca==='prime'?/prime/i.test((c.usuario||'')+(c.nome||'')):!/prime/i.test((c.usuario||'')+(c.nome||'')))||pgs[0];
+    const mcp=await getMcp();if(!mcp)return;t.disabled=true;
+    try{const mids=[];for(let i=0;i<ADN.midias.length;i++){const m=ADN.midias[i];ADN.passo=`Enviando mídia ${i+1} de ${ADN.midias.length} para a Meta…`;adsNovoModal();
+        if(m.tipo==='video'){const r=await mcp.callTool('Ads','video',{b64:await adsB64Raw(m.file),mime:m.file.type,nome:m.file.name},{cache:false});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);mids.push({tipo:'video',id:pl.id})}
+        else{const r=await mcp.callTool('Ads','imagem',{b64:await adsB64Img(m.file),nome:m.file.name},{cache:false});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);mids.push({tipo:'imagem',hash:pl.hash})}}
+      ADN.passo='Criando campanha, público e anúncios (pausados)…';adsNovoModal();
+      const body={nome:F.nome,destino:F.destino,link:F.link,pageId:pg&&pg.pageId,textos:{principal:F.principal,titulo:F.titulo,descricao:F.descricao},midias:mids,orcamentoDia:+F.orcamentoDia,inicio:F.inicio,fim:F.fim,publico:{cidades:String(F.cidades||'').split(',').map(x=>x.trim()).filter(Boolean),raioKm:+F.raioKm,idadeMin:+F.idadeMin,idadeMax:+F.idadeMax,genero:F.genero}};
+      const r=await mcp.callTool('Ads','criar',body,{cache:false});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);
+      await adsHistAdd({em:new Date().toISOString(),nome:F.nome,marca:F.marca,destino:F.destino,orcamentoDia:+F.orcamentoDia,inicio:F.inicio,fim:F.fim,publico:body.publico,textos:body.textos,campanha:pl.campanha,anuncios:pl.anuncios});
+      closeModal();ADN.f=null;ADN.midias=[];ADN.passo='';
+      $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:560px"><header><h3>✅ Campanha criada (pausada)</h3><button type="button" class="icon-btn x" data-close>${ic('x',15)}</button></header><div class="mbody"><p><b>${(pl.anuncios||[]).length}</b> anúncio(s) criados, tudo <b>pausado</b>. Revise no Gerenciador de Anúncios e ligue quando estiver certo — ou ligue aqui pela lista de campanhas.</p>${(pl.erros||[]).length?`<div class="banner" style="border-color:var(--warn)"><span>${pl.erros.map(esc).join('<br>')}</span></div>`:''}</div><footer><a class="btn pri" href="${esc(pl.link||'#')}" target="_blank" rel="noopener">Abrir no Gerenciador de Anúncios</a><button class="btn" data-close>Fechar</button></footer></div></div>`;adsCarregar()}
+    catch(err){ADN.passo='⚠️ '+String((err&&err.message)||err)+' — nada foi ligado. Use "Copiar pacote" para publicar à mão, se precisar.';adsNovoModal()}finally{t.disabled=false}return}});
+
 const IG_LS='crm.ig.v1';
 function igLoad(){if(S.ig)return S.ig;let v=null;try{v=JSON.parse(localStorage.getItem(IG_LS)||'null')}catch(_){}S.ig=v||{linhas:[],ult:1,perfis:{},contas:[]};S.ig.sel=S.ig.sel||'';return S.ig}
 function igGuardar(){try{const G=S.ig;localStorage.setItem(IG_LS,JSON.stringify({linhas:G.linhas.slice(-3000),ult:G.ult,perfis:G.perfis,contas:G.contas,sel:G.sel,lidoEm:G.lidoEm}))}catch(_){}}
