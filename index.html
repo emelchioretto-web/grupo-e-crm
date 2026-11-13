@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261113182405';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261113184115';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -6941,7 +6941,8 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
 
 
 /* ===== Anúncio rápido: 1 foto + cidade → a IA (gestor) monta textos no padrão dos campeões e o anúncio fica pronto (pausado) ===== */
-const ADR={midias:[],cidade:'',obs:'',passo:'',rodando:false};
+const ADR={midias:[],cidade:'',obs:'',prod:'',passo:'',rodando:false};
+const ADR_PRODS=[['Cabine de Fotos','prime'],['Espelho Mágico','prime'],['Spinner 360','prime'],['Grua de Prêmios','prime'],['Cabine de Prêmios (vento)','prime'],['Totem de Fotos','prime'],['Totem Retrô','prime'],['Fotografia de Casamento','elton'],['Filmagem de Casamento','elton'],['Fotografia de Eventos e Empresas','elton']];
 function adrCidades(){const out=[];['prime','elton'].forEach(m=>{const P=adsPadrao(m);(P&&P.locais||[]).forEach(l=>{if(!out.some(x=>nrm(x)===nrm(l.cidade)))out.push(l.cidade)})});return out}
 function adrModal(){const cs=adrCidades();
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:620px"><header><h3>⚡ Anúncio rápido</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
@@ -6950,8 +6951,9 @@ function adrModal(){const cs=adrCidades();
    <div><label style="font-weight:600;font-size:13px">Foto ou vídeo</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${ADR.midias.map((m,i)=>`<div style="position:relative;width:120px;height:120px;border-radius:8px;overflow:hidden;border:1px solid var(--line)">${m.tipo==='video'?`<video src="${m.url}" style="width:100%;height:100%;object-fit:cover" muted></video>`:`<img src="${m.url}" style="width:100%;height:100%;object-fit:cover">`}<button class="icon-btn" data-adrrm="${i}" style="position:absolute;top:3px;right:3px;width:22px;height:22px;background:#fff">${ic('x',11)}</button></div>`).join('')}
     <label class="btn" style="width:120px;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-style:dashed">＋<span style="font-size:11px">foto ou vídeo</span><input type="file" accept="image/*,video/*" multiple data-adrfile hidden></label></div></div>
    <div class="form-grid">
+    <div class="field"><label>O que é o anúncio?</label><select data-adrf="prod"><option value="">Deixar o gestor ver pela foto</option>${ADR_PRODS.map(([n])=>`<option ${ADR.prod===n?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
     <div class="field"><label>Cidade</label><input class="search" list="dl-adrcid" data-adrf="cidade" value="${esc(ADR.cidade)}" placeholder="Ex.: Jaraguá do Sul"><datalist id="dl-adrcid">${cs.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
-    <div class="field"><label>Oferta ou detalhe (opcional)</label><input class="search" data-adrf="obs" value="${esc(ADR.obs)}" placeholder="Ex.: datas de dezembro, a partir de R$ 1.650"></div>
+    <div class="field full"><label>Oferta ou detalhe (opcional)</label><input class="search" data-adrf="obs" value="${esc(ADR.obs)}" placeholder="Ex.: datas de dezembro, a partir de R$ 1.650"></div>
    </div>
    ${ADR.passo?`<div class="banner" style="margin:0"><span>${esc(ADR.passo)}</span></div>`:''}
   </div>
@@ -6968,22 +6970,48 @@ async function adrMontar(){const cid=String(ADR.cidade||'').trim();if(!ADR.midia
     const fmt=x=>`- ${x.tipo} | ${brl(x.gasto/x.conversas)}/conversa | ${x.conversas} conversas | campanha: ${x.campanhas.join(', ')}\n  título: ${x.titulo||'-'}\n  texto: ${String(x.texto).replace(/\s+/g,' ').slice(0,450)}`;
     const imgs=[];for(const m of ADR.midias.slice(0,3)){const b=m.tipo==='video'?await adrFrame(m.file):await adrImgPeq(m.file);if(b)imgs.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b}})}
     const sys=`Você é o gestor de tráfego do Grupo E. Marcas: "prime" = Prime 360 Foto Cabine (aluguel de cabine de fotos com impressão na hora, Spinner 360 de vídeo, grua/cabine de prêmios, totens, espelho mágico, para festas, casamentos, formaturas e empresas) e "elton" = Elton Melchioretto Fotografia e Filmagem (fotografia e filmagem de casamentos, eventos e empresas). Base em Guaramirim-SC. O anúncio leva para conversa no WhatsApp.
-Olhe a(s) imagem(ns) para entender o que está sendo mostrado e escreva um anúncio para a cidade pedida, SEGUINDO O ESTILO DOS ANÚNCIOS QUE TROUXERAM CONVERSA MAIS BARATA (tom, tamanho, emojis, chamada) e EVITANDO o estilo dos caros. Cite a cidade de forma natural. Português do Brasil.
+Se o dono informou o produto ou escreveu algo, isso manda: o anúncio é sobre o que ele disse (ex.: "espelho" = Espelho Mágico da Prime, não fotografia). Só quando ele não disser nada, olhe a(s) imagem(ns) para descobrir o que está sendo mostrado. Escreva um anúncio para a cidade pedida, SEGUINDO O ESTILO DOS ANÚNCIOS QUE TROUXERAM CONVERSA MAIS BARATA (tom, tamanho, emojis, chamada) e EVITANDO o estilo dos caros. Cite a cidade de forma natural. Português do Brasil.
 Responda SOMENTE com JSON: {"marca":"prime|elton","produto":"nome curto do equipamento/serviço","nome":"nome da campanha no padrão [Vendas][Produto][Cidade][Wpp]","principal":"texto principal","titulo":"até 40 caracteres","descricao":"até 30 caracteres","porque":"1 ou 2 frases explicando em que campeões você se baseou e por quê"}`;
-    const txt=`Cidade do anúncio: ${cid}\n${ADR.obs?'Oferta/detalhe: '+ADR.obs+'\n':''}\nCAMPEÕES (conversa mais barata):\n${bons.map(fmt).join('\n')||'(sem dados)'}\n\nCAROS (evitar este estilo):\n${ruins.map(fmt).join('\n')||'(sem dados)'}`;
+    const pf=ADR_PRODS.find(x=>x[0]===ADR.prod);
+    const txt=`Cidade do anúncio: ${cid}\n${ADR.prod?`PRODUTO DO ANÚNCIO (escolhido pelo dono — é OBRIGATÓRIO usar exatamente este produto no nome da campanha, no título e no texto, mesmo que a foto pareça outra coisa): ${ADR.prod} (marca ${pf[1]})\n`:''}${ADR.obs?`O QUE O DONO ESCREVEU (tem prioridade sobre o que a foto parece; se citar um equipamento, o anúncio é DESSE equipamento): ${ADR.obs}\n`:''}\nCAMPEÕES (conversa mais barata):\n${bons.map(fmt).join('\n')||'(sem dados)'}\n\nCAROS (evitar este estilo):\n${ruins.map(fmt).join('\n')||'(sem dados)'}`;
     const r=await mcp.callTool('IA','chat',{system:sys,messages:[{role:'user',content:[...imgs,{type:'text',text:txt}]}],max:1500},{cache:false});const pl=parsePayload(r)||{};if(pl.erro)throw new Error(pl.erro);
     const mm=String(pl.texto||'').match(/\{[\s\S]*\}/);if(!mm)throw new Error('O gestor não respondeu no formato. Tente de novo.');const j=JSON.parse(mm[0]);
-    const marca=j.marca==='elton'?'elton':'prime';const P=adsPadrao(marca)||{};const h=(P.locais||[]).find(l=>nrm(l.cidade)===nrm(cid)||nrm(l.cidade).startsWith(nrm(cid)));
+    const marca=pf?pf[1]:(j.marca==='elton'?'elton':'prime');if(pf){j.produto=pf[0];if(!nrm(j.nome||'').includes(nrm(pf[0].split(' ')[0])))j.nome=`[Vendas][${pf[0]}][${cid}][Wpp]`}const P=adsPadrao(marca)||{};const h=(P.locais||[]).find(l=>nrm(l.cidade)===nrm(cid)||nrm(l.cidade).startsWith(nrm(cid)));
     const loc=h?{...h}:{cidade:cid,raioKm:Math.round(adsMediana((P.locais||[]).map(l=>+l.raioKm))||25),orcamentoDia:P.orcamentoDia||20};
-    ADN.f={nome:j.nome||`[Vendas][${j.produto||'Prime'}][${cid}][Wpp]`,marca,destino:'whatsapp',principal:j.principal||'',titulo:j.titulo||'',descricao:j.descricao||'',link:'',orcamentoDia:loc.orcamentoDia||P.orcamentoDia||20,inicio:today(),fim:addDays(today(),P.dur||14),locais:[loc],porCidade:true,raioKm:loc.raioKm,idadeMin:P.idadeMin||22,idadeMax:P.idadeMax||55,genero:P.genero||'todos',brief:ADR.obs||'',base:P.base||0,porque:j.porque||'',rapido:true};
-    ADN.midias=ADR.midias.slice();ADN.passo='';ADR.midias=[];ADR.cidade='';ADR.obs='';ADR.passo='';adsNovoModal()}
+    ADN.f={nome:String(j.nome||`[Vendas][${j.produto||'Prime'}][${cid}][Wpp]`).split(cid).join(loc.cidade),marca,destino:'whatsapp',principal:j.principal||'',titulo:j.titulo||'',descricao:j.descricao||'',link:'',orcamentoDia:loc.orcamentoDia||P.orcamentoDia||20,inicio:today(),fim:addDays(today(),P.dur||14),locais:[loc],porCidade:true,raioKm:loc.raioKm,idadeMin:P.idadeMin||22,idadeMax:P.idadeMax||55,genero:P.genero||'todos',brief:ADR.obs||'',base:P.base||0,porque:j.porque||'',rapido:true};
+    ADN.midias=ADR.midias.slice();ADN.passo='';ADR.midias=[];ADR.cidade='';ADR.obs='';ADR.prod='';ADR.passo='';adsNovoModal()}
   catch(err){ADR.passo='⚠️ '+String((err&&err.message)||err);adrModal()}finally{ADR.rodando=false;const b=$('[data-adrgo]');if(b){b.disabled=false;b.textContent='✨ Montar anúncio'}}}
-document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.adrf)ADR[t.dataset.adrf]=t.value});
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.adrf)ADR[t.dataset.adrf]=t.value});document.addEventListener('change',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.adrf)ADR[t.dataset.adrf]=t.value});
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.matches&&t.matches('[data-adrfile]')){for(const f of [...t.files]){const vid=/^video\//.test(f.type);if(vid&&f.size>40e6){toast(f.name+': vídeo grande demais (máx. ~40 MB).',true);continue}ADR.midias.push({file:f,tipo:vid?'video':'imagem',url:URL.createObjectURL(f)})}adrModal()}});
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-adrapido],[data-adrrm],[data-adrgo]');if(!t)return;e.preventDefault();
   if(t.hasAttribute('data-adrapido')){ADR.passo='';adrModal();if(!ADS.dados&&!ADS.carregando)adsCarregar().then(()=>{if($('[data-adrgo]')&&!ADR.rodando)adrModal()});return}
   if(t.dataset.adrrm!==undefined){ADR.midias.splice(+t.dataset.adrrm,1);adrModal();return}
   if(t.hasAttribute('data-adrgo')){adrMontar();return}});
+
+
+/* ---- prévia do anúncio (como aparece no Instagram: feed e stories) ---- */
+const ADP={i:0};
+function adsPrevHTML(F){const M=ADN.midias;if(!M.length&&!F.principal)return '';const k=Math.min(ADP.i,Math.max(0,M.length-1));const m=M[k];
+  const pag=F.marca==='elton'?'elton.fotografo':'prime360fotocabine';const ini=F.marca==='elton'?'EM':'P3';
+  const cta=F.destino==='site'?'Saiba mais':F.destino==='instagram'?'Enviar mensagem':'Enviar mensagem no WhatsApp';
+  const med=(h)=>!m?`<div style="height:${h};display:grid;place-items:center;background:#ddd;color:#777;font-size:12px">sem foto</div>`:m.tipo==='video'&&!m.existente?`<video src="${m.url}" style="width:100%;height:${h};object-fit:cover;display:block;background:#000" muted autoplay loop playsinline></video>`:`<img src="${m.url}" style="width:100%;height:${h};object-fit:cover;display:block">`;
+  const av=`<span style="width:30px;height:30px;border-radius:50%;background:linear-gradient(45deg,#f9a03f,#d62976,#7a2df5);display:inline-grid;place-items:center;color:#fff;font-size:11px;font-weight:700;flex:none">${ini}</span>`;
+  const nav=M.length>1?`<div style="display:flex;gap:6px;justify-content:center;align-items:center;margin-top:6px"><button class="btn sm" data-adprev="-1">‹</button><span class="muted" style="font-size:12px">anúncio ${k+1} de ${M.length}</span><button class="btn sm" data-adprev="1">›</button></div>`:'';
+  return `<div id="ad-prev" style="border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface-2,#f6f8f7)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:13.5px">👁️ Prévia do anúncio</b><span class="muted" style="font-size:11.5px">aproximada — a Meta pode cortar o texto com "… mais"</span></div>
+   <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
+    <div style="width:300px"><div class="muted" style="font-size:11px;text-align:center;margin-bottom:4px">Feed</div><div style="background:#fff;color:#111;border:1px solid #dbdbdb;border-radius:8px;overflow:hidden;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+     <div style="display:flex;gap:8px;align-items:center;padding:8px 10px">${av}<div style="line-height:1.15"><div style="font-size:13px;font-weight:600">${pag}</div><div style="font-size:11px;color:#737373">Patrocinado</div></div><span style="margin-left:auto;color:#737373">•••</span></div>
+     ${med('375px')}
+     <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;background:#efefef;font-size:13px;font-weight:600"><span>${esc(cta)}</span><span>›</span></div>
+     <div style="padding:6px 10px 2px;font-size:20px;letter-spacing:6px">♡ ◯ ➤</div>
+     <div style="padding:2px 10px 10px;font-size:13px;line-height:1.35;white-space:pre-wrap"><b>${pag}</b> <span id="adp-txt">${esc(String(F.principal||'').slice(0,125))}${String(F.principal||'').length>125?'<span style="color:#737373">… mais</span>':''}</span></div></div></div>
+    <div style="width:190px"><div class="muted" style="font-size:11px;text-align:center;margin-bottom:4px">Stories / Reels</div><div style="position:relative;height:338px;border-radius:12px;overflow:hidden;background:#000;color:#fff;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+     ${med('338px')}<div style="position:absolute;top:0;left:0;right:0;padding:8px;display:flex;gap:6px;align-items:center;background:linear-gradient(#0009,#0000)">${av}<div style="font-size:11px;line-height:1.1"><b>${pag}</b><br>Patrocinado</div></div>
+     <div style="position:absolute;left:0;right:0;bottom:0;padding:30px 10px 10px;background:linear-gradient(#0000,#000c)"><div id="adp-tit" style="font-size:12px;font-weight:700;margin-bottom:6px">${esc(F.titulo||'')}</div><div style="background:#fff;color:#111;border-radius:16px;text-align:center;font-size:11.5px;font-weight:600;padding:6px">${esc(cta)}</div></div></div></div>
+   </div>${nav}</div>`}
+function adsPrevAtualizar(){const F=ADN.f;if(!F)return;const t=$('#adp-txt'),ti=$('#adp-tit');if(t)t.innerHTML=esc(String(F.principal||'').slice(0,125))+(String(F.principal||'').length>125?'<span style="color:#737373">… mais</span>':'');if(ti)ti.textContent=F.titulo||''}
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&['principal','titulo'].includes(t.dataset.adf))setTimeout(adsPrevAtualizar,0)});
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-adprev]');if(!t)return;e.preventDefault();const n=ADN.midias.length||1;ADP.i=((ADP.i+(+t.dataset.adprev))%n+n)%n;const el=$('#ad-prev');if(el&&ADN.f){el.outerHTML=adsPrevHTML(ADN.f)}});
 
 /* ---- novo anúncio ---- */
 const ADN={midias:[],passo:''};
@@ -7026,6 +7054,7 @@ function adsNovoModal(){const pgs=(S.ig&&S.ig.contas||igLoad().contas||[]).filte
     <div class="field"><label>Título</label><input data-adf="titulo" value="${v('titulo')}" maxlength="60"></div>
     <div class="field"><label>Descrição (opcional)</label><input data-adf="descricao" value="${v('descricao')}" maxlength="60"></div>
    </div>
+   ${adsPrevHTML(F)}
    <div class="form-grid">
     ${F.porque?`<div class="field full" style="margin:0"><div class="banner" style="margin:0;padding:8px 12px;font-size:12.5px;border-color:var(--ok)"><span>🧠 <b>Como o gestor montou:</b> ${esc(F.porque)}</span></div></div>`:''}<div class="field full" style="margin:0"><div class="banner" style="margin:0;padding:8px 12px;font-size:12.5px"><span>${F.base?`📊 Público, idades, cidades, raio e verba preenchidos pelo jeito que vocês já anunciam (últimos ${F.base} conjuntos da ${F.marca==='elton'?'Elton':'Prime'} na Meta). Mude só o que quiser.`:ADS.carregando?'Lendo o histórico de anúncios na Meta…':'Ainda não consegui ler o histórico da Meta — preenchi com um padrão. Clique em Atualizar na aba Anúncios e abra de novo.'}</span>${F.base?'':' <button class="btn sm" data-adpadrao>Usar histórico</button>'}</div></div>
     <div class="field full" style="margin:0"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" data-adporcid ${F.porCidade?'checked':''} style="width:auto"> Rodar separado por cidade (cada cidade com sua verba, para ver qual traz mais cliente)</label></div>
@@ -7043,7 +7072,7 @@ function adsNovoModal(){const pgs=(S.ig&&S.ig.contas||igLoad().contas||[]).filte
    ${ADN.passo?`<div class="banner" style="margin:0"><span>${esc(ADN.passo)}</span></div>`:''}
    ${pgs.length?'':'<div class="banner" style="border-color:var(--warn);margin:0"><span>As páginas ainda não foram lidas do Instagram/Meta. Abra a tela Instagram uma vez e volte aqui.</span></div>'}
   </div>
-  <footer><button class="btn" data-adcopiar>📋 Copiar pacote</button><span class="sp" style="flex:1"></span><button class="btn" data-close>Cancelar</button><button class="btn pri" data-adcriar>Criar na Meta (pausado)</button></footer></div></div>`}
+  <footer><button class="btn" data-adcopiar>📋 Copiar pacote</button><span class="sp" style="flex:1"></span><button class="btn" data-close>Cancelar</button><button class="btn pri" data-adcriar>✅ Aprovar e criar na Meta (pausado)</button></footer></div></div>`}
 async function adsB64Img(file){const url=URL.createObjectURL(file);try{const img=await new Promise((ok,er)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>er(new Error('Não consegui abrir a imagem.'));im.src=url});const M=1920,k=Math.min(1,M/Math.max(img.naturalWidth,img.naturalHeight));const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);return cv.toDataURL('image/jpeg',0.9).split(',')[1]}finally{URL.revokeObjectURL(url)}}
 async function adsB64Raw(file){const buf=new Uint8Array(await file.arrayBuffer());let s='';for(let i=0;i<buf.length;i+=0x8000)s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));return btoa(s)}
 function adsPacote(){const F=ADN.f||{};return `CAMPANHA: ${F.nome||''}\nMarca: ${F.marca==='elton'?'Elton Melchioretto Fotografia':'Prime 360 Foto Cabine'}\nDestino: ${F.destino==='whatsapp'?'Conversa no WhatsApp':F.destino==='instagram'?'Direct do Instagram':'Site: '+(F.link||'')}\n\nTEXTO PRINCIPAL:\n${F.principal||''}\n\nTÍTULO: ${F.titulo||''}\nDESCRIÇÃO: ${F.descricao||''}\n\nPERÍODO: ${fdate(F.inicio)} a ${fdate(F.fim)}\n${F.porCidade?'UM CONJUNTO POR CIDADE:\n'+(F.locais||[]).map(l=>`• ${l.cidade} — raio ${l.raioKm} km — R$ ${l.orcamentoDia}/dia`).join('\n'):`ORÇAMENTO: R$ ${F.orcamentoDia}/dia\nCIDADES: ${(F.locais||[]).map(l=>l.cidade+' ('+l.raioKm+' km)').join(', ')}`}\nIDADE: ${F.idadeMin}–${F.idadeMax} anos · PÚBLICO: ${F.genero}\nMÍDIAS: ${ADN.midias.length} arquivo(s): ${ADN.midias.map(m=>m.file?m.file.name:m.nome).join(', ')}`}
