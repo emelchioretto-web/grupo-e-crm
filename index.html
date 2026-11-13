@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261113081852';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261113093350';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -5190,7 +5190,7 @@ function prodOcupado(pid,O,d,selfPed){const pr=S.data.produtos.find(x=>x.id===pi
   if(ehUnid(k)&&O.unid[k])return O.unid[k];if(O.prod[pid]&&ehUnid(k))return O.prod[pid];
   if(!ehUnid(k)){const tipos=eqDoProduto(pid,'');if(tipos.length){const uso=usoDoDia(d,selfPed);const eq=cfg().equipamentos||[];const cheio=tipos.every(t=>{const e=eq.find(x=>x.chave===t);const q=e?(+e.qtd||1):1;return ((uso.uso||uso)[t]||[]).length>=q});if(cheio)return 'todos'}}
   return null}
-function itensOcupados(){if(!M||!(M.col==='pedidos'||M.col==='propostas'))return;const d=($('#f-dataEvento')||{}).value||'';const self=M.col==='pedidos'?M.rec.id:(M.rec.pedidoId||'');const O=ocupadosNaData(d,self);M._ocup=[];
+function itensOcupados(){if(!M||!(M.col==='pedidos'||M.col==='propostas'))return;let d=($('#f-dataEvento')||{}).value||'';if(!d){const oid=M.rec.oportunidadeId||((String(($('#f-oportunidadeId')||{}).value||'').match(/\[([^\]]+)\]\s*$/)||[])[1]);const op=oid&&S.data.oportunidades.find(x=>x.id===oid);d=(op&&op.dataEvento)||(M.rec.dataEvento||'')}const self=M.col==='pedidos'?M.rec.id:(M.rec.pedidoId||'');const O=ocupadosNaData(d,self);M._ocup=[];
   $$('#itemRows [data-ip]').forEach(sel=>{[...sel.options].forEach(o=>{if(!o.value)return;if(o.dataset.orig==null)o.dataset.orig=o.textContent;const n=d?prodOcupado(o.value,O,d,self):null;
       o.textContent=o.dataset.orig+(n?(n==='todos'?' — todos locados nesta data':` — locado (#${n})`):'');o.disabled=!!n&&!o.selected;if(n&&o.selected)M._ocup.push(o.dataset.orig+(n==='todos'?'':' (#'+n+')'))});
     const bad=sel.value&&sel.selectedOptions[0]&&/ — (locado|todos)/.test(sel.selectedOptions[0].textContent);sel.style.borderColor=bad?'var(--danger)':'';sel.style.color=bad?'var(--danger)':'';sel.title=bad?'Este equipamento já está locado nesta data':''})}
@@ -5198,7 +5198,7 @@ function itensOcupados(){if(!M||!(M.col==='pedidos'||M.col==='propostas'))return
 document.addEventListener('change',e=>{const t=e.target;if(!t||!M)return;if(t.id==='f-dataEvento'||(t.matches&&t.matches('[data-ip]')))setTimeout(itensOcupados,30)});
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-iadd]'))setTimeout(itensOcupados,60)});
 {const _sf=submitForm;submitForm=async function(...a){if(M&&(M.col==='pedidos'||M.col==='propostas')){itensOcupados();const oc=M._ocup||[];const key=oc.join('|')+'@'+(($('#f-dataEvento')||{}).value||'');
-   if(oc.length&&M._ocupOk!==key){M._ocupOk=key;toast(`Atenção: ${oc.join(', ')} já está locado em ${fdate((($('#f-dataEvento')||{}).value||''))}. Troque o equipamento ou clique em Salvar de novo para salvar mesmo assim.`,true);return}}
+   if(oc.length&&M._ocupOk!==key){M._ocupOk=key;toast(`Atenção: ${oc.join(', ')} já está locado nesta data. Troque o equipamento ou clique em Salvar de novo para salvar mesmo assim.`,true);return}}
   return _sf.apply(this,a)}}
 
 /* ===== Formulário de orçamento dos sites (Apps Script) → oportunidades ===== */
@@ -5404,6 +5404,8 @@ function pedPropsHTML(p){if(!p.oportunidadeId)return '';const o=S.data.oportunid
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-propnoped],[data-oppopenped]');if(!t)return;e.preventDefault();e.stopPropagation();
   if(t.dataset.oppopenped){openPedido(t.dataset.oppopenped);return}
   const pr=S.data.propostas.find(x=>x.id===t.dataset.propnoped),p=S.data.pedidos.find(x=>x.id===t.dataset.pid);if(!pr||!p)return;
+  const _O=ocupadosNaData(p.dataEvento,p.id);const _oc=(pr.itens||[]).filter(i=>i.produtoId&&prodOcupado(i.produtoId,_O,p.dataEvento,p.id)).map(i=>{const x=S.data.produtos.find(y=>y.id===i.produtoId);return (x&&x.nome)||i.desc});
+  if(_oc.length&&!t.dataset.ok)toast(`Atenção: ${_oc.join(', ')} já está locado em ${fdate(p.dataEvento)}. Confira antes de confirmar.`,true);
   if(!t.dataset.ok){t.dataset.ok='1';t.innerHTML='Confirmar: trocar os itens?';t.style.color='var(--danger)';setTimeout(()=>{if(t.isConnected){delete t.dataset.ok;t.innerHTML=`${ic('cart',13)} Usar neste pedido`;t.style.color=''}},5000);return}
   try{const ch={itens:pr.itens||[]};if(pr.desconto!=null)ch.desconto=pr.desconto;if(pr.condicoes)ch.condicoes=pr.condicoes;if(!(p.custos||[]).length){const g=pr.calc?calcCustos(pr.calc,p.dataEvento||today()):pedCustosGerar({...p,itens:ch.itens});if(g.length)ch.custos=g}
     await patch('pedidos',p.id,ch);if(ch.custos)try{await custoLancarTodos(p.id)}catch(_){}try{for(let t=0;t<20&&Math.abs(pedidoTotal(S.data.pedidos.find(x=>x.id===p.id)||p)-pedidoTotal({...p,...ch}))>0.01;t++)await new Promise(r=>setTimeout(r,150));await pedParcAuto(p.id)}catch(_){}await patch('propostas',pr.id,{status:'Aceita'});const o=S.data.oportunidades.find(x=>x.id===p.oportunidadeId);if(o)await patch('oportunidades',o.id,{valor:pedidoTotal({...p,...ch})});
