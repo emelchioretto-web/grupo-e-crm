@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261113142637';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261113142846';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -6470,6 +6470,14 @@ document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.c
     try{await save('oportunidades',{...o,etapa:'Perdida',motivoPerda:mot,etapaAntes:o.etapa,fechamento:today(),notas:ob.trim()?((o.notas||'')+(o.notas?'\n':'')+'['+fdate(today())+' · perdida: '+mot+'] '+ob.trim()):o.notas});closeModal();toast('Oportunidade marcada como perdida ('+mot+')');render()}catch(err){failWrite(err)}return}
   if(d.oppreabre){const et=o.etapaAntes&&o.etapaAntes!=='Perdida'?o.etapaAntes:(ABERTAS[0]||'Novo');try{await save('oportunidades',{...o,etapa:et,motivoPerda:'',fechamento:''});toast('Oportunidade reaberta');render()}catch(err){failWrite(err)}}},true);
 /* custo do pedido alterado → acerta a conta a pagar ligada a ele no financeiro */
+/* Uma vez: custo sem vencimento ("só custo") de papel/fotos impressas que ainda tinha conta a pagar em aberto (ex.: #3133) */
+setInterval(async()=>{if(!S.dono||!S.cfg||S.cfg.custoLote2||(S.mode==='db'&&!S._cfgOk)||S._clRun)return;if(S.mode==='db'&&!(S.loaded&&S.loaded.has('lancamentos')&&S.loaded.has('pedidos')))return;S._clRun=true;
+  try{await cfgSet('custoLote2',new Date().toISOString());let n=0;
+    for(const p of S.data.pedidos){const C=p.custos||[];let mud=false;const novo=C.map(c=>({...c}));
+      for(let k=0;k<C.length;k++){const c=C[k];if(c.venc||!(c.controle===true||CUSTO_LOTE.test(String(c.nome||''))))continue;const l=custoLanc(p,c,C);if(!l||l.pago)continue;
+        try{await removeRec('lancamentos',l.id);n++;novo[k].lancId='';novo[k].controle=true;mud=true}catch(_){}}
+      if(mud){try{await patch('pedidos',p.id,{custos:novo})}catch(_){}}}
+    if(n)toast(`${n} conta${n>1?'s':''} a pagar de papel/fotos impressas sem vencimento removida${n>1?'s':''} (ficam só como custo do pedido).`)}finally{S._clRun=false}},8000);
 function custoLanc(p,c,lista){lista=lista||p.custos||[];let me=lista.indexOf(c);if(me<0&&c&&c.id)me=lista.findIndex(x=>x&&x.id===c.id);
   /* cada conta a pagar pertence a um custo só: dois produtos com "Operador" ou "Adesivo" não podem dividir a mesma conta */
   const dono=new Map();lista.forEach((x,k)=>{if(x&&x.lancId&&x.lancId!=='alboom'&&!dono.has(x.lancId))dono.set(x.lancId,k)});
@@ -6502,6 +6510,7 @@ async function custoModalSalvar(btn){const p=S.data.pedidos.find(x=>x.id===btn.d
   const c=novo?{id:'cu'+Math.random().toString(36).slice(2,9)}:L[i];Object.assign(c,{nome,fornecedor:forn,conta,venc,valor});if(old&&old.fornecedor!==forn)c.fornecedorNum=null;
   let fc=null;
   try{if(forn){const fid=await fornResolver(forn,true);fc=fid?{id:fid}:null}if(novo){if(venc){c.lancId=await save('lancamentos',{tipo:'pagar',categoria:conta?conta.replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${nome} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor,vencimento:venc,conta:'',pago:false,pedidoId:p.id})||true}L.push(c)}
+    else if(!venc){const l=custoLanc(p,old);if(l&&!l.pago){await removeRec('lancamentos',l.id);toast('Sem vencimento: a conta a pagar foi tirada do financeiro (fica só como custo).')}else if(l&&l.pago)toast('Esta conta já está paga no financeiro: mudei só no pedido.',true);c.lancId=l&&l.pago?l.id:'';if(!(l&&l.pago))c.controle=true}
     else{const lid=custoSyncLanc(p,old,c);if(lid)c.lancId=lid;else if(venc&&!c.lancId){c.lancId=await save('lancamentos',{tipo:'pagar',categoria:conta?conta.replace(/^[\d.]+\s*-\s*/,''):'Custo de evento · '+(p.categoria||''),descricao:`${nome} - Order #${p.num||''} - ${p.titulo||''}`,contatoId:fc?fc.id:'',valor,vencimento:venc,conta:'',pago:false,pedidoId:p.id})||true}}
     await patch('pedidos',p.id,{custos:L});closeModal();S.ui.pd.sec='custos';toast(novo?'Custo adicionado'+(venc?' e lançado em Contas a pagar':''):'Custo salvo');render()}
   catch(e){btn.disabled=false;failWrite(e)}}
