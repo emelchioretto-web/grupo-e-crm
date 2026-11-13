@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261113161431';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261113171553';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -4923,7 +4923,7 @@ VIEWS.retornos=()=>{const U=S.ui.ret;const t=today(),am=addDays(t,1),sem=addDays
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">${badge(etapaNome(o.etapa),(ETAPAS.find(x=>x[0]===o.etapa)||[])[1]||'--idle')}${(ls.length?ls:[listaOrcDe(o)]).map(listaChip).join('')}${dp!=null&&dp>=3?`<span class="sub" style="color:${dp>=(+cfg().followup||15)?'var(--danger)':'var(--muted)'}">sem contato há ${dp} dia${dp===1?'':'s'}</span>`:''}</div>
       ${o.retNota?`<div class="sub" style="margin-top:4px">📝 ${esc(o.retNota)}</div>`:''}</div>
       <div class="num" style="font-size:12.5px;white-space:nowrap;${o.proximaAcao&&o.proximaAcao<t?'color:var(--danger);font-weight:600':''}">${o.proximaAcao?fdateShort(o.proximaAcao):'—'}</div></div>
-     <div class="ret-acts">${wa?`<a class="btn sm" style="background:#25a85a;border-color:#25a85a;color:#fff" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ic('wa',13)} WhatsApp</a>`:''}<button class="btn sm ok" data-retfeito="${o.id}">✓ Falei com ele</button><button class="btn sm" data-retadiar="${o.id}">Adiar</button></div></div>`};
+     <div class="ret-acts">${wa?`<a class="btn sm" style="background:#25a85a;border-color:#25a85a;color:#fff" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ic('wa',13)} WhatsApp</a>`:''}<button class="btn sm ok" data-retfeito="${o.id}">✓ Falei com ele</button><button class="btn sm" data-retadiar="${o.id}">Adiar</button><button class="btn sm" style="color:var(--danger);border-color:var(--danger)" data-opplost="${o.id}" data-oppmot="Sem resposta" title="Marcar a oportunidade como perdida">✕ Perdido</button></div></div>`};
   const resp=[...new Set(retAbertas().map(o=>o.responsavel||o.vendedor).filter(Boolean))].sort();
   const cols=G.map(([k,l,f,c])=>{const A=L.filter(f).sort((a,b)=>(a.proximaAcao||'').localeCompare(b.proximaAcao||'')||(a.dataEvento||'9').localeCompare(b.dataEvento||'9'));if(!A.length&&(k==='dep'||k==='sem'||k==='7d'))return '';
     return `<section class="panel ret-g"><header style="--c:var(${c})"><h3>${l} <span class="muted" style="font-weight:500">${A.length}</span></h3></header><div class="body" style="display:grid;gap:8px">${A.map(card).join('')||'<span class="muted" style="font-size:13px">Ninguém aqui.</span>'}</div></section>`}).join('');
@@ -6458,13 +6458,13 @@ async function fornResolver(nome,criar){const n=String(nome||'').trim();if(!n)re
   try{return await save('contatos',{nome:pn,sobrenome:rest.join(' '),categoria:'Fornecedor',email:m.email||'',celular:m.celular||'',obs:m.nome?'Cadastro criado a partir da equipe ('+(m.tipo||'freelancer')+').':'Cadastro criado a partir de um custo de pedido.'})||''}catch(e){return ''}}
 function custoDoLanc(l){if(!l||!l.pedidoId)return null;const p=S.data.pedidos.find(x=>x.id===l.pedidoId);if(!p)return null;return (p.custos||[]).find(c=>c.lancId===l.id)||(p.custos||[]).find(c=>custoLanc(p,c)===l)||null}
 /* oportunidade perdida / reabrir */
-function oppPerdidaModal(id){const o=S.data.oportunidades.find(x=>x.id===id);if(!o)return;const M=['Desistência','Venda Perdida','Data Indisponível','Suspenso','Preço','Sem resposta'];
+function oppPerdidaModal(id,def){const o=S.data.oportunidades.find(x=>x.id===id);if(!o)return;const M=['Desistência','Venda Perdida','Data Indisponível','Suspenso','Preço','Sem resposta'];
   $('#modalRoot').innerHTML=`<div class="overlay" data-close-bg><div class="modal" style="max-width:460px"><header><h3>Oportunidade perdida</h3><button type="button" class="icon-btn x" data-close aria-label="Fechar">${ic('x',15)}</button></header>
-  <div class="mbody" style="display:grid;gap:12px"><p class="muted" style="margin:0">${esc(o.titulo||'')}</p><div class="field" style="margin:0"><label for="opp-mot">Motivo</label><select id="opp-mot" data-nativo>${M.map(m=>`<option>${esc(m)}</option>`).join('')}</select></div>
+  <div class="mbody" style="display:grid;gap:12px"><p class="muted" style="margin:0">${esc(o.titulo||'')}</p><div class="field" style="margin:0"><label for="opp-mot">Motivo</label><select id="opp-mot" data-nativo>${M.map(m=>`<option ${m===def?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
   <div class="field" style="margin:0"><label for="opp-mobs">Observação (opcional)</label><textarea id="opp-mobs" rows="2" placeholder="Ex.: fechou com outro fornecedor"></textarea></div></div>
   <footer><span class="sp"></span><button class="btn" data-close>Cancelar</button><button class="btn pri" style="background:var(--danger);border-color:var(--danger)" data-opplostok="${o.id}">Marcar como perdida</button></footer></div></div>`}
 document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-opplost],[data-opplostok],[data-oppreabre]');if(!t)return;e.preventDefault();e.stopPropagation();const d=t.dataset;
-  if(d.opplost){oppPerdidaModal(d.opplost);return}
+  if(d.opplost){oppPerdidaModal(d.opplost,d.oppmot);return}
   const o=S.data.oportunidades.find(x=>x.id===(d.opplostok||d.oppreabre));if(!o)return;
   if(d.opplostok){const mot=($('#opp-mot')||{}).value||'Venda Perdida';const ob=($('#opp-mobs')||{}).value||'';
     try{await save('oportunidades',{...o,etapa:'Perdida',motivoPerda:mot,etapaAntes:o.etapa,fechamento:today(),notas:ob.trim()?((o.notas||'')+(o.notas?'\n':'')+'['+fdate(today())+' · perdida: '+mot+'] '+ob.trim()):o.notas});closeModal();toast('Oportunidade marcada como perdida ('+mot+')');render()}catch(err){failWrite(err)}return}
