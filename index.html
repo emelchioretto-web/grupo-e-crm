@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261113093350';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261113141212';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1778,6 +1778,11 @@ async function mesclarContatos(keepId,dupIds){
   const D=S.data,dup=new Set(dupIds);
   for(const col of ['pedidos','oportunidades','agenda','projetos','provas','propostas','anexos','tarefas','fichas']){for(const r of [...(D[col]||[])]){const ch={};if(dup.has(r.contatoId))ch.contatoId=keepId;if(dup.has(r.contato2Id))ch.contato2Id=keepId;if(col==='provas'&&(r.clientes||[]).some(c=>dup.has(c.c)))ch.clientes=r.clientes.map(c=>dup.has(c.c)?{...c,c:keepId}:c);if(Object.keys(ch).length)await patch(col,r.id,ch)}}
   for(const l of [...D.lancamentos])if(dup.has(l.contatoId)&&!String(l.id).startsWith('f~'))await patch('lancamentos',l.id,{contatoId:keepId});
+  /* histórico do Alboom (guardado em blocos) e custos/fornecedor dos pedidos e produtos também passam para o contato que ficou */
+  try{for(const k in (S.finB||{})){if((S.finB[k]||[]).some(it=>dup.has(it.contatoId)))await finWrite(k,arr=>arr.map(it=>dup.has(it.contatoId)?{...it,contatoId:keepId}:it))}}catch(_){}
+  {const dNum=new Set(),dNm=new Set();for(const did of dupIds){const d0=(S.data.contatos.find(c=>c.id===did));if(!d0)continue;if(d0.num!=null)dNum.add(+d0.num);[d0.nome,SCHEMAS.contatos.labelOf(d0)].forEach(n=>n&&dNm.add(nrm(n)))}
+   const kNm=SCHEMAS.contatos.labelOf(novo)||novo.nome;const troca=c=>(c&&((c.fornecedorNum!=null&&dNum.has(+c.fornecedorNum))||(c.fornecedor&&dNm.has(nrm(c.fornecedor)))))?{...c,fornecedor:kNm,fornecedorNum:novo.num}:c;
+   for(const col of ['pedidos','produtos']){for(const r of [...(D[col]||[])]){if(!(r.custos||[]).length)continue;const nc=r.custos.map(troca);if(nc.some((c,i)=>c!==r.custos[i]))try{await patch(col,r.id,{custos:nc})}catch(_){}}}}
   for(const did of dupIds)await removeRec('contatos',did);
   rebuildLanc();
 }
