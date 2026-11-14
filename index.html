@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.CRM_BUILD='20261114071914';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
+<script>window.CRM_BUILD='20261114084813';window.FIREBASE_CONFIG={"apiKey":"AIzaSyBvJq4Gwyrmb-sD_fQjDDFOzbiN7jRXLgQ","authDomain":"grupo-e-crm.firebaseapp.com","projectId":"grupo-e-crm","storageBucket":"grupo-e-crm.firebasestorage.app","messagingSenderId":"45921603836","appId":"1:45921603836:web:f6b45f624f932f9c158779"}
 ;window.GOOGLE_CLIENT_ID='';window.GAS_URL='https://script.google.com/macros/s/AKfycbzvnQ6662XAQH-PBRiVu-JECF6u5ES6UORmabGTxVUcA4LScEFz58eNPdsAiv9SehuQ/exec';</script>
 <script>/* Grupo E CRM — versão com login próprio (Firebase). Substitui o ambiente do claude.ai. */
 (function(){
@@ -1068,8 +1068,8 @@ const SCHEMAS={
       {k:'mostrarPreco',l:'Mostrar preço da foto extra',t:'check',tab:1},
       {k:'precoExtra',l:'Preço por foto extra (R$)',t:'money',tab:1},
       {k:'paginasModo',l:'Páginas do álbum',t:'select',o:['Simples','Duplas (lâminas)'],tab:1},{k:'pedeCapa',l:'Cliente escolhe a foto da capa do álbum (seleção)',t:'check',def:true,tab:1},{k:'pedeCaixa',l:'Cliente escolhe a foto da caixa (seleção)',t:'check',def:true,tab:1},
-      {k:'descricao',l:'Descrição',t:'area',full:1,ph:'Você tem 1 (um) álbum 30x30 capa acrílica com 100 fotos + Caixa fotográfica',tab:2},
-      {k:'instrucoes',l:'Instruções',t:'area',full:1,ph:'Você tem 120 dias para escolher as 100 fotos…',tab:2},
+      {k:'descricao',l:'Descrição',t:'area',full:1,ph:'Você tem 1 (um) álbum 30x30 capa acrílica com 100 fotos + Caixa fotográfica',tab:2,def:r=>pvPadrao(r.tipo).descricao},
+      {k:'instrucoes',l:'Instruções',t:'area',full:1,ph:'Você tem 120 dias para escolher as 100 fotos…',tab:2,def:r=>pvPadrao(r.tipo).instrucoes},
       {k:'notas',l:'Observações internas',t:'area',full:1,tab:2}
     ],
     filters:{field:'status',opts:['Todas','Ativa','Expirada','Concluída','Seleção de fotos','Visualização','Álbum']},
@@ -3031,6 +3031,9 @@ VIEWS.config=()=>{
      <h4>Marca d'água</h4><div class="form-grid">${crow('Imagem (PNG com fundo transparente)',`<div style="display:flex;gap:10px;align-items:center">${P.marca.a?`<img src="${blobUrl(P.marca.a)}" alt="" style="max-height:48px;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px">`:''}<label class="btn sm">${ic('up',14)} ${P.marca.a?'Trocar':'Enviar'} imagem<input type="file" accept="image/png,image/*" data-wmup hidden></label></div>`)}
        ${crow('Posição',`<div class="wmgrid">${pos}</div>`)}${crow('Margem em pixels',`<input type="number" data-cfgn="provas.marca.margem" value="${P.marca.margem}">`)}</div><p class="muted" style="font-size:12px">A marca d'água é aplicada nas imagens enviadas para provas com "Marca d'água" ligada.</p>
      <h4>Lembretes</h4><div class="field full"><label>Dias antes do prazo para lembrar o cliente (um por linha)</label><textarea data-cfglemb style="min-height:180px">${esc(P.lembretes.join('\n'))}</textarea></div><p class="muted" style="font-size:12px">O CRM não envia e-mails automáticos: nesses dias a prova aparece em Tarefas do dia para você avisar o cliente.</p>
+     <h4>Textos padrão da galeria</h4><p class="muted" style="font-size:12px;margin:0">Aparecem para o cliente no botão ℹ️ "Informações sobre esta galeria" e entram sozinhos em toda prova nova (dá para mudar em cada prova). Use {limite} para a quantidade de fotos do pacote.</p>
+     ${['Seleção de fotos','Álbum','Visualização'].map(tp=>{const X=pvPadrao(tp);return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0"><b style="font-size:13px">${tp}</b><div class="form-grid" style="margin-top:6px"><div class="field full"><label>Descrição</label><textarea data-pvpad="${tp}|descricao" style="min-height:70px">${esc(X.descricao)}</textarea></div><div class="field full"><label>Instruções</label><textarea data-pvpad="${tp}|instrucoes" style="min-height:130px">${esc(X.instrucoes)}</textarea></div></div></div>`}).join('')}
+     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn sm pri" data-pvpadsave>Salvar textos padrão</button><button class="btn sm" data-pvpadtodas title="Coloca o texto padrão nas provas ativas que estão sem descrição ou instruções">Aplicar nas provas ativas sem texto</button></div>
      <h4>Textos do convite</h4><p class="muted" style="font-size:12px;margin:0">Usados em "Enviar link de acesso" e "Enviar convite". Campos: {nome} {prova} {liberada} {acao} {prazo} {link} {senha}. Use *texto* para negrito.</p>
      <div class="field full"><label>E-mail</label><textarea data-cfgt="provas.textoConvite" style="min-height:260px">${esc(P.textoConvite||PV_TXT_DEF)}</textarea></div>
      <div class="field full"><label>WhatsApp</label><textarea data-cfgt="provas.textoWa" style="min-height:140px">${esc(P.textoWa||PV_WA_DEF)}</textarea></div>`}
@@ -3069,7 +3072,7 @@ let M=null; // current modal state
 const refLabel=(col,r)=>SCHEMAS[col].labelOf(r)+(r.cidade?' · '+r.cidade:'')+' ['+r.id+']';
 function refFromInput(v,col){if(!v)return '';const m=v.match(/\[([^\]]+)\]$/);if(m&&S.data[col].some(r=>r.id===m[1]))return m[1];const hit=S.data[col].filter(r=>SCHEMAS[col].labelOf(r).toLowerCase()===v.toLowerCase());return hit.length===1?hit[0].id:null}
 function fieldHTML(f,rec){
-  const v=(rec[f.k]!=null&&rec[f.k]!=='')?rec[f.k]:(rec.id?(f.dv&&f.t!=='multi'?f.dv(rec):rec[f.k]):f.def);const id='f-'+f.k;const req=f.req?' <span class="req">*</span>':'';
+  const v=(rec[f.k]!=null&&rec[f.k]!=='')?rec[f.k]:(rec.id?(f.dv&&f.t!=='multi'?f.dv(rec):rec[f.k]):(typeof f.def==='function'?f.def(rec):f.def));const id='f-'+f.k;const req=f.req?' <span class="req">*</span>':'';
   if(f.newOnly&&rec.id&&!(typeof f.newOnly==='function'&&f.newOnly(rec)))return '';if(f.hide&&f.hide(rec||{}))return '';
   if(f.t==='info')return `<div class="field full"><label>${f.l}</label><span class="muted" style="font-size:13px">${esc(f.txt||'')}</span></div>`;
   if(f.t==='check')return `<div class="field check ${f.full?'full':''}"><input type="checkbox" id="${id}" ${v?'checked':''}><label for="${id}">${f.l}</label></div>`;
@@ -5766,6 +5769,23 @@ document.addEventListener('change',e=>{const t=e.target;if(!(t.matches&&t.matche
   if((S.data.agenda||[]).some(x=>x.gcal&&x.gcal.id)&&!confirm('Os eventos já publicados vão ser movidos para a nova agenda na próxima publicação (os participantes recebem o cancelamento do antigo e o convite novo). Continuar?')){render();return}
   cfgSet('gcal',{...gcCfg(),agenda:t.value,agendaNome:c?c.summary:''});render()});
 /* ===== Provas: convites, link de acesso, dados do contato ===== */
+
+/* Textos padrão da galeria (Descrição e Instruções) por tipo de prova — Configurações › Provas */
+const PV_PADRAO_DEF={'Seleção de fotos':{descricao:'* Você tem 1 (um) álbum 30x30 capa acrílica com {limite} fotos + Caixa fotográfica (escolha a foto da capa do álbum)',
+  instrucoes:'* 1º - Você tem 120 dias para escolher as {limite} fotos a partir do aviso por e-mail para o seu álbum após seu casamento.\n* As fotos estão separadas por momentos do seu evento em pastas com indicações logo acima para você poder se localizar melhor nas imagens e fica mais fácil a sua escolha.\n* Siga essas instruções e se tiver dúvida como começar a fazer a sua escolha procure no painel soluções.\n* Leia atentamente todos os passos para não ter erros.'},
+  'Álbum':{descricao:'',instrucoes:'* Veja o álbum página por página.\n* Se quiser mudar alguma coisa, deixe o comentário na própria página.\n* Quando estiver tudo certo, clique em Aprovar.'},
+  'Visualização':{descricao:'',instrucoes:''},'Venda de fotos':{descricao:'',instrucoes:''}};
+function pvPadrao(tipo){const t=tipo||'Seleção de fotos';const C=((cfg().provas||{}).padrao||{})[t];const D=PV_PADRAO_DEF[t]||{descricao:'',instrucoes:''};return {descricao:C&&C.descricao!=null?C.descricao:D.descricao,instrucoes:C&&C.instrucoes!=null?C.instrucoes:D.instrucoes}}
+const pvPadraoFill=(t,r)=>String(t||'').replace(/\{limite\}/g,r&&+r.limite?String(r.limite):'100');
+/* prova nova sem descrição/instruções: entra o texto padrão do tipo */
+{const _sv=save;save=async function(col,rec,...r){if(col==='provas'&&rec&&!rec.id){const P=pvPadrao(rec.tipo);if(!String(rec.descricao||'').trim()&&P.descricao)rec={...rec,descricao:pvPadraoFill(P.descricao,rec)};if(!String(rec.instrucoes||'').trim()&&P.instrucoes)rec={...rec,instrucoes:pvPadraoFill(P.instrucoes,rec)};}
+  else if(col==='provas'&&rec&&rec.id){if(/\{limite\}/.test(rec.descricao||'')||/\{limite\}/.test(rec.instrucoes||''))rec={...rec,descricao:pvPadraoFill(rec.descricao,rec),instrucoes:pvPadraoFill(rec.instrucoes,rec)}}
+  return _sv.call(this,col,rec,...r)}}
+
+document.addEventListener('click',async e=>{const t=e.target.closest&&e.target.closest('[data-pvpadsave],[data-pvpadtodas]');if(!t)return;e.preventDefault();
+  if(t.hasAttribute('data-pvpadsave')){const pad={...((cfg().provas||{}).padrao||{})};document.querySelectorAll('[data-pvpad]').forEach(el=>{const [tp,k]=el.dataset.pvpad.split('|');pad[tp]={...(pad[tp]||{}),[k]:el.value}});cfgSet('provas',{...((S.cfg||{}).provas||{}),padrao:pad});toast('Textos padrão salvos.');return}
+  if(t.hasAttribute('data-pvpadtodas')){const L=S.data.provas.filter(p=>!/expirad|conclu/i.test(p.status||'')&&(!String(p.descricao||'').trim()||!String(p.instrucoes||'').trim()));if(!L.length){toast('Todas as provas ativas já têm texto.');return}
+    if(!confirm(`Colocar o texto padrão em ${L.length} prova(s) ativa(s) que estão sem descrição ou instruções? (Não mexe em quem já tem texto.)`))return;let n=0;for(const p of L){const P=pvPadrao(p.tipo);const ch={};if(!String(p.descricao||'').trim()&&P.descricao)ch.descricao=pvPadraoFill(P.descricao,p);if(!String(p.instrucoes||'').trim()&&P.instrucoes)ch.instrucoes=pvPadraoFill(P.instrucoes,p);if(Object.keys(ch).length){try{await patch('provas',p.id,ch);n++}catch(_){}}}toast(n+' prova(s) atualizada(s).')}});
 const PV_TXT_DEF=`Olá {nome},
 
 Tudo bem?
